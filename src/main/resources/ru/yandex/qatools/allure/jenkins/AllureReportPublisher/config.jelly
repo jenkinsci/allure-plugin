@@ -36,5 +36,10 @@
         <f:entry title="Include build environment variables" field="includeProperties">
             <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
         </f:entry>
+        <!--j:if test="${instance.isMatrix()}"-->
+            <f:entry title="Agregated report for matrix subbuilds" field="agregateMatrix">
+                <f:checkbox checked="${instance.getConfig().getAgregateMatrix()}" />
+            </f:entry>
+        <!--/j:if-->
     </f:section>
 </j:jelly>

@@ -147,6 +147,9 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     public MatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
+
+        final boolean agregateMatrix = getConfig().getAgregateMatrix();
+
         return new MatrixAggregator(build, launcher, listener) {
 
             private FilePath allureFilePath = null;
@@ -154,57 +157,61 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
             @Override
             public boolean startBuild() throws InterruptedException, IOException {
-                allureFilePath = build.getWorkspace().createTempDir("allure", null);
-                tmpResultsDirectory = allureFilePath.child(ReportGenerator.RESULTS_PATH);
+                if (agregateMatrix) {
+                    allureFilePath = build.getWorkspace().createTempDir("allure", null);
+                    tmpResultsDirectory = allureFilePath.child(ReportGenerator.RESULTS_PATH);
+                }
                 return true;
             }
 
             @Override
             public boolean endRun(MatrixRun run) throws InterruptedException, IOException {
+                if (agregateMatrix) {
+                    PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
 
-                PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
+                    logger.println("started");
+                    ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
+                    if (!reportBuildPolicy.isNeedToBuildReport(build)) {
+                        logger.println("project build reject by policy [%s]", reportBuildPolicy.getTitle());
+                        return true;
+                    }
 
-                logger.println("started");
-                ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
-                if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-                    logger.println("project build reject by policy [%s]", reportBuildPolicy.getTitle());
-                    return true;
+                    logger.println("copy matrix builds results to directory [%s]", tmpResultsDirectory);
+
+                    String resultsPattern = getConfig().getResultsPattern();
+                    List<FilePath> resultsDirectories = run.getWorkspace().act(findDirectoriesByGlob(resultsPattern));
+                    for (FilePath resultsDirectory : resultsDirectories) {
+                            copyRecursiveTo(resultsDirectory, tmpResultsDirectory, build, logger);
+                    }
+
+                    logger.println("completed");
                 }
-
-                logger.println("copy matrix builds results to directory [%s]", tmpResultsDirectory);
-
-                String resultsPattern = getConfig().getResultsPattern();
-                List<FilePath> resultsDirectories = run.getWorkspace().act(findDirectoriesByGlob(resultsPattern));
-                for (FilePath resultsDirectory : resultsDirectories) {
-                        copyRecursiveTo(resultsDirectory, tmpResultsDirectory, build, logger);
-                }
-
-                logger.println("completed");
                 return true;
             }
 
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
+                if (agregateMatrix) {
+                    PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
 
-                PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
+                    logger.println("started");
+                    ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
+                    if (!reportBuildPolicy.isNeedToBuildReport(build)) {
+                        logger.println("project build reject by policy [%s]", reportBuildPolicy.getTitle());
+                        return true;
+                    }
 
-                logger.println("started");
-                ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
-                if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-                    logger.println("project build reject by policy [%s]", reportBuildPolicy.getTitle());
-                    return true;
+                    if (tmpResultsDirectory.getUsableDiskSpace() == 0) {
+                        logger.println("results directory [%s] is empty", tmpResultsDirectory);
+                        return true;
+                    }
+
+                    generateReport(build, allureFilePath, logger);
+                    publishReport(build, logger);
+                    deleteRecursive(allureFilePath, logger);
+
+                    logger.println("completed");
                 }
-
-                if (tmpResultsDirectory.getUsableDiskSpace() == 0) {
-                    logger.println("results directory [%s] is empty", tmpResultsDirectory);
-                    return true;
-                }
-
-                generateReport(build, allureFilePath, logger);
-                publishReport(build, logger);
-                deleteRecursive(allureFilePath, logger);
-
-                logger.println("completed");
                 return true;
             }
         };
