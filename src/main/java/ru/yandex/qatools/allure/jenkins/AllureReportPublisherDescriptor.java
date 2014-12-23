@@ -1,13 +1,17 @@
 package ru.yandex.qatools.allure.jenkins;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 
 /**
@@ -17,12 +21,13 @@ import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 @Extension
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
-    private String reportVersionDefault = AllureReportPlugin.DEFAULT_REPORT_VERSION;
+    private String reportVersionDefault;
 
-    private String resultsPatternDefault = AllureReportPlugin.DEFAULT_RESULTS_PATTERN;
+    private String resultsPatternDefault;
 
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
+        load();
     }
 
     @Override
@@ -44,7 +49,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @SuppressWarnings("unused")
     public String getResultsPatternDefault() {
-        return resultsPatternDefault;
+        return Objects.firstNonNull(resultsPatternDefault, AllureReportPlugin.DEFAULT_RESULTS_PATTERN);
     }
 
     public void setResultsPatternDefault(String reportGlobDefault) {
@@ -53,7 +58,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @SuppressWarnings("unused")
     public String getReportVersionDefault() {
-        return reportVersionDefault;
+        return Objects.firstNonNull(reportVersionDefault, AllureReportPlugin.DEFAULT_REPORT_VERSION);
     }
 
     public void setReportVersionDefault(String reportVersionDefault) {
