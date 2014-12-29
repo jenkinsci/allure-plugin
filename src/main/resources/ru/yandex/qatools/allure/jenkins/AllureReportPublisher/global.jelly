@@ -4,10 +4,11 @@
     <f:section title="Allure Plugin">
 
         <f:entry title="Default Results Directories" field="resultsPatternDefault">
-            <f:textbox default="${descriptor.getResultsPatternDefault()}" style="width: 90%"/>
+            <f:textbox default="${descriptor.getConfig().getResultsPatternDefault()}" style="width: 90%"/>
         </f:entry>
         <f:entry title="Default Report Version" field="reportVersionDefault">
-            <f:textbox default="${descriptor.getReportVersionDefault()}" style="width: 90%"/>
+            <f:textbox default="${descriptor.getConfig().getReportVersionDefault()}" style="width: 90%"/>
         </f:entry>
+
     </f:section>
 </j:jelly>

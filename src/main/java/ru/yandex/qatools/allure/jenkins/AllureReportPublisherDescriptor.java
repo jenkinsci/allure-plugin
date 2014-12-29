@@ -12,6 +12,7 @@ import hudson.util.FormValidation;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import ru.yandex.qatools.allure.jenkins.config.AllureGlobalConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 
 /**
@@ -21,8 +22,12 @@ import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 @Extension
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
+    private AllureGlobalConfig config;
+
+    @Deprecated
     private String reportVersionDefault;
 
+    @Deprecated
     private String resultsPatternDefault;
 
     public AllureReportPublisherDescriptor() {
@@ -47,22 +52,28 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
 
-    @SuppressWarnings("unused")
-    public String getResultsPatternDefault() {
-        return Objects.firstNonNull(resultsPatternDefault, AllureReportPlugin.DEFAULT_RESULTS_PATTERN);
+    public AllureGlobalConfig getConfig() {
+        if (config == null) {
+            return AllureGlobalConfig.newInstance(resultsPatternDefault, reportVersionDefault);
+        } else {
+            return config;
+        }
     }
 
-    public void setResultsPatternDefault(String reportGlobDefault) {
-        this.resultsPatternDefault = reportGlobDefault;
+    public void setConfig(AllureGlobalConfig config) {
+        this.config = config;
+    }
+
+    @SuppressWarnings("unused")
+    public String getResultsPatternDefault() {
+        return Objects.firstNonNull(getConfig().getResultsPatternDefault(),
+                AllureReportPlugin.DEFAULT_RESULTS_PATTERN);
     }
 
     @SuppressWarnings("unused")
     public String getReportVersionDefault() {
-        return Objects.firstNonNull(reportVersionDefault, AllureReportPlugin.DEFAULT_REPORT_VERSION);
-    }
-
-    public void setReportVersionDefault(String reportVersionDefault) {
-        this.reportVersionDefault = reportVersionDefault;
+        return Objects.firstNonNull(getConfig().getReportVersionDefault(),
+                AllureReportPlugin.DEFAULT_REPORT_VERSION);
     }
 
     @SuppressWarnings("unused")
@@ -73,14 +84,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @Override
     public boolean configure(StaplerRequest req, net.sf.json.JSONObject json) throws FormException {
-        String resultsGlobDefaultValue = json.getString("resultsPatternDefault");
-        if (!Strings.isNullOrEmpty(resultsGlobDefaultValue)) {
-            setResultsPatternDefault(resultsGlobDefaultValue);
-        }
-        String reportVersionDefaultValue = json.getString("reportVersionDefault");
-        if (!Strings.isNullOrEmpty(reportVersionDefaultValue)) {
-            setReportVersionDefault(reportVersionDefaultValue);
-        }
+        setConfig((AllureGlobalConfig) json.toBean(AllureGlobalConfig.class));
         save();
         return true;
     }

@@ -1,4 +1,7 @@
 # Allure Jenkins Plugin
+
+[![build](https://img.shields.io/teamcity/http/teamcity.qatools.ru/s/allure_jenkins_plugin_master_build.svg?style=flat)](http://teamcity.qatools.ru/viewType.html?buildTypeId=allure_jenkins_plugin_master_build&guest=1)
+
 This plugin allows to automatically generate [Allure report](http://allure.qatools.ru) **from existing XML files** and attach it to build during Jenkins job run.
 
 ![image](https://raw.github.com/allure-framework/allure-core/master/allure-dashboard.png)
