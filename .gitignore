@@ -3,6 +3,7 @@
 target
 *.iml
 *.ipr
+
 #Eclipse files
 *.settings
 *.classpath
@@ -10,3 +11,6 @@ target
 
 #Work
 work
+
+# macos stuff
+.DS_Store
