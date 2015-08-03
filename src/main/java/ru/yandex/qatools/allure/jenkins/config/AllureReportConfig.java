@@ -2,11 +2,13 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import java.io.Serializable;
+
 /**
  * eroshenkoam
  * 30/07/14
  */
-public class AllureReportConfig {
+public class AllureReportConfig implements Serializable {
 
     private final String resultsPattern;
 

@@ -1,4 +1,7 @@
 # Allure Jenkins Plugin
+
+[![build](https://img.shields.io/teamcity/http/teamcity.qatools.ru/s/allure_jenkins_plugin_master_build.svg?style=flat)](http://teamcity.qatools.ru/viewType.html?buildTypeId=allure_jenkins_plugin_master_build&guest=1)
+
 This plugin allows to automatically generate [Allure report](http://allure.qatools.ru) **from existing XML files** and attach it to build during Jenkins job run.
 
 ![image](https://raw.github.com/allure-framework/allure-core/master/allure-dashboard.png)
@@ -13,20 +16,26 @@ This plugin allows to automatically generate [Allure report](http://allure.qatoo
  2. Ensure that [Allure XML files](https://github.com/allure-framework/allure-core/wiki#gathering-information-about-tests) are generated during the build
  3. Add **Allure Report Generation** post build action
 
-![configuration](https://raw.githubusercontent.com/allure-framework/allure-jenkins-plugin/master/img/allure-configuration.png)
+![configuration](/img/allure-configuration.png)
 
 ## Usage
 When build is finished a link to Allure report will appear on the build page:
 
-![configuration](https://raw.githubusercontent.com/allure-framework/allure-jenkins-plugin/master/img/allure-sidebar.png)
-![configuration](https://raw.githubusercontent.com/allure-framework/allure-jenkins-plugin/master/img/allure-report.png)
+![configuration](/img/allure-sidebar.png)
+![configuration](/img/allure-report.png)
 
 ## Default Settings
  1. Open Jenkins global configuration
  2. Find **Allure Settings** configuration block
  
-![configuration](https://raw.githubusercontent.com/allure-framework/allure-jenkins-plugin/master/img/allure-settings.png)
+![configuration](/img/allure-settings.png)
 
+## Proxy
+
+According to https://wiki.jenkins-ci.org/display/JENKINS/JenkinsBehindProxy
+
+1. Run Jenkins with parameters `java -Dhttp.proxyHost=some.proxy.host -Dhttp.proxyPort=1234 -jar jenkins.war`.
+2. Or edit `/etc/defaults/jenkins` file with same parameters.
 
 ## Development
 To build the plugin you need to have any JDK 1.7+ and [Apache Maven](http://maven.apache.org/).

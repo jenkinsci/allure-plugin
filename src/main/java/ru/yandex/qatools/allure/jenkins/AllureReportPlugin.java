@@ -31,6 +31,12 @@ public class AllureReportPlugin extends Plugin {
 
     public static final String DEFAULT_REPORT_VERSION = "1.3.9";
 
+    public static final String DEFAULT_URL_PATTERN = "%s";
+
+    public static final String DEFAULT_ISSUE_TRACKER_PATTERN = DEFAULT_URL_PATTERN;
+
+    public static final String DEFAULT_TMS_PATTERN = DEFAULT_URL_PATTERN;
+
     public static File getReportBuildDirectory(AbstractBuild<?, ?> build) {
         if (build != null) {
             File oldReportPath = new File(build.getRootDir(), REPORT_PATH_OLD);

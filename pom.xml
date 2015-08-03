@@ -13,7 +13,7 @@
     <name>Allure Jenkins Plugin</name>
     <packaging>hpi</packaging>
 
-    <version>2.4-SNAPSHOT</version>
+    <version>2.7-SNAPSHOT</version>
 
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin</url>
 
@@ -101,13 +101,18 @@
         <dependency>
             <groupId>ru.yandex.qatools.allure</groupId>
             <artifactId>allure-report-builder</artifactId>
-            <version>2.0</version>
+            <version>2.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.aether</groupId>
+            <artifactId>aether-spi</artifactId>
+            <version>1.0.0.v20140518</version>
         </dependency>
     </dependencies>
 

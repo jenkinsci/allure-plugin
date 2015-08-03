@@ -12,6 +12,7 @@ import hudson.util.FormValidation;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import ru.yandex.qatools.allure.jenkins.config.AllureGlobalConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 
 /**
@@ -21,8 +22,12 @@ import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 @Extension
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
+    private AllureGlobalConfig config;
+
+    @Deprecated
     private String reportVersionDefault;
 
+    @Deprecated
     private String resultsPatternDefault;
 
     public AllureReportPublisherDescriptor() {
@@ -47,22 +52,46 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
 
-    @SuppressWarnings("unused")
-    public String getResultsPatternDefault() {
-        return Objects.firstNonNull(resultsPatternDefault, AllureReportPlugin.DEFAULT_RESULTS_PATTERN);
+    public AllureGlobalConfig getConfig() {
+        if (config == null) {
+            return AllureGlobalConfig.newInstance(resultsPatternDefault, reportVersionDefault);
+        } else {
+            return config;
+        }
     }
 
-    public void setResultsPatternDefault(String reportGlobDefault) {
-        this.resultsPatternDefault = reportGlobDefault;
+    public void setConfig(AllureGlobalConfig config) {
+        this.config = config;
+    }
+
+    @SuppressWarnings("unused")
+    public String getResultsPatternDefault() {
+        return Objects.firstNonNull(getConfig().getResultsPatternDefault(),
+                AllureReportPlugin.DEFAULT_RESULTS_PATTERN);
     }
 
     @SuppressWarnings("unused")
     public String getReportVersionDefault() {
-        return Objects.firstNonNull(reportVersionDefault, AllureReportPlugin.DEFAULT_REPORT_VERSION);
+        return Objects.firstNonNull(getConfig().getReportVersionDefault(),
+                AllureReportPlugin.DEFAULT_REPORT_VERSION);
     }
 
-    public void setReportVersionDefault(String reportVersionDefault) {
-        this.reportVersionDefault = reportVersionDefault;
+    @SuppressWarnings("unused")
+    public String getIssuesTrackerPatternDefault() {
+        return Objects.firstNonNull(getConfig().getIssuesTrackerPatternDefault(), AllureReportPlugin.DEFAULT_ISSUE_TRACKER_PATTERN);
+    }
+
+    public void setIssuesTrackerPatternDefault(String issuesTrackerPatternDefault) {
+        getConfig().setIssuesTrackerPatternDefault(issuesTrackerPatternDefault);
+    }
+
+    @SuppressWarnings("unused")
+    public String getTmsPatternDefault() {
+        return Objects.firstNonNull(getConfig().getTmsPatternDefault(), AllureReportPlugin.DEFAULT_TMS_PATTERN);
+    }
+
+    public void setTmsPatternDefault(String tmsPatternDefault) {
+        getConfig().setTmsPatternDefault(tmsPatternDefault);
     }
 
     @SuppressWarnings("unused")
@@ -73,14 +102,16 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @Override
     public boolean configure(StaplerRequest req, net.sf.json.JSONObject json) throws FormException {
-        String resultsGlobDefaultValue = json.getString("resultsPatternDefault");
-        if (!Strings.isNullOrEmpty(resultsGlobDefaultValue)) {
-            setResultsPatternDefault(resultsGlobDefaultValue);
+        setConfig((AllureGlobalConfig) json.toBean(AllureGlobalConfig.class));
+        String issuesTrackerPatternDefaultValue = json.getString("issuesTrackerPatternDefault");
+        if (!Strings.isNullOrEmpty(issuesTrackerPatternDefaultValue)) {
+            setIssuesTrackerPatternDefault(issuesTrackerPatternDefaultValue);
         }
-        String reportVersionDefaultValue = json.getString("reportVersionDefault");
-        if (!Strings.isNullOrEmpty(reportVersionDefaultValue)) {
-            setReportVersionDefault(reportVersionDefaultValue);
+        String tmsPatternDefaultValue = json.getString("tmsPatternDefault");
+        if (!Strings.isNullOrEmpty(tmsPatternDefaultValue)) {
+            setTmsPatternDefault(tmsPatternDefaultValue);
         }
+
         save();
         return true;
     }
