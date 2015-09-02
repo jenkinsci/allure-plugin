@@ -4,11 +4,18 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 /**
  * eroshenkoam
  * 30/07/14
  */
 public class AllureReportConfig implements Serializable {
+
+    private final String jdk;
+
+    private final String commandlineName;
 
     private final String resultsPattern;
 
@@ -21,14 +28,27 @@ public class AllureReportConfig implements Serializable {
     private final Boolean includeProperties;
 
     @DataBoundConstructor
-    public AllureReportConfig(String resultsPattern, String reportVersionCustom,
+    public AllureReportConfig(String jdk, String commandlineName, String resultsPattern, String reportVersionCustom,
                               ReportVersionPolicy reportVersionPolicy, ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {
-
+        this.jdk = jdk;
+        this.commandlineName = commandlineName;
         this.reportVersionPolicy = reportVersionPolicy;
         this.reportVersionCustom = reportVersionCustom;
         this.reportBuildPolicy = reportBuildPolicy;
         this.resultsPattern = resultsPattern;
         this.includeProperties = includeProperties;
+    }
+
+    public String getJdk() {
+        return jdk;
+    }
+
+    public boolean hasJdk() {
+        return isNotBlank(getJdk());
+    }
+
+    public String getCommandlineName() {
+        return commandlineName;
     }
 
     public String getResultsPattern() {
@@ -52,7 +72,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     public static AllureReportConfig newInstance(String resultsMask, boolean alwaysGenerate) {
-        return new AllureReportConfig(resultsMask, null, ReportVersionPolicy.DEFAULT,
+        return new AllureReportConfig(null, null, resultsMask, null, ReportVersionPolicy.DEFAULT,
                 alwaysGenerate ? ReportBuildPolicy.ALWAYS : ReportBuildPolicy.UNSTABLE, true);
     }
 }
