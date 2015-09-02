@@ -7,34 +7,50 @@
                        value="${instance.getConfig().getResultsPattern()}"
                        style="width: 90%"/>
         </f:entry>
-        <f:entry title="${%Version}:" field="reportVersion">
-            <table style="width: 100%">
-                <f:radioBlock name="reportVersionPolicy" title="Default: ${descriptor.getReportVersionDefault()}"
-                              value="DEFAULT" checked="${instance.getConfig().getReportVersionPolicy() == null or
-                                                   instance.getConfig().getReportVersionPolicy().name().equals('DEFAULT')}"
-                              inline="true">
-                </f:radioBlock>
-
-                <f:radioBlock name="reportVersionPolicy" title="Custom" inline="true"
-                              value="CUSTOM" checked="${instance.getConfig().getReportVersionPolicy().name().equals('CUSTOM')}">
-                    <f:entry>
-                        <f:textbox name="reportVersionCustom" value="${instance.getConfig().getReportVersionCustom()}"
-                                   style="width:30%"/>
-                    </f:entry>
-                </f:radioBlock>
-            </table>
+        <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
+        <f:entry>
+            <j:if test="${empty(installations)}">
+                <div class="error">
+                    ${%CommandlineMissingError(rootURL)}
+                </div>
+            </j:if>
         </f:entry>
-        <f:entry title="${%Generate}:">
-            <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
-                <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
-                         value="${reportBuildPolicy.getValue()}"
-                         checked="${instance.getConfig().getReportBuildPolicy() == null and status.first or
+        <f:advanced>
+            <f:entry title="${%Commandline}:" help="/plugin/allure/help-bundle-installation.html">
+                <j:if test="${installations.size() > 0}">
+                    <select class="setting-input" style="width: 90%" name="commandline">
+                        <j:forEach var="inst" items="${installations}">
+                            <f:option selected="${inst.name==instance.getConfig().getCommandline()}"
+                                      value="${inst.name}">
+                                ${inst.name}
+                            </f:option>
+                        </j:forEach>
+                    </select>
+                </j:if>
+            </f:entry>
+            <j:set var="jdks" value="${app.JDKs}"/>
+            <f:entry title="JDK" description="${%JDK}">
+                <select class="setting-input" style="width: 90%" name="jdk">
+                    <option value="">${%InheritFromJob}</option>
+                    <j:forEach var="inst" items="${jdks}">
+                        <f:option selected="${inst.name==instance.getConfig().getJdk()}" value="${inst.name}">
+                            ${inst.name}
+                        </f:option>
+                    </j:forEach>
+                </select>
+            </f:entry>
+            <f:entry title="${%Generate}:">
+                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
+                    <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
+                             value="${reportBuildPolicy.getValue()}"
+                             checked="${instance.getConfig().getReportBuildPolicy() == null and status.first or
                                 instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
-                <br/>
-            </j:forEach>
-        </f:entry>
-        <f:entry title="${%IncludeEnvironment}" field="includeProperties">
-            <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
-        </f:entry>
+                    <br/>
+                </j:forEach>
+            </f:entry>
+            <f:entry title="${%IncludeEnvironment}" field="includeProperties">
+                <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
+            </f:entry>
+        </f:advanced>
     </f:section>
 </j:jelly>

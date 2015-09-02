@@ -39,14 +39,15 @@ According to https://wiki.jenkins-ci.org/display/JENKINS/JenkinsBehindProxy
 ```groovy
 publishers {
     allure(String pattern)
+
     allure(String pattern) {
-        reportVersion(String version)
+        jdk(String jdk)
+        commandline(String commandline)
+
         buildFor(String buildPolicy)
         includeProperties(boolean includeProperties)
     }
 }
-```
-
 ```buildPolicy``` can be one of ```ALWAYS```, ```UNSTABLE``` or ```FAILURE```
 
 ## Development

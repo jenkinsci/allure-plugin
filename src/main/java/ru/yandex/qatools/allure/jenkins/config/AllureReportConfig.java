@@ -4,55 +4,81 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 /**
  * eroshenkoam
  * 30/07/14
  */
 public class AllureReportConfig implements Serializable {
 
-    private final String resultsPattern;
+    private String jdk;
 
-    private final String reportVersionCustom;
+    private String commandline;
 
-    private final ReportBuildPolicy reportBuildPolicy;
+    private String resultsPattern;
 
-    private final ReportVersionPolicy reportVersionPolicy;
+    private ReportBuildPolicy reportBuildPolicy;
 
-    private final Boolean includeProperties;
+    private Boolean includeProperties;
 
     @DataBoundConstructor
-    public AllureReportConfig(String resultsPattern, String reportVersionCustom,
-                              ReportVersionPolicy reportVersionPolicy, ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {
-
-        this.reportVersionPolicy = reportVersionPolicy;
-        this.reportVersionCustom = reportVersionCustom;
+    public AllureReportConfig(String jdk, String commandline, String resultsPattern,
+                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {
+        this.jdk = jdk;
+        this.commandline = commandline;
         this.reportBuildPolicy = reportBuildPolicy;
         this.resultsPattern = resultsPattern;
         this.includeProperties = includeProperties;
+    }
+
+    public String getJdk() {
+        return jdk;
+    }
+
+    public void setJdk(String jdk) {
+        this.jdk = jdk;
+    }
+
+    public boolean hasJdk() {
+        return isNotBlank(getJdk());
+    }
+
+
+    public String getCommandline() {
+        return commandline;
+    }
+
+    public void setCommandline(String commandline) {
+        this.commandline = commandline;
     }
 
     public String getResultsPattern() {
         return resultsPattern;
     }
 
-    public String getReportVersionCustom() {
-        return reportVersionCustom;
-    }
-
-    public ReportVersionPolicy getReportVersionPolicy() {
-        return reportVersionPolicy;
+    public void setResultsPattern(String resultsPattern) {
+        this.resultsPattern = resultsPattern;
     }
 
     public ReportBuildPolicy getReportBuildPolicy() {
         return reportBuildPolicy;
     }
 
+    public void setReportBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
+        this.reportBuildPolicy = reportBuildPolicy;
+    }
+
     public boolean getIncludeProperties() {
         return includeProperties == null || includeProperties;
     }
 
+    public void setIncludeProperties(Boolean includeProperties) {
+        this.includeProperties = includeProperties;
+    }
+
     public static AllureReportConfig newInstance(String resultsMask, boolean alwaysGenerate) {
-        return new AllureReportConfig(resultsMask, null, ReportVersionPolicy.DEFAULT,
+        return new AllureReportConfig(null, null, resultsMask,
                 alwaysGenerate ? ReportBuildPolicy.ALWAYS : ReportBuildPolicy.UNSTABLE, true);
     }
 }

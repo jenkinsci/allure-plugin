@@ -10,8 +10,6 @@ public class AllureGlobalConfig implements Serializable {
 
     private String resultsPatternDefault;
 
-    private String reportVersionDefault;
-
     private String issuesTrackerPatternDefault;
 
     private String tmsPatternDefault;
@@ -22,14 +20,6 @@ public class AllureGlobalConfig implements Serializable {
 
     public void setResultsPatternDefault(String resultsPatternDefault) {
         this.resultsPatternDefault = resultsPatternDefault;
-    }
-
-    public String getReportVersionDefault() {
-        return reportVersionDefault;
-    }
-
-    public void setReportVersionDefault(String reportVersionDefault) {
-        this.reportVersionDefault = reportVersionDefault;
     }
 
     public String getIssuesTrackerPatternDefault() {
@@ -48,10 +38,9 @@ public class AllureGlobalConfig implements Serializable {
         this.tmsPatternDefault = tmsPatternDefault;
     }
 
-    public static AllureGlobalConfig newInstance(String resultsPatternDefault, String reportVersionDefault) {
+    public static AllureGlobalConfig newInstance(String resultsPatternDefault) {
         AllureGlobalConfig allureGlobalConfig = new AllureGlobalConfig();
         allureGlobalConfig.setResultsPatternDefault(resultsPatternDefault);
-        allureGlobalConfig.setReportVersionDefault(reportVersionDefault);
         return allureGlobalConfig;
     }
 }

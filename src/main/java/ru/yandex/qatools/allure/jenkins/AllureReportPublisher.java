@@ -1,6 +1,7 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import com.google.common.base.Strings;
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.matrix.MatrixAggregatable;
@@ -11,29 +12,32 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
-import hudson.remoting.Callable;
+import hudson.model.Computer;
+import hudson.model.JDK;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
-import org.apache.maven.settings.Proxy;
+import hudson.util.ArgumentListBuilder;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
-import ru.yandex.qatools.allure.jenkins.config.ReportVersionPolicy;
-import ru.yandex.qatools.allure.jenkins.utils.PrintStreamWrapper;
-import ru.yandex.qatools.allure.jenkins.utils.PropertiesSaver;
-import ru.yandex.qatools.allure.jenkins.utils.PropertiesSettter;
-import ru.yandex.qatools.allure.jenkins.utils.ProxyBuilder;
-import ru.yandex.qatools.allure.jenkins.utils.ReportGenerator;
+import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
+import ru.yandex.qatools.allure.jenkins.collables.CreateConfig;
+import ru.yandex.qatools.allure.jenkins.collables.CreateEnvironment;
+import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
-import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.DEFAULT_URL_PATTERN;
-import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getReportBuildDirectory;
-import static ru.yandex.qatools.allure.jenkins.utils.GlobDirectoryFinder.findDirectoriesByGlob;
+import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.REPORT_PATH;
+import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
+import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.copyRecursiveTo;
+import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.deleteRecursive;
 
 /**
  * User: eroshenkoam
@@ -47,7 +51,10 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     private static final long serialVersionUID = 1L;
 
     private final AllureReportConfig config;
-    private final String REPORT_DIR_PREFIX = "allure";
+
+    public static final String ALLURE_PREFIX = "allure";
+
+    public static final String CONFIG_PATH = "config";
 
     /**
      * @deprecated since 1.3.1
@@ -111,41 +118,9 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
 
-        PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
-        FilePath allureFilePath = build.getWorkspace().createTempDir(REPORT_DIR_PREFIX, null);
+        FilePath results = build.getWorkspace().child(getConfig().getResultsPattern());
+        boolean result = generateReport(results, build, launcher, listener);
 
-        logger.println("started");
-        ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
-        if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-            logger.println("report generation reject by policy [%s]", reportBuildPolicy.getTitle());
-            return true;
-        }
-
-        String resultsPattern = getConfig().getResultsPattern();
-        logger.println("find directories by mask [%s]", resultsPattern);
-        List<FilePath> resultsFilePaths = build.getWorkspace().act(findDirectoriesByGlob(resultsPattern));
-        logger.println("found allure result directories %s", Arrays.toString(resultsFilePaths.toArray()));
-
-
-        if (resultsFilePaths.size() == 0) {
-            logger.println("can't find allure results directories");
-            return false;
-        }
-
-        FilePath resultsFilePath = allureFilePath.child(ReportGenerator.RESULTS_PATH);
-        logger.println("copy founded directories in directory [%s]", resultsFilePath);
-        for (FilePath filePath : resultsFilePaths) {
-            filePath.copyRecursiveTo(resultsFilePath);
-        }
-
-        boolean includeProperties = getConfig().getIncludeProperties();
-        if (includeProperties) {
-            resultsFilePath.createTempFile("allure", "-environment.properties").
-                    act(new PropertiesSaver(build.getBuildVariables(), "Build Properties"));
-        }
-
-        generateReport(build, allureFilePath, launcher, logger);
-        publishReport(build, logger);
 
         /*
         Its chunk of code copies raw data to matrix build allure dir in order to generate aggregated report.
@@ -161,20 +136,15 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
          */
         if (build instanceof MatrixRun) {
 
-            MatrixBuild mb = ((MatrixRun) build).getParentBuild();
-            FilePath tmpResultsDirectory = getAggregationDir(mb).child(ReportGenerator.RESULTS_PATH);
+            MatrixBuild parentBuild = ((MatrixRun) build).getParentBuild();
+            FilePath aggregationResults = getAggregationResultDirectory(parentBuild);
+            listener.getLogger().println(String.format("copy matrix build results to directory [%s]",
+                    aggregationResults));
+            copyRecursiveTo(results, aggregationResults, parentBuild, listener.getLogger());
 
-            logger.println("copy matrix build results to directory [%s]", tmpResultsDirectory);
-
-            for (FilePath resultsDirectory : resultsFilePaths) {
-                copyRecursiveTo(resultsDirectory, tmpResultsDirectory, mb, logger);
-            }
         }
 
-        deleteRecursive(allureFilePath, logger);
-        logger.println("completed");
-
-        return true;
+        return result;
     }
 
     public MatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
@@ -183,88 +153,103 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
 
-                FilePath aggregatedAllureFilePath = getAggregationDir(build);
-                FilePath tmpResultsDirectory = aggregatedAllureFilePath.child(ReportGenerator.RESULTS_PATH);
-
-                PrintStreamWrapper logger = new PrintStreamWrapper(listener.getLogger());
-
-                logger.println("started");
-                ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
-                if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-                    logger.println("project build reject by policy [%s]", reportBuildPolicy.getTitle());
-                    return true;
-                }
-
-                if (tmpResultsDirectory.getUsableDiskSpace() == 0) {
-                    logger.println("results directory [%s] is empty", tmpResultsDirectory);
-                    return true;
-                }
-
-                generateReport(build, aggregatedAllureFilePath, launcher, logger);
-                publishReport(build, logger);
-                deleteRecursive(aggregatedAllureFilePath, logger);
-
-                logger.println("completed");
-                return true;
+                FilePath results = getAggregationResultDirectory(build);
+                boolean result = generateReport(results, build, launcher, listener);
+                deleteRecursive(results, listener.getLogger());
+                return result;
             }
         };
     }
 
-    private FilePath getAggregationDir(AbstractBuild<?, ?> build) {
+    private boolean generateReport(FilePath results, AbstractBuild<?, ?> build, Launcher launcher,
+                                   BuildListener listener) throws IOException, InterruptedException {
+
+        FilePath tmpDirectory = build.getWorkspace().createTempDir(FilePathUtils.ALLURE_PREFIX, null);
+
+        if (!results.exists()) {
+            listener.getLogger().println(String.format("allure results directory '%s' no exists", results));
+            return false;
+        }
+
+        ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
+        if (!reportBuildPolicy.isNeedToBuildReport(build)) {
+            listener.getLogger().println(String.format("allure eport generation reject by policy [%s]",
+                    reportBuildPolicy.getTitle()));
+            return true;
+        }
+
+        // create environment file
+        Map<String, String> buildVars = getConfig().getIncludeProperties() ?
+                build.getBuildVariables() : new HashMap<String, String>();
+        results.act(new CreateEnvironment(build.getNumber(), build.getFullDisplayName(),
+                build.getAbsoluteUrl(), buildVars));
+
+        // create config file
+        FilePath configDirectory = tmpDirectory.child(CONFIG_PATH);
+        String issuePattern = getDescriptor().getIssuesTrackerPatternDefault();
+        String tmsPattern = getDescriptor().getTmsPatternDefault();
+        configDirectory.act(new CreateConfig(prepareProperties(issuePattern, tmsPattern)));
+
+        // discover commandline
+        AllureCommandlineInstallation commandline = getDescriptor().
+                getCommandlineInstallation(getConfig().getCommandline());
+        commandline = commandline.forNode(Computer.currentComputer().getNode(), listener);
+        commandline = commandline.forEnvironment(build.getEnvironment(listener));
+
+        EnvVars buildEnv = build.getEnvironment(listener);
+        configureJDK(buildEnv, build.getProject());
+
+        buildEnv.put("ALLURE_HOME", commandline.getHome());
+        buildEnv.put("ALLURE_CONFIG", configDirectory.getRemote());
+
+        // create tmp report path
+        FilePath reportDirectory = tmpDirectory.child(REPORT_PATH);
+
+        // generate report
+        ArgumentListBuilder arguments = new ArgumentListBuilder();
+        arguments.add(commandline.getExecutable(launcher));
+        arguments.add("generate");
+        arguments.addQuoted(results.getRemote());
+        arguments.add("-o").addQuoted(reportDirectory.getRemote());
+        launcher.launch().cmds(arguments).envs(buildEnv).stdout(listener).pwd(build.getWorkspace()).join();
+
+        // copy report on master
+        reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
+
+        // execute actions for report
+        build.addAction(new AllureBuildAction(build));
+
+        // delete tmp directory
+        deleteRecursive(tmpDirectory, listener.getLogger());
+        return true;
+    }
+
+    private void configureJDK(EnvVars envVars, AbstractProject<?, ?> project) {
+        JDK jdk = findJDK(project);
+        if (jdk != null && jdk.getExists()) {
+            jdk.buildEnvVars(envVars);
+        }
+    }
+
+    private JDK findJDK(AbstractProject<?, ?> project) {
+        if (getConfig().hasJdk()) {
+            return Jenkins.getInstance().getJDK(getConfig().getJdk());
+        }
+        if (project.getJDK() != null) {
+            return project.getJDK();
+        }
+        return null;
+    }
+
+    private Properties prepareProperties(String issuePattern, String tmsPattern) {
+        Properties properties = new Properties();
+        properties.put("allure.issues.tracker.pattern", issuePattern);
+        properties.put("allure.tests.management.pattern", tmsPattern);
+        return properties;
+    }
+
+    private FilePath getAggregationResultDirectory(AbstractBuild<?, ?> build) {
         String curBuildNumber = Integer.toString(build.getNumber());
-        // child(...) works as get or create directory method
-        return build.getWorkspace().child(REPORT_DIR_PREFIX + curBuildNumber);
+        return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
     }
-
-    private void copyRecursiveTo(FilePath from, FilePath to, AbstractBuild build, PrintStreamWrapper logger)
-            throws IOException, InterruptedException {
-        if (from.isRemote() && to.isRemote()) {
-            FilePath tmpMasterFilePath = new FilePath(build.getRootDir()).createTempDir(REPORT_DIR_PREFIX, null);
-            from.copyRecursiveTo(tmpMasterFilePath);
-            tmpMasterFilePath.copyRecursiveTo(to);
-            deleteRecursive(tmpMasterFilePath, logger);
-        } else {
-            from.copyRecursiveTo(to);
-        }
-    }
-
-    private void generateReport(AbstractBuild<?, ?> build, FilePath allureFilePath, Launcher launcher, PrintStreamWrapper logger)
-            throws IOException, InterruptedException {
-
-        // configuring external links
-        final String issuesTrackerPatternDefault = getDescriptor().getIssuesTrackerPatternDefault();
-        final String tmsPatternDefault = getDescriptor().getTmsPatternDefault();
-
-        launcher.getChannel().call(new PropertiesSettter(issuesTrackerPatternDefault, tmsPatternDefault));
-
-        logger.println("generate report from directory [%s]", allureFilePath);
-        FilePath reportFilePath = new FilePath(getReportBuildDirectory(build));
-        String reportVersion = getConfig().getReportVersionPolicy().equals(ReportVersionPolicy.CUSTOM) ?
-                getConfig().getReportVersionCustom() : getDescriptor().getReportVersionDefault();
-        Proxy proxySettings = ProxyBuilder.loadHttpProxySettings();
-        logger.println("proxy settings [active:'%s', host:'%s', port:'%s', username:'%s', password: '%s']",
-                proxySettings.isActive(),
-                proxySettings.getHost(),
-                proxySettings.getPort(),
-                proxySettings.getUsername(),
-                proxySettings.getPassword() == null ? "" : "***"
-        );
-        allureFilePath.act(new ReportGenerator(reportVersion, proxySettings)).copyRecursiveTo(reportFilePath);
-    }
-
-    private void publishReport(AbstractBuild<?, ?> build, PrintStreamWrapper logger) {
-        logger.println("attach report link to build and project");
-        build.getActions().add(new AllureBuildAction(build));
-    }
-
-    private void deleteRecursive(FilePath filePath, PrintStreamWrapper logger) {
-        try {
-            filePath.deleteContents();
-            filePath.deleteRecursive();
-        } catch (IOException | InterruptedException e) {
-            logger.println("Can't delete directory [%s]", filePath);
-            e.printStackTrace(logger.getPrintStream());
-        }
-    }
-
 }

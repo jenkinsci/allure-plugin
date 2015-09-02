@@ -2,10 +2,7 @@ package ru.yandex.qatools.allure.jenkins;
 
 import hudson.model.Descriptor;
 import hudson.model.FreeStyleProject;
-import hudson.tasks.Builder;
 import hudson.tasks.Publisher;
-import hudson.triggers.Trigger;
-import hudson.triggers.TriggerDescriptor;
 import hudson.util.DescribableList;
 import javaposse.jobdsl.plugin.ExecuteDslScripts;
 import javaposse.jobdsl.plugin.LookupStrategy;
@@ -16,8 +13,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
-import ru.yandex.qatools.allure.jenkins.config.ReportVersionPolicy;
-import ru.yandex.qatools.allure.report.AllureReportBuilder;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.hasSize;
@@ -67,8 +62,6 @@ public class DslIntegrationTest {
         AllureReportPublisher allureReportPublisher = (AllureReportPublisher) publisher.get(0);
 
         assertThat(allureReportPublisher.getConfig().getResultsPattern(), equalTo("target/allure-results"));
-        assertThat(allureReportPublisher.getConfig().getReportVersionCustom(), equalTo("1.4.16"));
-        assertThat(allureReportPublisher.getConfig().getReportVersionPolicy(), equalTo(ReportVersionPolicy.CUSTOM));
         assertThat(allureReportPublisher.getConfig().getReportBuildPolicy(), equalTo(ReportBuildPolicy.UNSTABLE));
         assertThat(allureReportPublisher.getConfig().getIncludeProperties(), equalTo(Boolean.TRUE));
     }
