@@ -2,6 +2,7 @@ package ru.yandex.qatools.allure.jenkins;
 
 import java.io.File;
 
+import hudson.FilePath;
 import hudson.Plugin;
 import hudson.PluginWrapper;
 import hudson.model.AbstractBuild;
@@ -19,7 +20,7 @@ public class AllureReportPlugin extends Plugin {
 
     /**
      * @deprecated since 1.0
-    */
+     */
     @Deprecated
     public static final String REPORT_PATH_OLD = "allure-reports";
 
@@ -32,6 +33,11 @@ public class AllureReportPlugin extends Plugin {
     public static final String DEFAULT_ISSUE_TRACKER_PATTERN = DEFAULT_URL_PATTERN;
 
     public static final String DEFAULT_TMS_PATTERN = DEFAULT_URL_PATTERN;
+
+    public static FilePath getMasterReportFilePath(AbstractBuild<?, ?> build) {
+        File file = getReportBuildDirectory(build);
+        return file == null ? null : new FilePath(file);
+    }
 
     @SuppressWarnings("deprecation")
     public static File getReportBuildDirectory(AbstractBuild<?, ?> build) {

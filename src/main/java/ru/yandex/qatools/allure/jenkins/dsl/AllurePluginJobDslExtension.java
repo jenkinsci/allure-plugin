@@ -26,6 +26,8 @@ public class AllurePluginJobDslExtension extends ContextExtensionPoint {
         executeInContext(closure, context);
 
         AllureReportConfig config = new AllureReportConfig(
+                null,
+                null,
                 context.getResultsPattern(),
                 context.getReportVersionCustom(),
                 context.getReportVersionPolicy(),

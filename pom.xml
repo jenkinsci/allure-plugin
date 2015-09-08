@@ -79,6 +79,7 @@
                 <artifactId>maven-hpi-plugin</artifactId>
                 <configuration>
                     <pluginFirstClassLoader>true</pluginFirstClassLoader>
+                    <compatibleSinceVersion>2.8</compatibleSinceVersion>
                 </configuration>
             </plugin>
             <plugin>
@@ -109,6 +110,11 @@
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>ru.yandex.qatools.allure</groupId>
+            <artifactId>allure-model</artifactId>
+            <version>1.4.17</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
