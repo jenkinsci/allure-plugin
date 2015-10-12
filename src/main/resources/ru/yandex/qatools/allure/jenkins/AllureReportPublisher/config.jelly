@@ -3,9 +3,10 @@
 
     <f:section name="config">
         <f:entry title="${%Results}:" field="resultsPattern">
-            <f:textbox default="${descriptor.getResultsPatternDefault()}"
-                       value="${instance.getConfig().getResultsPattern()}"
-                       style="width: 90%"/>
+            <f:textarea default="${descriptor.getResultsPatternDefault()}"
+                        value="${instance.getConfig().getResultsPattern()}"
+                        style="width: 90%"
+                        clazz="required"/>
         </f:entry>
         <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
         <f:entry>

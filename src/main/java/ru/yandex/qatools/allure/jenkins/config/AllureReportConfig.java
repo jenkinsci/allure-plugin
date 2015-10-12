@@ -3,6 +3,8 @@ package ru.yandex.qatools.allure.jenkins.config;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -28,8 +30,8 @@ public class AllureReportConfig implements Serializable {
         this.jdk = jdk;
         this.commandline = commandline;
         this.reportBuildPolicy = reportBuildPolicy;
-        this.resultsPattern = resultsPattern;
         this.includeProperties = includeProperties;
+        this.resultsPattern = resultsPattern;
     }
 
     public String getJdk() {
@@ -55,6 +57,10 @@ public class AllureReportConfig implements Serializable {
 
     public String getResultsPattern() {
         return resultsPattern;
+    }
+
+    public List<String> getResultsPaths() {
+        return Arrays.asList(resultsPattern.split("\\n"));
     }
 
     public ReportBuildPolicy getReportBuildPolicy() {

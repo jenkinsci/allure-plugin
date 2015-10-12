@@ -42,7 +42,7 @@ public class AllureReportPlugin extends Plugin {
 
     public static String getIconFilename() {
         PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin(AllureReportPlugin.class);
-        return String.format("/plugin/%s/img/icon.png", wrapper.getShortName());
+        return String.format("plugin/%s/img/icon.png", wrapper.getShortName());
     }
 
 
