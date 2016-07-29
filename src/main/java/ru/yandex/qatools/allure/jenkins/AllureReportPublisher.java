@@ -7,16 +7,12 @@ import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.JDK;
+import hudson.model.*;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import hudson.util.ArgumentListBuilder;
 import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.callables.CreateConfig;
 import ru.yandex.qatools.allure.jenkins.callables.CreateEnvironment;
@@ -46,7 +42,7 @@ import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.deleteRecursi
  * {@link AllureReportPublisherDescriptor}
  */
 @SuppressWarnings("unchecked")
-public class AllureReportPublisher extends Recorder implements Serializable, MatrixAggregatable {
+public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final long serialVersionUID = 1L;
 
@@ -83,14 +79,14 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+    public void perform(Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener)
             throws InterruptedException, IOException {
 
         List<FilePath> resultsPaths = new ArrayList<>();
         for (String path : getConfig().getResultsPaths()) {
-            resultsPaths.add(build.getWorkspace().child(path));
+            resultsPaths.add(workspace.child(path));
         }
-        boolean result = generateReport(resultsPaths, build, launcher, listener);
+        generateReport(resultsPaths, build, workspace, launcher, listener);
 
         /*
         Its chunk of code copies raw data to matrix build allure dir in order to generate aggregated report.
@@ -114,8 +110,6 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                 copyRecursiveTo(resultsPath, aggregationResults, parentBuild, listener.getLogger());
             }
         }
-
-        return result;
     }
 
     @Override
@@ -126,15 +120,15 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             public boolean endBuild() throws InterruptedException, IOException {
 
                 FilePath results = getAggregationResultDirectory(build);
-                boolean result = generateReport(Collections.singletonList(results), build, launcher, listener);
+                boolean result = generateReport(Collections.singletonList(results), build, AbstractBuild.class.cast(build).getWorkspace(), launcher, listener);
                 deleteRecursive(results, listener.getLogger());
                 return result;
             }
         };
     }
 
-    private boolean generateReport(List<FilePath> resultsPaths, AbstractBuild<?, ?> build, Launcher launcher,
-                                   BuildListener listener) throws IOException, InterruptedException {
+    private boolean generateReport(List<FilePath> resultsPaths, Run<?, ?> build, FilePath workspace, Launcher launcher,
+                                   TaskListener listener) throws IOException, InterruptedException {
 
         ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(build)) {
@@ -157,7 +151,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
 
         // create config file
-        FilePath tmpDirectory = build.getWorkspace().createTempDir(FilePathUtils.ALLURE_PREFIX, null);
+        FilePath tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
 
         int exitCode;
 
@@ -165,16 +159,15 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             // create environment file
             FilePath environmentDirectory = tmpDirectory.child(ENVIRONMENT_PATH);
             Map<String, String> buildVars = getConfig().getIncludeProperties() ?
-                    build.getBuildVariables() : new HashMap<String, String>();
+                    build.getEnvironment(listener) : new HashMap<String, String>();
             environmentDirectory.act(new CreateEnvironment(build.getNumber(), build.getFullDisplayName(),
-                    build.getProject().getAbsoluteUrl(), buildVars));
-
+                    build.getParent().getAbsoluteUrl(), buildVars));
 
             FilePath configFile = tmpDirectory.child(CONFIG_PATH)
                     .act(new CreateConfig(getDescriptor().getConfig().getProperties(), getConfig().getProperties()));
 
             EnvVars buildEnv = build.getEnvironment(listener);
-            configureJDK(buildEnv, build.getProject());
+            configureJDK(buildEnv, build.getParent());
 
             buildEnv.put("ALLURE_HOME", commandline.getHome());
             buildEnv.put("ALLURE_CONFIG", configFile.getRemote());
@@ -194,7 +187,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
             arguments.add("-o").addQuoted(reportDirectory.getRemote());
             exitCode = launcher.launch().cmds(arguments).envs(buildEnv).stdout(listener)
-                    .pwd(build.getWorkspace()).join();
+                    .pwd(workspace).join();
 
             if (exitCode != 0) {
                 return false;
@@ -214,25 +207,22 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         return true;
     }
 
-    private void configureJDK(EnvVars envVars, AbstractProject<?, ?> project) {
+    private void configureJDK(EnvVars envVars, Job<?, ?> project) {
         JDK jdk = findJDK(project);
         if (jdk != null && jdk.getExists()) {
             jdk.buildEnvVars(envVars);
         }
     }
 
-    private JDK findJDK(AbstractProject<?, ?> project) {
+    private JDK findJDK(Job<?, ?> project) {
         if (getConfig().hasJdk()) {
             return Jenkins.getInstance().getJDK(getConfig().getJdk());
-        }
-        if (project.getJDK() != null) {
-            return project.getJDK();
         }
         return null;
     }
 
-    private FilePath getAggregationResultDirectory(AbstractBuild<?, ?> build) {
+    private FilePath getAggregationResultDirectory(Run<?, ?> build) {
         String curBuildNumber = Integer.toString(build.getNumber());
-        return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
+        return AbstractBuild.class.cast(build).getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
     }
 }
