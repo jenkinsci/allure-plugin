@@ -9,7 +9,6 @@ import javax.servlet.ServletException;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import ru.yandex.qatools.allure.jenkins.AllureReportPlugin;
 
 /**
  * {@link Action} that server allure report from archive directory on master of a given build.

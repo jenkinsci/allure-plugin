@@ -1,46 +1,14 @@
 # Allure Jenkins Plugin
 
-[![build](https://img.shields.io/teamcity/http/teamcity.qatools.ru/s/allure_jenkins_plugin_master_build.svg?style=flat)](http://teamcity.qatools.ru/viewType.html?buildTypeId=allure_jenkins_plugin_master_build&guest=1)
+[![release](http://github-release-version.herokuapp.com/github/jenkinsci/allure-plugin/release.svg?style=flat)](https://github.com/jenkinsci/allure-plugin/releases/latest) [![build](https://jenkins.ci.cloudbees.com/buildStatus/icon?job=plugins/allure-plugin)](https://jenkins.ci.cloudbees.com/job/plugins/job/allure-plugin/)
 
-This plugin allows to automatically generate [Allure report](http://allure.qatools.ru) **from existing XML files** and attach it to build during Jenkins job run.
+## Getting Started
 
-![image](https://raw.github.com/allure-framework/allure-core/master/allure-dashboard.png)
-
-## Installation
- 1. Open **Manage Jenkins > Manage Plugins > Available**
- 2. Find **Allure Report** plugin
- 3. Install this plugin
-
-## Configuration
- 1. Open job configuration page
- 2. Ensure that [Allure XML files](https://github.com/allure-framework/allure-core/wiki#gathering-information-about-tests) are generated during the build
- 3. Add **Allure Report Generation** post build action
-
-![configuration](/img/allure-configuration.png)
-
-## Usage
-When build is finished a link to Allure report will appear on the build page:
-
-![configuration](/img/allure-sidebar.png)
-![configuration](/img/allure-report.png)
-
-## Default Settings
- 1. Open Jenkins global configuration
- 2. Find **Allure Settings** configuration block
- 
-![configuration](/img/allure-settings.png)
-
-## Proxy
-
-According to https://wiki.jenkins-ci.org/display/JENKINS/JenkinsBehindProxy
-
-1. Run Jenkins with parameters `java -Dhttp.proxyHost=some.proxy.host -Dhttp.proxyPort=1234 -jar jenkins.war`.
-2. Or edit `/etc/defaults/jenkins` file with same parameters.
-
-## Development
-To build the plugin you need to have any JDK 1.7+ and [Apache Maven](http://maven.apache.org/).
- 1. Setup Jenkins plugin development environment: https://wiki.jenkins-ci.org/display/JENKINS/Plugin+tutorial
- 2. Execute the following command: `$ mvn clean package`
+* [Documentation](http://wiki.qatools.ru/display/AL/Allure+Jenkins+Plugin)
+* [Issue Tracking](https://github.com/jenkinsci/allure-plugin/issues?labels=&milestone=&page=1&state=open)
+* [Releases and Changelog](https://github.com/jenkinsci/allure-plugin/releases)
 
 ## Contact us
-Mailing list: [allure@yandex-team.ru](mailto:allure@yandex-team.ru)
+* Gitter chat room: [https://gitter.im/allure-framework/allure-core](https://gitter.im/allure-framework/allure-core)
+* Mailing list: [allure@yandex-team.ru](mailto:allure@yandex-team.ru)
+* StackOverflow tag: [Allure](http://stackoverflow.com/questions/tagged/allure)

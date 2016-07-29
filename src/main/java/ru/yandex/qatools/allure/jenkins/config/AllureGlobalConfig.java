@@ -1,57 +1,27 @@
 package ru.yandex.qatools.allure.jenkins.config;
 
-import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * eroshenkoam
- * 19/11/14
+ * @author Artem Eroshenko eroshenkoam@yandex-team.ru
  */
-public class AllureGlobalConfig implements Serializable {
+public class AllureGlobalConfig {
 
-    private String resultsPatternDefault;
+    private List<PropertyConfig> properties;
 
-    private String reportVersionDefault;
-
-    private String issuesTrackerPatternDefault;
-
-    private String tmsPatternDefault;
-
-    public String getResultsPatternDefault() {
-        return resultsPatternDefault;
+    public List<PropertyConfig> getProperties() {
+        if (properties == null) {
+            properties = new ArrayList<>();
+        }
+        return properties;
     }
 
-    public void setResultsPatternDefault(String resultsPatternDefault) {
-        this.resultsPatternDefault = resultsPatternDefault;
+    public void setProperties(List<PropertyConfig> properties) {
+        this.properties = properties;
     }
 
-    public String getReportVersionDefault() {
-        return reportVersionDefault;
-    }
-
-    public void setReportVersionDefault(String reportVersionDefault) {
-        this.reportVersionDefault = reportVersionDefault;
-    }
-
-    public String getIssuesTrackerPatternDefault() {
-        return issuesTrackerPatternDefault;
-    }
-
-    public void setIssuesTrackerPatternDefault(String issuesTrackerPatternDefault) {
-        this.issuesTrackerPatternDefault = issuesTrackerPatternDefault;
-    }
-
-    public String getTmsPatternDefault() {
-        return tmsPatternDefault;
-    }
-
-    public void setTmsPatternDefault(String tmsPatternDefault) {
-        this.tmsPatternDefault = tmsPatternDefault;
-    }
-
-    public static AllureGlobalConfig newInstance(String resultsPatternDefault, String reportVersionDefault) {
-        AllureGlobalConfig allureGlobalConfig = new AllureGlobalConfig();
-        allureGlobalConfig.setResultsPatternDefault(resultsPatternDefault);
-        allureGlobalConfig.setReportVersionDefault(reportVersionDefault);
-        return allureGlobalConfig;
+    public static AllureGlobalConfig newInstance() {
+        return new AllureGlobalConfig();
     }
 }
