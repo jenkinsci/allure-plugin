@@ -57,6 +57,12 @@
                     </j:forEach>
                 </select>
             </f:entry>
+            <f:entry title="Report storage" name="report_storage" field="report_storage">
+                <select class="setting-input" name="goalType" style="width: 90%">
+                    <option value="master">Master</option>
+                    <option value="hurge">hurge</option>
+                </select>
+            </f:entry>
             <f:entry title="${%Generate}:">
                 <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
                     <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
