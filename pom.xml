@@ -20,6 +20,7 @@
 
     <properties>
         <jenkins.version>2.7.4</jenkins.version>
+        <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
 
     <organization>
