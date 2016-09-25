@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.580.1</version>
+        <version>2.15</version>
     </parent>
 
     <groupId>ru.yandex.qatools.allure</groupId>
@@ -16,6 +17,10 @@
     <version>2.11-SNAPSHOT</version>
 
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin</url>
+
+    <properties>
+        <jenkins.version>2.7.4</jenkins.version>
+    </properties>
 
     <organization>
         <name>Yandex</name>
@@ -31,7 +36,7 @@
         <developer>
             <id>eroshenkoam</id>
             <name>Artem Eroshenko</name>
-            <email>eroshenkoam@yandex-team.ru</email>
+            <email>eroshenkoam@yqameta.io</email>
             <organization>Yandex</organization>
         </developer>
         <developer>
@@ -48,6 +53,11 @@
             <id>vania-pooh</id>
             <name>Ivan Krutov</name>
             <email>vania-pooh@yandex-team.ru</email>
+        </developer>
+        <developer>
+            <id>charlie</id>
+            <name>Dmitry Baev</name>
+            <email>baev@qameta.io</email>
         </developer>
     </developers>
 
@@ -79,46 +89,68 @@
                 <configuration>
                     <pluginFirstClassLoader>true</pluginFirstClassLoader>
                     <compatibleSinceVersion>2.8</compatibleSinceVersion>
+                    <systemProperties>
+                        <hudson.model.DirectoryBrowserSupport.CSP>default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';</hudson.model.DirectoryBrowserSupport.CSP>
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.${java.level}</source>
+                    <target>1.${java.level}</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.4</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <author>false</author>
+                            <aggregate>true</aggregate>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
 
     <dependencies>
         <dependency>
-            <groupId>com.googlecode.lambdaj</groupId>
-            <artifactId>lambdaj</artifactId>
-            <version>2.3.3</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>ru.yandex.qatools.allure</groupId>
             <artifactId>allure-model</artifactId>
-            <version>1.4.17</version>
+            <version>1.4.24.RC3</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>job-dsl</artifactId>
-            <version>1.39</version>
+            <version>1.51</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>structs</artifactId>
+            <version>1.5</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-project</artifactId>
-            <version>1.4</version>
+            <version>1.7.1</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
-
             <artifactId>junit</artifactId>
             <version>4.12</version>
             <scope>test</scope>
@@ -144,4 +176,15 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <profiles>
+        <profile>
+            <id>doclint-java8-disable</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <additionalparam>-Xdoclint:none</additionalparam>
+            </properties>
+        </profile>
+    </profiles>
 </project>
