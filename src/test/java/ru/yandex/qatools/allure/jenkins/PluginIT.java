@@ -1,8 +1,13 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
+import hudson.matrix.Axis;
+import hudson.matrix.MatrixBuild;
+import hudson.matrix.MatrixProject;
+import hudson.matrix.MatrixRun;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import hudson.scm.SCM;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +48,24 @@ public class PluginIT {
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         List<AllureBuildAction> actions = build.getActions(AllureBuildAction.class);
         assertThat(actions, hasSize(1));
+    }
+
+    @Test
+    public void shouldGenerateAggregatedReportForMatrixJobs() throws Exception {
+        MatrixProject project = jRule.createProject(MatrixProject.class);
+        project.getAxes().add(new Axis("labels", "first", "second", "third"));
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", "results/sample-testsuite.xml"));
+        project.getPublishersList().add(createAllurePublisher("results"));
+
+        MatrixBuild build = jRule.buildAndAssertSuccess(project);
+        List<AllureBuildAction> actions = build.getActions(AllureBuildAction.class);
+        assertThat(actions, hasSize(1));
+
+        assertThat(build.getRuns(), hasSize(3));
+        for (MatrixRun run : build.getRuns()) {
+            jRule.assertBuildStatus(Result.SUCCESS, run);
+            assertThat(run.getActions(AllureBuildAction.class), hasSize(1));
+        }
     }
 
     protected SCM getSimpleFileScm(String resourceName, String path) throws IOException {
