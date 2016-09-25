@@ -21,6 +21,7 @@
     <properties>
         <jenkins.version>2.7.4</jenkins.version>
         <findbugs.failOnError>false</findbugs.failOnError>
+        <allureCommandline.version>1.4.24.RC3</allureCommandline.version>
     </properties>
 
     <organization>
@@ -117,6 +118,52 @@
                         <configuration>
                             <author>false</author>
                             <aggregate>true</aggregate>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>copy-commandline</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>ru.yandex.qatools.allure</groupId>
+                                    <artifactId>allure-commandline</artifactId>
+                                    <version>${allureCommandline.version}</version>
+                                    <classifier>standalone</classifier>
+                                    <type>zip</type>
+                                </artifactItem>
+                            </artifactItems>
+                            <stripClassifier>true</stripClassifier>
+                            <stripVersion>true</stripVersion>
+                            <outputDirectory>${project.build.directory}/more-test-resources</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.19.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <additionalClasspathElements>
+                                <element>${project.build.directory}/more-test-resources</element>
+                            </additionalClasspathElements>
                         </configuration>
                     </execution>
                 </executions>

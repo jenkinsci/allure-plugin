@@ -11,7 +11,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * {@link Action} that server allure report from archive directory on master of a given build.
+ * {@link Action} that serves allure report from archive directory on master of a given build.
  *
  * @author pupssman
  */
