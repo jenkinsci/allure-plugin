@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThat;
 /**
  * @author Artem Eroshenko <eroshenkoam@yandex-team.ru>
  */
-public class DslIntegrationTest {
+public class JobDslIT {
 
     public static final String JOB_NAME = "allure";
     public static final String SCRIPT_NAME = "allure.groovy";

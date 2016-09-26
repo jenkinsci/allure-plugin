@@ -37,7 +37,6 @@ import java.util.List;
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.REPORT_PATH;
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
 import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getBuildEnvVars;
-import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getBuildFile;
 import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getBuildTool;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.copyRecursiveTo;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.deleteRecursive;
@@ -167,7 +166,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
         // configure arguments
         ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(getBuildFile(commandline.getExecutablePath(), launcher));
+        arguments.add(commandline.getExecutable(launcher));
         arguments.add("generate");
         for (FilePath resultsPath : resultsPaths) {
             arguments.addQuoted(resultsPath.getRemote());
@@ -223,8 +222,8 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     private void configureCommandline(EnvVars env, Launcher launcher,
                                       AllureCommandlineInstallation commandline, FilePath configFile)
             throws IOException, InterruptedException {
-        env.put("ALLURE_HOME", getBuildFile(commandline.getHome(), launcher).getAbsolutePath());
-        env.put("ALLURE_CONFIG", getBuildFile(configFile.getRemote(), launcher).getAbsolutePath());
+        env.put("ALLURE_HOME", commandline.getHomeDir(launcher).getAbsolutePath());
+//        env.put("ALLURE_CONFIG", getBuildFile(configFile.getRemote(), launcher).getAbsolutePath());
     }
 
     private void configureJDK(EnvVars env, TaskListener listener, AbstractProject<?, ?> project)

@@ -1,19 +1,17 @@
 package ru.yandex.qatools.allure.jenkins.utils;
 
 import hudson.EnvVars;
-import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.Computer;
+import hudson.model.EnvironmentSpecific;
+import hudson.model.Node;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolInstallation;
-import jenkins.security.MasterToSlaveCallable;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * @author Artem Eroshenko <erosenkoam@me.com>
@@ -21,22 +19,6 @@ import java.nio.file.Paths;
 public class BuildUtils {
 
     public BuildUtils() {
-    }
-
-    public static File getBuildFile(final String path, Launcher launcher) throws IOException, InterruptedException {
-        return getBuildFile(Paths.get(path), launcher);
-    }
-
-    public static File getBuildFile(final Path path, Launcher launcher) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new MasterToSlaveCallable<File, IOException>() {
-            @Override
-            public File call() throws IOException {
-                if (path == null || Files.notExists(path)) {
-                    throw new FileNotFoundException(String.format("Can not find file by path '%s'", path));
-                }
-                return path.toFile();
-            }
-        });
     }
 
     @Nullable
