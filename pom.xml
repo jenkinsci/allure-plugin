@@ -22,6 +22,7 @@
         <jenkins.version>2.7.4</jenkins.version>
         <findbugs.failOnError>false</findbugs.failOnError>
         <allureCommandline.version>1.4.24.RC3</allureCommandline.version>
+        <java.level>8</java.level>
     </properties>
 
     <organization>
