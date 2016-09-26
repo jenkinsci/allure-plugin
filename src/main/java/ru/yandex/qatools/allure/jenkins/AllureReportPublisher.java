@@ -76,7 +76,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     @Override
     public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
-        return Collections.singletonList(new AllureProjectAction(project));
+        return Collections.singletonList(new AllureReportProjectAction(project));
     }
 
     @Override
@@ -185,7 +185,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             // copy report on master
             reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
             // execute actions for report
-            build.addAction(new AllureBuildAction(build));
+            build.addAction(new AllureReportBuildBadgeAction(build));
         } catch (IOException e) { //NOSONAR
             listener.getLogger().println("Report generation failed");
             e.printStackTrace(listener.getLogger());  //NOSONAR

@@ -13,10 +13,10 @@ import hudson.model.ProminentProjectAction;
  *
  * @author pupssman
  */
-public class AllureProjectAction implements ProminentProjectAction, StaplerProxy {
+public class AllureReportProjectAction implements ProminentProjectAction, StaplerProxy {
     private final AbstractProject<?, ?> project;
 
-    public AllureProjectAction(AbstractProject<?, ?> project) {
+    public AllureReportProjectAction(AbstractProject<?, ?> project) {
         this.project = project;
     }
 
@@ -38,6 +38,6 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
     @Override
     public Object getTarget() {
         AbstractBuild<?, ?> build = project.getLastBuild();
-        return build != null ? build.getAction(AllureBuildAction.class) : null;
+        return build != null ? build.getAction(AllureReportBuildBadgeAction.class) : null;
     }
 }

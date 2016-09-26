@@ -66,7 +66,7 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(resultsFolderName));
 
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureBuildAction> actions = build.getActions(AllureBuildAction.class);
+        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
         assertThat(actions, hasSize(1));
     }
 
@@ -78,13 +78,13 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(resultsFolderName));
 
         MatrixBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureBuildAction> actions = build.getActions(AllureBuildAction.class);
+        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
         assertThat(actions, hasSize(1));
 
         assertThat(build.getRuns(), hasSize(3));
         for (MatrixRun run : build.getRuns()) {
             jRule.assertBuildStatus(Result.SUCCESS, run);
-            assertThat(run.getActions(AllureBuildAction.class), hasSize(1));
+            assertThat(run.getActions(AllureReportBuildBadgeAction.class), hasSize(1));
         }
     }
 
@@ -100,7 +100,7 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(resultsFolderName));
 
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureBuildAction> actions = build.getActions(AllureBuildAction.class);
+        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
         assertThat(actions, hasSize(1));
     }
 

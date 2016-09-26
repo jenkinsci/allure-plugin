@@ -15,11 +15,11 @@ import org.kohsuke.stapler.StaplerResponse;
  *
  * @author pupssman
  */
-public class AllureBuildAction implements BuildBadgeAction {
+public class AllureReportBuildBadgeAction implements BuildBadgeAction {
 
     private final AbstractBuild<?, ?> build;
 
-    public AllureBuildAction(AbstractBuild<?, ?> build) {
+    public AllureReportBuildBadgeAction(AbstractBuild<?, ?> build) {
         this.build = build;
     }
 
