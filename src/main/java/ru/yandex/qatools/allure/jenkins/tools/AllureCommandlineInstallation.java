@@ -54,13 +54,25 @@ public class AllureCommandlineInstallation extends ToolInstallation
         });
     }
 
+    public File getHomeDir(Launcher launcher) throws InterruptedException, IOException {
+        return launcher.getChannel().call(new MasterToSlaveCallable<File, IOException>() {
+            @Override
+            public File call() throws IOException {
+                Path homePath = getHomePath();
+                if (homePath == null || Files.notExists(homePath)) {
+                    throw new IOException(String.format("Can not find allure home at path '%s'", homePath));
+                }
+                return homePath.toFile();
+            }
+        });
+    }
 
     private Path getHomePath() {
         String home = Util.replaceMacro(getHome(), EnvVars.masterEnvVars);
         return home == null ? null : Paths.get(home);
     }
 
-    private Path getExecutablePath() {
+    public Path getExecutablePath() {
         Path home = getHomePath();
         if (home == null) {
             return null;
