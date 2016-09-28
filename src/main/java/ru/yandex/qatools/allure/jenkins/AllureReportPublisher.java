@@ -7,12 +7,7 @@ import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.JDK;
+import hudson.model.*;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import hudson.util.ArgumentListBuilder;
@@ -27,12 +22,7 @@ import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.REPORT_PATH;
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
@@ -52,6 +42,8 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     private final AllureReportConfig config;
 
+    private final AllureReportUploader uploader;
+
     public static final String ALLURE_PREFIX = "allure";
 
     public static final String CONFIG_PATH = "config";
@@ -59,12 +51,18 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     public static final String ENVIRONMENT_PATH = "environment";
 
     @DataBoundConstructor
-    public AllureReportPublisher(AllureReportConfig config) {
+    public AllureReportPublisher(AllureReportConfig config, AllureReportUploader uploader
+    ) {
         this.config = config;
+        this.uploader = uploader;
     }
 
     public AllureReportConfig getConfig() {
         return config == null ? AllureReportConfig.newInstance() : config;
+    }
+
+    public AllureReportUploader getUploader() {
+        return uploader;
     }
 
     @Override
@@ -235,4 +233,5 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         String curBuildNumber = Integer.toString(build.getNumber());
         return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
     }
+
 }

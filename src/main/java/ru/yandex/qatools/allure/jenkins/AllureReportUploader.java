@@ -13,12 +13,12 @@ import java.io.IOException;
  * Created by lawyard on 19.09.16.
  */
 
-public abstract class AllureReportPublishers implements ExtensionPoint {
+public abstract class AllureReportUploader implements ExtensionPoint {
 
     public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException;
 
-    public static ExtensionList<AllureReportPublishers> all() {
-        return Jenkins.getInstance().getExtensionList(AllureReportPublishers.class);
+    public static ExtensionList<AllureReportUploader> all() {
+        return Jenkins.getInstance().getExtensionList(AllureReportUploader.class);
     }
 
 }

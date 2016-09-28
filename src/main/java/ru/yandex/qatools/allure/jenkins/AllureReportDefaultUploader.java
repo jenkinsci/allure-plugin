@@ -15,7 +15,7 @@ import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterRepor
 
 
 @Extension
-public class AllureReportDefaultPublisher extends AllureReportPublishers {
+public class AllureReportDefaultUploader extends AllureReportUploader {
 
     @Override
     public String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException {
