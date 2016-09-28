@@ -4,6 +4,7 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractDescribableImpl;
 import jenkins.model.Jenkins;
 
 import java.io.IOException;
@@ -13,7 +14,7 @@ import java.io.IOException;
  * Created by lawyard on 19.09.16.
  */
 
-public abstract class AllureReportUploader implements ExtensionPoint {
+public abstract class AllureReportUploader extends AbstractDescribableImpl<AllureReportUploader> implements ExtensionPoint {
 
     public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException;
 

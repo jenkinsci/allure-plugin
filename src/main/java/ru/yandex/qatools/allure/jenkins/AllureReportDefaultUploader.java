@@ -3,6 +3,7 @@ package ru.yandex.qatools.allure.jenkins;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
+import hudson.model.Descriptor;
 import jenkins.model.Jenkins;
 
 import java.io.IOException;
@@ -14,7 +15,6 @@ import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterRepor
  */
 
 
-@Extension
 public class AllureReportDefaultUploader extends AllureReportUploader {
 
     @Override
@@ -27,6 +27,14 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
 
     private String getUrlName() {
         return AllureReportPlugin.URL_PATH;
+    }
+
+    @Extension
+    public static class AllureReportDefaultUploaderDescriptor extends Descriptor<AllureReportUploader> {
+        @Override
+        public String getDisplayName() {
+            return "Upload to Jenkins Master";
+        }
     }
 
 }

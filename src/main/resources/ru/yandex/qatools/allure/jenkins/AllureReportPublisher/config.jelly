@@ -57,7 +57,7 @@
                     </j:forEach>
                 </select>
             </f:entry>
-            <f:dropdownDescriptorSelector title="${%Damn2: }"  field="uploader" default="${descriptor.defaultSettingsProvider}"/>
+            <f:dropdownDescriptorSelector title="${%Report uploader: }"  field="uploader" default="${descriptor.defaultSettingsProvider}"/>
             <f:entry title="${%Generate}:">
                 <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
                     <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
