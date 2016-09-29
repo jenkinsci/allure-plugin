@@ -25,11 +25,11 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
     public String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException {
 
         reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
-        return Jenkins.getInstance().getRootUrl() + build.getUrl() + getUrlName();
+        return Jenkins.getInstance().getRootUrl() + build.getUrl() + getAllureUrlName();
 
     }
 
-    private String getUrlName() {
+    private String getAllureUrlName() {
         return AllureReportPlugin.URL_PATH;
     }
 
@@ -37,7 +37,7 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
     public static class AllureReportDefaultUploaderDescriptor extends Descriptor<AllureReportUploader> {
         @Override
         public String getDisplayName() {
-            return "Upload to Jenkins Master";
+            return "Jenkins Master";
         }
     }
 

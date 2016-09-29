@@ -35,7 +35,7 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH + reportUrl;
+        return reportUrl;
     }
 
     @SuppressWarnings("unused")

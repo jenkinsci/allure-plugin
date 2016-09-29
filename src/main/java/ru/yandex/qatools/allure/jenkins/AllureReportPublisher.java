@@ -197,10 +197,10 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             }
 
             // publish report
-            String damn = getUploader().publish(reportDirectory, build);
+            String urlPublished = getUploader().publish(reportDirectory, build);
 
             // execute actions for report
-            build.addAction(new AllureBuildAction(build, "damn"));
+            build.addAction(new AllureBuildAction(build, urlPublished));
         } catch (IOException e) { //NOSONAR
             listener.getLogger().println("Report generation failed");
             e.printStackTrace(listener.getLogger());  //NOSONAR
