@@ -5,6 +5,7 @@ import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Descriptor;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
 
@@ -16,6 +17,9 @@ import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterRepor
 
 
 public class AllureReportDefaultUploader extends AllureReportUploader {
+
+    @DataBoundConstructor
+    public AllureReportDefaultUploader() {}
 
     @Override
     public String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException {

@@ -2,13 +2,11 @@ package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
 import hudson.model.*;
-
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 /**
  * {@link Action} that server allure report from archive directory on master of a given build.
@@ -18,9 +16,11 @@ import org.kohsuke.stapler.StaplerResponse;
 public class AllureBuildAction implements BuildBadgeAction {
 
     private final AbstractBuild<?, ?> build;
+    private final String reportUrl;
 
-    public AllureBuildAction(AbstractBuild<?, ?> build) {
+    public AllureBuildAction(AbstractBuild<?, ?> build, String reportUrl) {
         this.build = build;
+        this.reportUrl = reportUrl;
     }
 
     @Override
@@ -35,7 +35,7 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        return AllureReportPlugin.URL_PATH + reportUrl;
     }
 
     @SuppressWarnings("unused")

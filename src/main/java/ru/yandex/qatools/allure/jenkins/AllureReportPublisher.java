@@ -25,7 +25,6 @@ import java.io.Serializable;
 import java.util.*;
 
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.REPORT_PATH;
-import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.copyRecursiveTo;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.deleteRecursive;
 
@@ -51,8 +50,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     public static final String ENVIRONMENT_PATH = "environment";
 
     @DataBoundConstructor
-    public AllureReportPublisher(AllureReportConfig config, AllureReportUploader uploader
-    ) {
+    public AllureReportPublisher(AllureReportConfig config, AllureReportUploader uploader ) {
         this.config = config;
         this.uploader = uploader;
     }
@@ -62,7 +60,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     public AllureReportUploader getUploader() {
-        return uploader;
+        return config.getUploader();
     }
 
     @Override
@@ -198,10 +196,11 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                 return false;
             }
 
-            // copy report on master
-            reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
+            // publish report
+            String damn = getUploader().publish(reportDirectory, build);
+
             // execute actions for report
-            build.addAction(new AllureBuildAction(build));
+            build.addAction(new AllureBuildAction(build, "damn"));
         } catch (IOException e) { //NOSONAR
             listener.getLogger().println("Report generation failed");
             e.printStackTrace(listener.getLogger());  //NOSONAR

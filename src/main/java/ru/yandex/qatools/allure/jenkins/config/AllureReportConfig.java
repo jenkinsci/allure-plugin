@@ -2,6 +2,7 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import com.google.common.base.Joiner;
 import org.kohsuke.stapler.DataBoundConstructor;
+import ru.yandex.qatools.allure.jenkins.AllureReportUploader;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -28,15 +29,19 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties;
 
+    private AllureReportUploader uploader;
+
+
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, String resultsPattern, List<PropertyConfig> properties,
-                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {
+                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties, AllureReportUploader uploader) {
         this.jdk = jdk;
         this.properties = properties;
         this.commandline = commandline;
         this.resultsPattern = resultsPattern;
         this.reportBuildPolicy = reportBuildPolicy;
         this.includeProperties = includeProperties;
+        this.uploader = uploader;
     }
 
     public String getJdk() {
@@ -95,17 +100,25 @@ public class AllureReportConfig implements Serializable {
         this.includeProperties = includeProperties;
     }
 
+    public AllureReportUploader getUploader() {
+        return uploader;
+    }
+
+    public void setUploader(AllureReportUploader uploader) {
+        this.uploader = uploader;
+    }
+
     public static AllureReportConfig newInstance() {
-        return new AllureReportConfig(null, null, null, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
+        return new AllureReportConfig(null, null, null, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
     }
 
     public static AllureReportConfig newInstance(String paths) {
-        return new AllureReportConfig(null, null, paths, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
+        return new AllureReportConfig(null, null, paths, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
     }
 
     public static AllureReportConfig newInstance(List<String> paths) {
         return new AllureReportConfig(null, null, Joiner.on("\n").join(paths),
-                new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
+                new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
     }
 
 }
