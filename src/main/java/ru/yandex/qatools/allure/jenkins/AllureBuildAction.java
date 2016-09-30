@@ -39,11 +39,6 @@ public class AllureBuildAction implements BuildBadgeAction {
     }
 
     @SuppressWarnings("unused")
-    public String getBuildUrl() {
-        return build.getUrl();
-    }
-
-    @SuppressWarnings("unused")
     public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
         AbstractProject<?, ?> project = build.getProject();
