@@ -197,6 +197,8 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             }
 
             // publish report
+            listener.getLogger().println(String.format("Uploading report using '%s' uploader",
+                                                       getUploader().getShortName()));
             String urlPublished = getUploader().publish(reportDirectory, build);
 
             // execute actions for report

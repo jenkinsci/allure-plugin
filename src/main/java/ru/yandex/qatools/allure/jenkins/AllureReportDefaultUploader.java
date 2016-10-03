@@ -29,12 +29,19 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
 
     }
 
+    @Override
+    public String getShortName() { return "default";}
+
     private String getAllureUrlName() {
         return AllureReportPlugin.URL_PATH;
     }
 
     @Extension
     public static class AllureReportDefaultUploaderDescriptor extends Descriptor<AllureReportUploader> {
+        /**
+         *
+         * @return Uploader Name to use within Jelly Build publisher form.
+         */
         @Override
         public String getDisplayName() {
             return "Jenkins Master";
