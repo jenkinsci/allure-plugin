@@ -207,7 +207,13 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             listener.getLogger().println("Report generation failed");
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
-        } finally {
+        }
+        catch (AllureReportUploader.AllureUploadException e) {
+            listener.getLogger().println("Report upload failed.");
+            e.printStackTrace(listener.getLogger());
+            return false;
+        }
+        finally {
             deleteRecursive(tmpDirectory, listener.getLogger());
         }
         return true;

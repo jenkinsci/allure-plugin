@@ -1,7 +1,7 @@
 package ru.yandex.qatools.allure.jenkins;
 
-import hudson.ExtensionPoint;
 import hudson.ExtensionList;
+import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractDescribableImpl;
@@ -24,7 +24,7 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
      * @throws IOException
      * @throws InterruptedException
      */
-    public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException;
+    public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException, AllureUploadException;
 
     /**
      *
@@ -40,5 +40,17 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
         return Jenkins.getActiveInstance().getExtensionList(AllureReportUploader.class);
     }
 
+    /**
+     *  Common exception for allure uploaders
+     *  Use it when catching exceptions different from IOException and InterruptedException
+     */
+    public class AllureUploadException extends Exception {
+
+        public AllureUploadException() {}
+
+        public AllureUploadException(String message) {
+            super(message);
+        }
+    }
 
 }
