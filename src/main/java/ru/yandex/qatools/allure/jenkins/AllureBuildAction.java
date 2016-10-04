@@ -2,6 +2,7 @@ package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
 import hudson.model.*;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -35,7 +36,12 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        if (getReportUrl().contains(Jenkins.getInstance().getRootUrl())) {
+            return AllureReportPlugin.URL_PATH;
+        }
+        else {
+            return getReportUrl();
+        }
     }
 
     @SuppressWarnings("unused")
