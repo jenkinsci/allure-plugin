@@ -1,7 +1,6 @@
 package ru.yandex.qatools.allure.jenkins.dsl;
 
 import javaposse.jobdsl.dsl.Context;
-import ru.yandex.qatools.allure.jenkins.AllureReportUploader;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
@@ -44,7 +43,7 @@ class AllureReportPublisherContext implements Context {
         getConfig().setIncludeProperties(includeProperties);
     }
 
-    public void uploader(AllureReportUploader uploader) {
+    public void uploader(String uploader) {
         this.getConfig().setUploader(uploader);
     }
 

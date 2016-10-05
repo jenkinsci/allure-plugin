@@ -2,6 +2,7 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import com.google.common.base.Joiner;
 import org.kohsuke.stapler.DataBoundConstructor;
+import ru.yandex.qatools.allure.jenkins.AllureReportDefaultUploader;
 import ru.yandex.qatools.allure.jenkins.AllureReportUploader;
 
 import java.io.Serializable;
@@ -104,8 +105,18 @@ public class AllureReportConfig implements Serializable {
         return uploader;
     }
 
-    public void setUploader(AllureReportUploader uploader) {
-        this.uploader = uploader;
+    public void setUploader(String uploader) {
+        List<AllureReportUploader> availableUploaders = AllureReportUploader.all();
+        for (AllureReportUploader availableUploader: availableUploaders) {
+            if (availableUploader.getShortName().equals(uploader)) {
+                this.uploader = availableUploader;
+                break;
+            }
+        }
+        if (this.uploader == null) {
+            this.uploader = new AllureReportDefaultUploader();
+        }
+
     }
 
     public static AllureReportConfig newInstance() {
