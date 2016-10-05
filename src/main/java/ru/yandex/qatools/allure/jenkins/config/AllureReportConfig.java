@@ -2,7 +2,6 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import com.google.common.base.Joiner;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.AllureReportDefaultUploader;
 import ru.yandex.qatools.allure.jenkins.AllureReportUploader;
 
 import java.io.Serializable;
@@ -113,10 +112,6 @@ public class AllureReportConfig implements Serializable {
                 break;
             }
         }
-        if (this.uploader == null) {
-            this.uploader = new AllureReportDefaultUploader();
-        }
-
     }
 
     public static AllureReportConfig newInstance() {

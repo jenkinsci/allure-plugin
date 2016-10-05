@@ -16,6 +16,7 @@ import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterRepor
  */
 
 
+@Extension
 public class AllureReportDefaultUploader extends AllureReportUploader {
 
     @DataBoundConstructor

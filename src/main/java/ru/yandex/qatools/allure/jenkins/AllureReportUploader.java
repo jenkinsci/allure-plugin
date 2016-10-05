@@ -5,7 +5,6 @@ import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractDescribableImpl;
-import jenkins.model.Jenkins;
 
 import java.io.IOException;
 
@@ -37,7 +36,7 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
      * @return all registered AllureReportUploader extensions
      */
     public static ExtensionList<AllureReportUploader> all() {
-        return Jenkins.getActiveInstance().getExtensionList(AllureReportUploader.class);
+        return ExtensionList.lookup(AllureReportUploader.class);
     }
 
     /**

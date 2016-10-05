@@ -12,7 +12,10 @@ import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
@@ -43,12 +46,15 @@ public class DslIntegrationTest {
                 publisher.get(0), instanceOf(AllureReportPublisher.class));
         AllureReportPublisher allureReportPublisher = (AllureReportPublisher) publisher.get(0);
 
+        List<PropertyConfig> props = allureReportPublisher.getConfig().getProperties();
+
         assertThat(allureReportPublisher.getConfig().getResultsPaths(),
                 hasItems("target/first-results", "target/second-results"));
 
         assertThat(allureReportPublisher.getConfig().getProperties(), hasSize(1));
         assertThat(allureReportPublisher.getConfig().getProperties().get(0).getKey(), equalTo("key"));
         assertThat(allureReportPublisher.getConfig().getProperties().get(0).getValue(), equalTo("value"));
+        assertThat(allureReportPublisher.getConfig().getUploader().getShortName(), equalTo("default"));
 
         assertThat(allureReportPublisher.getConfig().getReportBuildPolicy(), equalTo(ReportBuildPolicy.UNSTABLE));
         assertThat(allureReportPublisher.getConfig().getIncludeProperties(), equalTo(Boolean.TRUE));
