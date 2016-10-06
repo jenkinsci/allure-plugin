@@ -107,7 +107,7 @@ public class AllureReportConfig implements Serializable {
     public void setUploader(String uploader) {
         List<AllureReportUploader> availableUploaders = AllureReportUploader.all();
         for (AllureReportUploader availableUploader: availableUploaders) {
-            if (availableUploader.getShortName().equals(uploader)) {
+            if (availableUploader.getDescriptor().getDisplayName().equals(uploader)) {
                 this.uploader = availableUploader;
                 break;
             }

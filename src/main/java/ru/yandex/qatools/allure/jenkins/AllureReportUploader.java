@@ -27,12 +27,6 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
 
     /**
      *
-     * @return Uploader short name
-     */
-    public abstract String getShortName();
-
-    /**
-     *
      * @return all registered AllureReportUploader extensions
      */
     public static ExtensionList<AllureReportUploader> all() {

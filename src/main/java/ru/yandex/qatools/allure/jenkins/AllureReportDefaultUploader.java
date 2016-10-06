@@ -30,9 +30,6 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
 
     }
 
-    @Override
-    public String getShortName() { return "default";}
-
     private String getAllureUrlName() {
         return AllureReportPlugin.URL_PATH;
     }

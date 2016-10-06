@@ -5,7 +5,7 @@ freeStyleJob('allure') {
             buildFor('UNSTABLE')
             property('key', 'value')
             includeProperties(true)
-            uploader('default')
+            uploader('Jenkins Master')
         }
     }
 }
