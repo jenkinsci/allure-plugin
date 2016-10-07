@@ -38,7 +38,7 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
     public static class AllureReportDefaultUploaderDescriptor extends Descriptor<AllureReportUploader> {
         /**
          *
-         * @return Uploader Name to use within Jelly Build publisher form.
+         * @return Uploader Name
          */
         @Override
         public String getDisplayName() {
