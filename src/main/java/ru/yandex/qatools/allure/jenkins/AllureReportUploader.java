@@ -5,6 +5,7 @@ import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractDescribableImpl;
+import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
 import java.io.IOException;
 
@@ -31,19 +32,6 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
      */
     public static ExtensionList<AllureReportUploader> all() {
         return ExtensionList.lookup(AllureReportUploader.class);
-    }
-
-    /**
-     *  Common exception for allure uploaders
-     *  Use it when catching exceptions different from IOException and InterruptedException
-     */
-    public class AllureUploadException extends Exception {
-
-        public AllureUploadException() {}
-
-        public AllureUploadException(String message) {
-            super(message);
-        }
     }
 
 }

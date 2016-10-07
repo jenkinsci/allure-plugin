@@ -19,6 +19,7 @@ import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
+import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -208,8 +209,8 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
         }
-        catch (AllureReportUploader.AllureUploadException e) {
-            listener.getLogger().println("Report upload failed.");
+        catch (AllureUploadException e) {
+            listener.getLogger().println("Report uploading failed.");
             e.printStackTrace(listener.getLogger());
             return false;
         }
