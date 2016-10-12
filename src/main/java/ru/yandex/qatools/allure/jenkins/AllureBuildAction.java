@@ -54,8 +54,9 @@ public class AllureBuildAction implements BuildBadgeAction {
         return reportUrl;
     }
 
+    @SuppressWarnings("unused")
     public String getBadgeUrl() {
-        return getUrlName() == AllureReportPlugin.URL_PATH ? getRootUrl() + getBuildUrl() + getUrlName() : getUrlName();
+        return getUrlName().equals(AllureReportPlugin.URL_PATH) ? getRootUrl() + getBuildUrl() + getUrlName() : getUrlName();
     }
 
     @SuppressWarnings("unused")
