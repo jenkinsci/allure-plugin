@@ -36,7 +36,7 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getUrlName() {
-        if (getReportUrl().contains(Jenkins.getInstance().getRootUrl())) {
+        if (getReportUrl() == null || getReportUrl().contains(getRootUrl())) {
             return AllureReportPlugin.URL_PATH;
         }
         else {
@@ -44,13 +44,18 @@ public class AllureBuildAction implements BuildBadgeAction {
         }
     }
 
-    @SuppressWarnings("unused")
-    public String getBuildUrl() {
+    private String getBuildUrl() {
         return build.getUrl();
     }
 
+    private String getRootUrl() { return Jenkins.getInstance().getRootUrl(); }
+
     public String getReportUrl() {
         return reportUrl;
+    }
+
+    public String getBadgeUrl() {
+        return getUrlName() == AllureReportPlugin.URL_PATH ? getRootUrl() + getBuildUrl() + getUrlName() : getUrlName();
     }
 
     @SuppressWarnings("unused")
