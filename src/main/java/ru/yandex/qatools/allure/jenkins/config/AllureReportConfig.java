@@ -29,8 +29,6 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties;
 
-    private AllureReportUploader uploader;
-
 
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, String resultsPattern, List<PropertyConfig> properties,
@@ -41,7 +39,6 @@ public class AllureReportConfig implements Serializable {
         this.resultsPattern = resultsPattern;
         this.reportBuildPolicy = reportBuildPolicy;
         this.includeProperties = includeProperties;
-        this.uploader = uploader;
     }
 
     public String getJdk() {
@@ -98,20 +95,6 @@ public class AllureReportConfig implements Serializable {
 
     public void setIncludeProperties(Boolean includeProperties) {
         this.includeProperties = includeProperties;
-    }
-
-    public AllureReportUploader getUploader() {
-        return uploader;
-    }
-
-    public void setUploader(String uploader) {
-        List<AllureReportUploader> availableUploaders = AllureReportUploader.all();
-        for (AllureReportUploader availableUploader: availableUploaders) {
-            if (availableUploader.getDescriptor().getDisplayName().equals(uploader)) {
-                this.uploader = availableUploader;
-                break;
-            }
-        }
     }
 
     public static AllureReportConfig newInstance() {

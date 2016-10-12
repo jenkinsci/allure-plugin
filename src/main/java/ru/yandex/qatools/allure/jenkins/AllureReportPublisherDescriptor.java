@@ -25,6 +25,7 @@ import java.util.List;
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
     private AllureGlobalConfig config;
+    private AllureReportUploader uploader;
 
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
@@ -41,6 +42,12 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     public void setConfig(AllureGlobalConfig config) {
         this.config = config;
     }
+
+    public AllureReportUploader getUploader() {
+        return uploader == null ? new AllureReportDefaultUploader() : uploader;
+    }
+
+    public void setUploader(AllureReportUploader uploader) { this.uploader = uploader; }
 
     @Override
     public String getDisplayName() {

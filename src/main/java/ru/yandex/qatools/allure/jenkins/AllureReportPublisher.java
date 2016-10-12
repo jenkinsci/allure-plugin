@@ -61,7 +61,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     public AllureReportUploader getUploader() {
-        return config.getUploader();
+        return uploader == null ? new AllureReportDefaultUploader() : uploader;
     }
 
     @Override
