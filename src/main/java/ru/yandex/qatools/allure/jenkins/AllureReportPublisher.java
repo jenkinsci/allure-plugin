@@ -22,6 +22,7 @@ import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.*;
 
@@ -133,9 +134,11 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     private boolean generateReport(List<FilePath> resultsPaths, AbstractBuild<?, ?> build, Launcher launcher,
                                    BuildListener listener) throws IOException, InterruptedException {
 
+        PrintStream logger = listener.getLogger();
+
         ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-            listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
+            logger.println(String.format("allure report generation reject by policy [%s]",
                     reportBuildPolicy.getTitle()));
             return true;
         }
@@ -145,7 +148,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                 getCommandlineInstallation(getConfig().getCommandline());
 
         if (commandline == null) {
-            launcher.getListener().getLogger().println("ERROR: Can not find any allure commandline installation.");
+            logger.println("ERROR: Can not find any allure commandline installation.");
             return false;
         }
 
@@ -198,19 +201,20 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             }
 
             // publish report
-            listener.getLogger().println(String.format("Uploading report using '%s' uploader",
-                                                       getUploader().getDescriptor().getDisplayName()));
-            String urlPublished = getUploader().publish(reportDirectory, build);
+            AllureReportUploader uploader = getUploader();
+            logger.println(String.format("Uploading report using '%s' uploader",
+                                         uploader.getDescriptor().getDisplayName()));
+            String urlPublished = uploader.publish(reportDirectory, build, logger);
 
             // execute actions for report
             build.addAction(new AllureBuildAction(build, urlPublished));
         } catch (IOException e) { //NOSONAR
-            listener.getLogger().println("Report generation failed");
+            logger.println("Report generation failed");
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
         }
         catch (AllureUploadException e) {
-            listener.getLogger().println("Report uploading failed.");
+            logger.println("Report uploading failed.");
             e.printStackTrace(listener.getLogger());
             return false;
         }

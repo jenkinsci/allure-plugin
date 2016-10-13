@@ -8,6 +8,7 @@ import hudson.model.AbstractDescribableImpl;
 import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
 import java.io.IOException;
+import java.io.PrintStream;
 
 
 /**
@@ -20,11 +21,12 @@ public abstract class AllureReportUploader extends AbstractDescribableImpl<Allur
      *
      * @param reportDirectory Directory with generated allure report
      * @param build current build instance
+     * @param logger current listener logger to print to console output
      * @return url with allure report location
      * @throws IOException
      * @throws InterruptedException
      */
-    public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build) throws IOException, InterruptedException, AllureUploadException;
+    public abstract String publish(FilePath reportDirectory, AbstractBuild<?, ?> build, PrintStream logger) throws IOException, InterruptedException, AllureUploadException;
 
     /**
      *
