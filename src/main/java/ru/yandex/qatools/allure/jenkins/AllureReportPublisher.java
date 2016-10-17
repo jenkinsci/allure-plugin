@@ -26,6 +26,7 @@ import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -151,6 +152,20 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         if (commandline == null) {
             launcher.getListener().getLogger().println("ERROR: Can not find any allure commandline installation.");
             return false;
+        }
+
+        File prevBuildDir = AllureReportPlugin.getReportBuildDirectory(build.getPreviousBuild());
+        FilePath history = new FilePath(new File(prevBuildDir, "data/history.json"));
+        if (history.exists()) {
+            resultsPaths.forEach(resultsPath -> {
+                try {
+                    history.copyTo(new FilePath(resultsPath, "history.json"));
+                } catch (IOException | InterruptedException e) {
+                    listener.getLogger().println("Can't copy history");
+                }
+            });
+        } else {
+            listener.getLogger().println("Can't find history " + history);
         }
 
         // prepare environment, config and report paths
