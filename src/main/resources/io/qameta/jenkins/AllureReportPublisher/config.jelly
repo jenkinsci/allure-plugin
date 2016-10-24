@@ -1,0 +1,75 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:section name="config">
+        <f:entry title="${%Results}:" field="resultsPaths" description="${%ResultsDescription}">
+            <f:textarea
+                    checkUrl="'descriptorByName/AllureReportPublisher/resultsPattern?results='+escape(this.value)"
+                    default="${descriptor.getResultsPatternDefault()}"
+                    value="${instance.getConfig().getResultsPaths()}"
+                    style="width: 90%"/>
+        </f:entry>
+        <f:entry title="${%Properties}" field="properties">
+            <f:repeatable var="properties" items="${instance.getConfig().getProperties()}">
+                <table width="100%">
+                    <f:entry title="Key" field="key">
+                        <f:textbox width="50%" value="${properties.key}" clazz="required"
+                                   checkMessage="Property key can't be empty!" autoCompleteField="propertyKey"/>
+                    </f:entry>
+                    <f:entry title="Value" field="value">
+                        <f:textbox width="50%" value="${properties.value}"/>
+                    </f:entry>
+                </table>
+                <div align="right">
+                    <f:repeatableDeleteButton/>
+                </div>
+            </f:repeatable>
+        </f:entry>
+        <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
+        <f:entry>
+            <j:if test="${empty(installations)}">
+                <div class="error">
+                    ${%CommandlineMissingError(rootURL)}
+                </div>
+            </j:if>
+        </f:entry>
+        <f:advanced>
+            <j:if test="${installations.size() > 1}">
+                <f:entry title="${%Commandline}:">
+                    <select class="setting-input" style="width: 90%" name="commandline">
+                        <j:forEach var="inst" items="${installations}">
+                            <f:option selected="${inst.name==instance.getConfig().getCommandline()}"
+                                      value="${inst.name}">
+                                ${inst.name}
+                            </f:option>
+                        </j:forEach>
+                    </select>
+                </f:entry>
+            </j:if>
+            <j:set var="jdks" value="${app.JDKs}"/>
+            <f:entry title="JDK" description="${%JDKDescription}">
+                <select class="setting-input" style="width: 90%" name="jdk">
+                    <option value="">${%InheritFromJob}</option>
+                    <j:forEach var="inst" items="${jdks}">
+                        <f:option selected="${inst.name==instance.getConfig().getJdk()}" value="${inst.name}">
+                            ${inst.name}
+                        </f:option>
+                    </j:forEach>
+                </select>
+            </f:entry>
+            <f:entry title="${%Generate}:">
+                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
+                    <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
+                             value="${reportBuildPolicy.getValue()}"
+                             checked="${instance.getConfig().getReportBuildPolicy() == null and status.first or
+                                instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
+                    <br/>
+                </j:forEach>
+            </f:entry>
+            <f:entry title="${%IncludeEnvironment}" field="includeProperties">
+                <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
+            </f:entry>
+        </f:advanced>
+    </f:section>
+</j:jelly>

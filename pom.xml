@@ -9,9 +9,11 @@
         <version>2.15</version>
     </parent>
 
-    <groupId>ru.yandex.qatools.allure</groupId>
-    <artifactId>allure-jenkins-plugin</artifactId>
-    <name>Allure Jenkins Plugin</name>
+    <groupId>io.qameta.jenkins</groupId>
+    <artifactId>allure</artifactId>
+    <name>Allure Plugin</name>
+    <description>Plugin to generate Allure Report from your tests results</description>
+
     <packaging>hpi</packaging>
 
     <version>2.11-SNAPSHOT</version>
@@ -26,8 +28,8 @@
     </properties>
 
     <organization>
-        <name>Yandex</name>
-        <url>http://company.yandex.com</url>
+        <name>Qameta</name>
+        <url>https://qameta.io</url>
     </organization>
 
     <developers>
