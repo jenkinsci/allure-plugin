@@ -18,27 +18,29 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import hudson.util.ArgumentListBuilder;
-import io.qameta.jenkins.callables.CreateConfig;
-import io.qameta.jenkins.callables.CreateEnvironment;
+import io.qameta.jenkins.callables.AddExecutorInfo;
+import io.qameta.jenkins.callables.AddTestRunInfo;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
-import io.qameta.jenkins.tools.AllureCommandlineInstallation;
+import io.qameta.jenkins.tools.AllureInstallation;
 import io.qameta.jenkins.utils.BuildUtils;
 import io.qameta.jenkins.utils.FilePathUtils;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static io.qameta.jenkins.utils.BuildUtils.getBuildEnvVars;
 
 /**
  * User: eroshenkoam
@@ -49,15 +51,9 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unchecked")
 public class AllureReportPublisher extends Recorder implements Serializable, MatrixAggregatable {
 
-    private static final long serialVersionUID = 1L;
-
-    private final AllureReportConfig config;
-
     public static final String ALLURE_PREFIX = "allure";
 
-    public static final String CONFIG_PATH = "config";
-
-    public static final String ENVIRONMENT_PATH = "environment";
+    private final AllureReportConfig config;
 
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull AllureReportConfig config) {
@@ -110,27 +106,29 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         state objects will be corrupted.
          */
         if (build instanceof MatrixRun) {
-
             MatrixBuild parentBuild = ((MatrixRun) build).getParentBuild();
-            FilePath aggregationResults = getAggregationResultDirectory(parentBuild);
-            listener.getLogger().println(String.format("copy matrix build results to directory [%s]",
-                    aggregationResults));
-            for (FilePath resultsPath : resultsPaths) {
-                FilePathUtils.copyRecursiveTo(resultsPath, aggregationResults, parentBuild, listener.getLogger());
+            Optional<FilePath> optional = getAggregationResultDirectory(parentBuild);
+            if (optional.isPresent()) {
+                FilePath aggregationDir = optional.get();
+                listener.getLogger().format("copy matrix build results to directory [%s]", aggregationDir);
+                for (FilePath resultsPath : resultsPaths) {
+                    FilePathUtils.copyRecursiveTo(resultsPath, aggregationDir, parentBuild, listener.getLogger());
+                }
             }
         }
-
         return result;
     }
 
     @Override
     public MatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
         return new MatrixAggregator(build, launcher, listener) {
-
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
-
-                FilePath results = getAggregationResultDirectory(build);
+                Optional<FilePath> optional = getAggregationResultDirectory(build);
+                if (!optional.isPresent()) {
+                    return true;
+                }
+                FilePath results = optional.get();
                 boolean result = generateReport(Collections.singletonList(results), build, launcher, listener);
                 FilePathUtils.deleteRecursive(results, listener.getLogger());
                 return result;
@@ -142,14 +140,16 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                                    BuildListener listener) throws IOException, InterruptedException {
         ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-            listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
-                    reportBuildPolicy.getTitle()));
+            listener.getLogger().format(
+                    "Allure report generation rejected by policy [%s]",
+                    reportBuildPolicy.getTitle()
+            );
             return true;
         }
 
-        EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(build, listener);
+        EnvVars buildEnvVars = getBuildEnvVars(build, listener);
         // discover commandline
-        Optional<AllureCommandlineInstallation> installation =
+        Optional<AllureInstallation> installation =
                 getDescriptor().getCommandlineInstallation(config.getCommandline());
 
         if (!installation.isPresent()) {
@@ -158,21 +158,26 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         }
 
         copyHistory(resultsPaths, build, listener);
+        addTestRunInfo(resultsPaths, build);
+        addExecutorInfo(resultsPaths, build);
 
-        // prepare environment, config and report paths
-        FilePath tmpDirectory = build.getWorkspace().createTempDir(FilePathUtils.ALLURE_PREFIX, null);
-        FilePath environmentDirectory = createEnvironment(tmpDirectory, build, buildEnvVars);
+        FilePath workspace = build.getWorkspace();
+        if (Objects.isNull(workspace)) {
+            launcher.getListener().getLogger().println("ERROR: Can not find build workspace");
+            return false;
+        }
+
+        FilePath tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
         FilePath reportDirectory = tmpDirectory.child("allure-report");
 
         // configure commandline
-        Optional<AllureCommandlineInstallation> tool = BuildUtils.getBuildTool(installation.get(), buildEnvVars, listener);
+        Optional<AllureInstallation> tool = BuildUtils.getBuildTool(installation.get(), buildEnvVars, listener);
         if (!tool.isPresent()) {
             launcher.getListener().getLogger().println("ERROR: Can not find allure commandline " +
                     "installation for environment.");
             return false;
         }
-        AllureCommandlineInstallation commandline = tool.get();
-        configureCommandline(buildEnvVars, launcher, commandline);
+        AllureInstallation commandline = tool.get();
         configureJdk(build.getProject(), listener, buildEnvVars);
 
         // configure arguments
@@ -182,14 +187,13 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         for (FilePath resultsPath : resultsPaths) {
             arguments.addQuoted(resultsPath.getRemote());
         }
-        arguments.addQuoted(environmentDirectory.getRemote());
         arguments.add("-o").addQuoted(reportDirectory.getRemote());
 
         int exitCode;
 
         try {
             exitCode = launcher.launch().cmds(arguments).envs(buildEnvVars).stdout(listener)
-                    .pwd(build.getWorkspace()).join();
+                    .pwd(workspace).join();
             if (exitCode != 0) {
                 return false;
             }
@@ -205,6 +209,26 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             FilePathUtils.deleteRecursive(tmpDirectory, listener.getLogger());
         }
         return true;
+    }
+
+    private void addTestRunInfo(List<FilePath> resultsPaths, AbstractBuild<?, ?> build)
+            throws IOException, InterruptedException {
+        long start = build.getStartTimeInMillis();
+        long stop = build.getTimeInMillis();
+        for (FilePath path : resultsPaths) {
+            path.act(new AddTestRunInfo(build.getFullDisplayName(), start, stop));
+        }
+    }
+
+    private void addExecutorInfo(List<FilePath> resultsPaths, AbstractBuild<?, ?> build)
+            throws IOException, InterruptedException {
+        String rootUrl = Jenkins.getInstance().getRootUrl();
+        String buildUrl = rootUrl + build.getUrl();
+        String reportUrl = buildUrl + "allure";
+        AddExecutorInfo callable = new AddExecutorInfo(rootUrl, build.getFullDisplayName(), buildUrl, reportUrl);
+        for (FilePath path : resultsPaths) {
+            path.act(callable);
+        }
     }
 
     private void copyHistory(List<FilePath> resultsPaths, AbstractBuild<?, ?> build, BuildListener listener)
@@ -228,31 +252,11 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         }
     }
 
-    private FilePath createEnvironment(FilePath tmpDirectory, AbstractBuild<?, ?> build, EnvVars buildEnvVars)
-            throws IOException, InterruptedException {
-        FilePath environmentDirectory = tmpDirectory.child(ENVIRONMENT_PATH);
-        environmentDirectory.act(new CreateEnvironment(
-                build.getNumber(),
-                build.getFullDisplayName(),
-                build.getProject().getAbsoluteUrl(),
-                getConfig().getIncludeProperties() ? buildEnvVars : new HashMap<>()
-        ));
-        return environmentDirectory;
-    }
-
-    private FilePath createConfig(FilePath tmpDirectory) throws IOException, InterruptedException {
-        return tmpDirectory.child(CONFIG_PATH).act(new CreateConfig(
-                getDescriptor().getConfig().getProperties(),
-                getConfig().getProperties()
-        ));
-    }
-
-    /**
-     * Configure commandline environment
-     */
-    private void configureCommandline(EnvVars env, Launcher launcher, AllureCommandlineInstallation commandline)
-            throws IOException, InterruptedException {
-        env.put("ALLURE_HOME", commandline.getHomeDir(launcher).getAbsolutePath());
+    @Nullable
+    private JDK getJdk(@Nonnull AbstractProject<?, ?> project) {
+        return Optional.ofNullable(config.getJdk())
+                .map(Jenkins.getInstance()::getJDK)
+                .orElse(project.getJDK());
     }
 
     /**
@@ -260,22 +264,21 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
      */
     private void configureJdk(AbstractProject<?, ?> project, TaskListener listener, EnvVars env)
             throws IOException, InterruptedException {
-        JDK jdk = Optional.ofNullable(config.getJdk())
-                .map(Jenkins.getInstance()::getJDK)
-                .orElse(project.getJDK());
+        JDK jdk = getJdk(project);
         if (Objects.isNull(jdk) || !jdk.getExists()) {
             return;
         }
-        Optional<Node> node = Optional.ofNullable(Computer.currentComputer())
-                .map(Computer::getNode);
+        Optional<Node> node = Optional.ofNullable(Computer.currentComputer()).map(Computer::getNode);
         if (node.isPresent()) {
-            jdk.forNode(node.get(), listener);
+            jdk.forNode(node.get(), listener).buildEnvVars(env);
         }
-        jdk.forEnvironment(env);
+        jdk.buildEnvVars(env);
     }
 
-    private FilePath getAggregationResultDirectory(AbstractBuild<?, ?> build) {
+    private Optional<FilePath> getAggregationResultDirectory(AbstractBuild<?, ?> build) {
         String curBuildNumber = Integer.toString(build.getNumber());
-        return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
+        return Optional.of(build)
+                .map(AbstractBuild::getWorkspace)
+                .map(ws -> ws.child(ALLURE_PREFIX + curBuildNumber));
     }
 }

@@ -9,7 +9,7 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import io.qameta.jenkins.config.AllureGlobalConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
-import io.qameta.jenkins.tools.AllureCommandlineInstallation;
+import io.qameta.jenkins.tools.AllureInstallation;
 import jenkins.model.Jenkins;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.QueryParameter;
@@ -95,16 +95,17 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
     @Nonnull
-    public List<AllureCommandlineInstallation> getCommandlineInstallations() {
-        return Arrays.asList(Jenkins.getInstance().getDescriptorByType(
-                AllureCommandlineInstallation.DescriptorImpl.class
-        ).getInstallations());
+    public List<AllureInstallation> getCommandlineInstallations() {
+        AllureInstallation[] installations = Jenkins.getInstance()
+                .getDescriptorByType(AllureInstallation.DescriptorImpl.class)
+                .getInstallations();
+        return Arrays.asList(installations);
     }
 
     @Nonnull
-    public Optional<AllureCommandlineInstallation> getCommandlineInstallation(@Nullable String name) {
-        List<AllureCommandlineInstallation> installations = getCommandlineInstallations();
-        Optional<AllureCommandlineInstallation> any = installations.stream()
+    public Optional<AllureInstallation> getCommandlineInstallation(@Nullable String name) {
+        List<AllureInstallation> installations = getCommandlineInstallations();
+        Optional<AllureInstallation> any = installations.stream()
                 .filter(i -> i.getName().equals(name))
                 .findAny();
         if (any.isPresent()) {

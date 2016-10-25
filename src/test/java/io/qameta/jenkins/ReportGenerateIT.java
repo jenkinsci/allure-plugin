@@ -11,8 +11,9 @@ import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.labels.LabelAtom;
 import hudson.scm.SCM;
+import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
-import io.qameta.jenkins.tools.AllureCommandlineInstallation;
+import io.qameta.jenkins.tools.AllureInstallation;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -20,7 +21,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
-import io.qameta.jenkins.config.AllureReportConfig;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -119,9 +119,9 @@ public class ReportGenerateIT {
         allure.copyFrom(getClass().getClassLoader().getResource("allure-commandline.zip"));
         allure.unzip(new FilePath(allureHome.toFile()));
 
-        AllureCommandlineInstallation installation = new AllureCommandlineInstallation(
+        AllureInstallation installation = new AllureInstallation(
                 "Default", allureHome.toAbsolutePath().toString(), JenkinsRule.NO_PROPERTIES);
-        jRule.jenkins.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
+        jRule.jenkins.getDescriptorByType(AllureInstallation.DescriptorImpl.class)
                 .setInstallations(installation);
         return installation.getName();
     }

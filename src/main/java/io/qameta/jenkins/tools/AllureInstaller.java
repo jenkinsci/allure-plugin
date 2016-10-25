@@ -6,29 +6,31 @@ import hudson.tools.ToolInstallation;
 import io.qameta.jenkins.Messages;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
+
 /**
  * @author Artem Eroshenko <eroshenkoam@yandex-team.ru>
  */
-public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
+public class AllureInstaller extends DownloadFromUrlInstaller {
 
     @DataBoundConstructor
-    public AllureCommandlineInstaller(String id) {
+    public AllureInstaller(String id) {
         super(id);
     }
 
     @Extension
     @SuppressWarnings("unused")
-    public static final class DescriptorImplementation extends
-            DownloadFromUrlInstaller.DescriptorImpl<AllureCommandlineInstaller> {
+    public static class DescriptorImpl extends DownloadFromUrlInstaller.DescriptorImpl<AllureInstaller> {
 
         @Override
+        @Nonnull
         public String getDisplayName() {
             return Messages.AllureCommandlineInstaller_DisplayName();
         }
 
         @Override
         public boolean isApplicable(Class<? extends ToolInstallation> toolType) {
-            return toolType == AllureCommandlineInstallation.class;
+            return toolType == AllureInstallation.class;
         }
     }
 }
