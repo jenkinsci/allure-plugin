@@ -1,14 +1,14 @@
 package io.qameta.jenkins;
 
 import hudson.FilePath;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.DirectoryBrowserSupport;
+import hudson.model.Run;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
@@ -20,10 +20,10 @@ import java.io.IOException;
  */
 public class AllureReportBuildBadgeAction implements BuildBadgeAction {
 
-    private final AbstractBuild<?, ?> build;
+    private final Run<?, ?> run;
 
-    public AllureReportBuildBadgeAction(AbstractBuild<?, ?> build) {
-        this.build = build;
+    public AllureReportBuildBadgeAction(@Nonnull Run<?, ?> run) {
+        this.run = run;
     }
 
     @Override
@@ -43,15 +43,14 @@ public class AllureReportBuildBadgeAction implements BuildBadgeAction {
 
     @SuppressWarnings("unused")
     public String getBuildUrl() {
-        return build.getUrl();
+        return run.getUrl();
     }
 
     @SuppressWarnings("unused")
     public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException { //NOSONAR
-        AbstractProject<?, ?> project = build.getProject();
-        FilePath systemDirectory = new FilePath(new File(build.getRootDir(), "allure-report"));
-        return new DirectoryBrowserSupport(this, systemDirectory, project.getDisplayName(), null, false);
+        FilePath allureReport = new FilePath(new File(run.getRootDir(), "allure-report"));
+        return new DirectoryBrowserSupport(this, allureReport, run.getFullDisplayName(), null, false);
     }
 
 }
