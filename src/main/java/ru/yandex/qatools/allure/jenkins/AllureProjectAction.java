@@ -32,14 +32,14 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
 
     @Override
     public String getUrlName() {
-        AbstractBuild<?, ?> build = project.getLastBuild();
-        return build.getAction(AllureBuildAction.class).getUrlName();
+        AllureBuildAction buildAction = project.getLastBuild().getAction(AllureBuildAction.class);
+        return buildAction != null ? buildAction.getUrlName() : null;
     }
 
     @SuppressWarnings("unused")
     public String getBadgeUrl() {
-        AbstractBuild<?, ?> build = project.getLastBuild();
-        return build.getAction(AllureBuildAction.class).getBadgeUrl();
+        AllureBuildAction buildAction = project.getLastBuild().getAction(AllureBuildAction.class);
+        return buildAction != null ? buildAction.getBadgeUrl() : null;
     }
 
     @Override
