@@ -48,7 +48,7 @@ public class AllureReportBuildBadgeAction implements BuildBadgeAction {
 
     @SuppressWarnings("unused")
     public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, ServletException, InterruptedException {
+            throws IOException, ServletException, InterruptedException { //NOSONAR
         AbstractProject<?, ?> project = build.getProject();
         FilePath systemDirectory = new FilePath(new File(build.getRootDir(), "allure-report"));
         return new DirectoryBrowserSupport(this, systemDirectory, project.getDisplayName(), null, false);

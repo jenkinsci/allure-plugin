@@ -20,7 +20,7 @@ public class AllureInstaller extends DownloadFromUrlInstaller {
 
     @Extension
     @SuppressWarnings("unused")
-    public static class DescriptorImpl extends DownloadFromUrlInstaller.DescriptorImpl<AllureInstaller> {
+    public static class DescriptorImpl extends DownloadFromUrlInstaller.DescriptorImpl<AllureInstaller> { //NOSONAR
 
         @Override
         @Nonnull

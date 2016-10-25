@@ -19,14 +19,14 @@ import java.util.Optional;
 /**
  * @author Artem Eroshenko <erosenkoam@me.com>
  */
-public class BuildUtils {
+public final class BuildUtils {
 
-    public BuildUtils() {
+    private BuildUtils() {
     }
 
     @Nonnull
     public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> Optional<T> getBuildTool(
-            @Nullable T tool, EnvVars env, TaskListener listener) throws IOException, InterruptedException {
+            @Nullable T tool, EnvVars env, TaskListener listener) throws IOException, InterruptedException { //NOSONAR
         Optional<Node> node = Optional.ofNullable(Computer.currentComputer())
                 .map(Computer::getNode);
         if (node.isPresent() && Objects.nonNull(tool)) {
@@ -36,7 +36,7 @@ public class BuildUtils {
     }
 
     public static EnvVars getBuildEnvVars(Run<?, ?> run, TaskListener listener)
-            throws IOException, InterruptedException {
+            throws IOException, InterruptedException { //NOSONAR
         EnvVars env = run.getEnvironment(listener);
         if (run instanceof AbstractBuild) {
             env.overrideAll(((AbstractBuild<?, ?>) run).getBuildVariables());

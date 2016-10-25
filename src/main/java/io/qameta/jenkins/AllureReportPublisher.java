@@ -85,7 +85,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
-            throws InterruptedException, IOException {
+            throws InterruptedException, IOException { //NOSONAR
 
         List<FilePath> resultsPaths = getConfig().getResultsPaths().stream()
                 .map(path -> build.getWorkspace().child(path))
@@ -137,7 +137,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     private boolean generateReport(List<FilePath> resultsPaths, AbstractBuild<?, ?> build, Launcher launcher,
-                                   BuildListener listener) throws IOException, InterruptedException {
+                                   BuildListener listener) throws IOException, InterruptedException { //NOSONAR
         ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(build)) {
             listener.getLogger().format(
@@ -240,15 +240,9 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
         FilePath history = new FilePath(new File(previousBuild.getRootDir(), "allure-report/data/history.json"));
         if (history.exists()) {
-            resultsPaths.forEach(resultsPath -> {
-                try {
-                    history.copyTo(new FilePath(resultsPath, "history.json"));
-                } catch (IOException | InterruptedException e) {
-                    listener.getLogger().println("Can't copy history");
-                }
-            });
-        } else {
-            listener.getLogger().println("Can't find history file " + history);
+            for (FilePath resultsPath : resultsPaths) {
+                history.copyTo(new FilePath(resultsPath, "history.json"));
+            }
         }
     }
 

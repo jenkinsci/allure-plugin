@@ -29,10 +29,6 @@ public enum ReportBuildPolicy implements Serializable {
         return title;
     }
 
-    public String getValue() {
-        return name();
-    }
-
     public boolean isNeedToBuildReport(Run run) {
         return decision.isNeedToBuildReport(run);
     }
