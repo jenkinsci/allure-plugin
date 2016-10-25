@@ -16,7 +16,7 @@
 
     <packaging>hpi</packaging>
 
-    <version>2.11-SNAPSHOT</version>
+    <version>3.0-SNAPSHOT</version>
 
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin</url>
 
