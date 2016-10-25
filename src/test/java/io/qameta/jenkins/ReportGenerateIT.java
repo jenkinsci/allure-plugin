@@ -5,6 +5,7 @@ import hudson.matrix.Axis;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.matrix.MatrixRun;
+import hudson.model.Actionable;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
@@ -61,8 +62,7 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(Collections.singletonList("allure-results")));
 
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
-        assertThat(actions, hasSize(1));
+        assertHasReport(build);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class ReportGenerateIT {
         assertThat(build.getRuns(), hasSize(2));
         for (MatrixRun run : build.getRuns()) {
             jRule.assertBuildStatus(Result.SUCCESS, run);
-            assertThat(run.getActions(AllureReportBuildBadgeAction.class), hasSize(1));
+            assertHasReport(run);
         }
     }
 
@@ -89,8 +89,7 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(Collections.singletonList("allure-results")));
 
         MatrixBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
-        assertThat(actions, hasSize(1));
+        assertHasReport(build);
     }
 
     @Test
@@ -105,8 +104,7 @@ public class ReportGenerateIT {
         project.getPublishersList().add(createAllurePublisher(Collections.singletonList("allure-results")));
 
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
-        List<AllureReportBuildBadgeAction> actions = build.getActions(AllureReportBuildBadgeAction.class);
-        assertThat(actions, hasSize(1));
+        assertHasReport(build);
     }
 
     @Test
@@ -118,6 +116,22 @@ public class ReportGenerateIT {
         jRule.assertBuildStatus(Result.FAILURE, build);
     }
 
+    @Test
+    public void shouldUseDefaultCommandlineIfNotSpecified() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        project.getPublishersList().add(
+                createAllurePublisherWithoutCommandline(Collections.singletonList("allure-results"))
+        );
+        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        assertHasReport(build);
+    }
+
+    private void assertHasReport(Actionable actionable) {
+        List<AllureReportBuildBadgeAction> actions = actionable.getActions(AllureReportBuildBadgeAction.class);
+        assertThat(actions, hasSize(1));
+    }
+
     protected SCM getSimpleFileScm(String resourceName, String path) throws IOException {
         //noinspection ConstantConditions
         return new SingleFileSCM(path, getClass().getClassLoader().getResource(resourceName));
@@ -126,6 +140,12 @@ public class ReportGenerateIT {
     protected AllureReportPublisher createAllurePublisher(List<String> resultsPaths) throws Exception {
         return new AllureReportPublisher(new AllureReportConfig(
                 jdk, commandline, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, resultsPaths
+        ));
+    }
+
+    protected AllureReportPublisher createAllurePublisherWithoutCommandline(List<String> resultsPaths) throws Exception {
+        return new AllureReportPublisher(new AllureReportConfig(
+                jdk, null, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, resultsPaths
         ));
     }
 
