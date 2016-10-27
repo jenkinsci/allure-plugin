@@ -63,7 +63,7 @@ class AllureReportPublisherContext implements Context {
             }
         }
         if (selectedUploader == null) {
-            //throw new NullPointerException(String.format("There are no uploaders with name `%s`", uploaderName));
+            throw new NullPointerException(String.format("There are no uploaders with name `%s`", uploaderName));
         }
         else {
             this.uploader = selectedUploader;

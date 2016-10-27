@@ -43,7 +43,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     private final AllureReportConfig config;
 
-    private final AllureReportUploader uploader;
+    private transient final AllureReportUploader uploader;
 
     public static final String ALLURE_PREFIX = "allure";
 
@@ -209,12 +209,12 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             // execute actions for report
             build.addAction(new AllureBuildAction(build, urlPublished));
         } catch (IOException e) { //NOSONAR
-            logger.println("Report generation failed");
+            logger.println(String.format("Report generation failed. Reason: %s", e.getMessage()));
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
         }
         catch (AllureUploadException e) {
-            logger.println("Report uploading failed.");
+            logger.println(String.format("Report uploading failed. Reason: %s", e.getMessage()));
             e.printStackTrace(listener.getLogger());
             return false;
         }
