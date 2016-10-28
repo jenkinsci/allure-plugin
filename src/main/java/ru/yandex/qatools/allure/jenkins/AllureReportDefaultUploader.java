@@ -29,7 +29,7 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
         try {
             reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
         }
-        catch (Exception e) {
+        catch (Exception e) { //NOSONAR
             throw new AllureUploadException(e.getMessage());
         }
         logger.println(String.format("Report successfully saved to `%s`", getMasterReportFilePath(build)));

@@ -2,7 +2,6 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import com.google.common.base.Joiner;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.AllureReportUploader;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ public class AllureReportConfig implements Serializable {
 
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, String resultsPattern, List<PropertyConfig> properties,
-                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties, AllureReportUploader uploader) {
+                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {
         this.jdk = jdk;
         this.properties = properties;
         this.commandline = commandline;
@@ -98,16 +97,16 @@ public class AllureReportConfig implements Serializable {
     }
 
     public static AllureReportConfig newInstance() {
-        return new AllureReportConfig(null, null, null, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
+        return new AllureReportConfig(null, null, null, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
     }
 
     public static AllureReportConfig newInstance(String paths) {
-        return new AllureReportConfig(null, null, paths, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
+        return new AllureReportConfig(null, null, paths, new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
     }
 
     public static AllureReportConfig newInstance(List<String> paths) {
         return new AllureReportConfig(null, null, Joiner.on("\n").join(paths),
-                new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true, null);
+                new ArrayList<PropertyConfig>(), ReportBuildPolicy.ALWAYS, true);
     }
 
 }
