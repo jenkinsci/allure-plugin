@@ -71,4 +71,5 @@
             </f:entry>
         </f:advanced>
     </f:section>
+    <f:dropdownDescriptorSelector title="${%Report uploader: }" field="uploader" default="${descriptor.defaultSettingsProvider}"/>
 </j:jelly>

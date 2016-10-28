@@ -2,13 +2,12 @@ package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
 import hudson.model.*;
-
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 /**
  * {@link Action} that server allure report from archive directory on master of a given build.
@@ -18,9 +17,11 @@ import org.kohsuke.stapler.StaplerResponse;
 public class AllureBuildAction implements BuildBadgeAction {
 
     private final AbstractBuild<?, ?> build;
+    private final String reportUrl;
 
-    public AllureBuildAction(AbstractBuild<?, ?> build) {
+    public AllureBuildAction(AbstractBuild<?, ?> build, String reportUrl) {
         this.build = build;
+        this.reportUrl = reportUrl;
     }
 
     @Override
@@ -35,12 +36,27 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        if (getReportUrl() == null || getReportUrl().contains(getRootUrl())) {
+            return AllureReportPlugin.URL_PATH;
+        }
+        else {
+            return getReportUrl();
+        }
+    }
+
+    private String getBuildUrl() {
+        return build.getUrl();
+    }
+
+    private String getRootUrl() { return Jenkins.getInstance().getRootUrl(); }
+
+    public String getReportUrl() {
+        return reportUrl;
     }
 
     @SuppressWarnings("unused")
-    public String getBuildUrl() {
-        return build.getUrl();
+    public String getBadgeUrl() {
+        return getUrlName().equals(AllureReportPlugin.URL_PATH) ? getRootUrl() + getBuildUrl() + getUrlName() : getUrlName();
     }
 
     @SuppressWarnings("unused")

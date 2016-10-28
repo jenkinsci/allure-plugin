@@ -28,6 +28,7 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties;
 
+
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, String resultsPattern, List<PropertyConfig> properties,
                               ReportBuildPolicy reportBuildPolicy, Boolean includeProperties) {

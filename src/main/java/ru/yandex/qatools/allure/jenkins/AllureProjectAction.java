@@ -32,7 +32,14 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        AllureBuildAction buildAction = project.getLastBuild().getAction(AllureBuildAction.class);
+        return buildAction != null ? buildAction.getUrlName() : null;
+    }
+
+    @SuppressWarnings("unused")
+    public String getBadgeUrl() {
+        AllureBuildAction buildAction = project.getLastBuild().getAction(AllureBuildAction.class);
+        return buildAction != null ? buildAction.getBadgeUrl() : null;
     }
 
     @Override
@@ -40,4 +47,5 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
         AbstractBuild<?, ?> build = project.getLastBuild();
         return build != null ? build.getAction(AllureBuildAction.class) : null;
     }
+
 }

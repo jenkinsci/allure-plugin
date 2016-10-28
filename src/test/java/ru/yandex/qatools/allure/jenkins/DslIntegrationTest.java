@@ -49,6 +49,7 @@ public class DslIntegrationTest {
         assertThat(allureReportPublisher.getConfig().getProperties(), hasSize(1));
         assertThat(allureReportPublisher.getConfig().getProperties().get(0).getKey(), equalTo("key"));
         assertThat(allureReportPublisher.getConfig().getProperties().get(0).getValue(), equalTo("value"));
+        assertThat(allureReportPublisher.getUploader().getDescriptor().getDisplayName(), equalTo("Jenkins Master"));
 
         assertThat(allureReportPublisher.getConfig().getReportBuildPolicy(), equalTo(ReportBuildPolicy.UNSTABLE));
         assertThat(allureReportPublisher.getConfig().getIncludeProperties(), equalTo(Boolean.TRUE));

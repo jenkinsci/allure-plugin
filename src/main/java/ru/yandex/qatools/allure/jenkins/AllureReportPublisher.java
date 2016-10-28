@@ -7,12 +7,7 @@ import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
-import hudson.model.BuildListener;
-import hudson.model.Computer;
-import hudson.model.JDK;
+import hudson.model.*;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import hudson.util.ArgumentListBuilder;
@@ -24,18 +19,14 @@ import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
+import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.REPORT_PATH;
-import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.copyRecursiveTo;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.deleteRecursive;
 
@@ -52,6 +43,8 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     private final AllureReportConfig config;
 
+    private final transient AllureReportUploader uploader;
+
     public static final String ALLURE_PREFIX = "allure";
 
     public static final String CONFIG_PATH = "config";
@@ -59,12 +52,17 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     public static final String ENVIRONMENT_PATH = "environment";
 
     @DataBoundConstructor
-    public AllureReportPublisher(AllureReportConfig config) {
+    public AllureReportPublisher(AllureReportConfig config, AllureReportUploader uploader ) {
         this.config = config;
+        this.uploader = uploader;
     }
 
     public AllureReportConfig getConfig() {
         return config == null ? AllureReportConfig.newInstance() : config;
+    }
+
+    public AllureReportUploader getUploader() {
+        return this.uploader == null ? new AllureReportDefaultUploader() : this.uploader;
     }
 
     @Override
@@ -136,9 +134,11 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     private boolean generateReport(List<FilePath> resultsPaths, AbstractBuild<?, ?> build, Launcher launcher,
                                    BuildListener listener) throws IOException, InterruptedException {
 
+        PrintStream logger = listener.getLogger();
+
         ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(build)) {
-            listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
+            logger.println(String.format("allure report generation reject by policy [%s]",
                     reportBuildPolicy.getTitle()));
             return true;
         }
@@ -148,7 +148,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                 getCommandlineInstallation(getConfig().getCommandline());
 
         if (commandline == null) {
-            launcher.getListener().getLogger().println("ERROR: Can not find any allure commandline installation.");
+            logger.println("ERROR: Can not find any allure commandline installation.");
             return false;
         }
 
@@ -200,15 +200,24 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
                 return false;
             }
 
-            // copy report on master
-            reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
+            // publish report
+            logger.println(String.format("Uploading report using '%s' uploader",
+                    getUploader().getDescriptor().getDisplayName()));
+            String urlPublished = getUploader().publish(reportDirectory, build, logger);
+
             // execute actions for report
-            build.addAction(new AllureBuildAction(build));
+            build.addAction(new AllureBuildAction(build, urlPublished));
         } catch (IOException e) { //NOSONAR
-            listener.getLogger().println("Report generation failed");
+            logger.println(String.format("Report generation failed. Reason: %s", e.getMessage()));
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
-        } finally {
+        }
+        catch (AllureUploadException e) { //NOSONAR
+            logger.println(String.format("Report uploading failed. Reason: %s", e.getMessage()));
+            e.printStackTrace(listener.getLogger()); //NOSONAR
+            return false;
+        }
+        finally {
             deleteRecursive(tmpDirectory, listener.getLogger());
         }
         return true;
@@ -235,4 +244,5 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
         String curBuildNumber = Integer.toString(build.getNumber());
         return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
     }
+
 }
