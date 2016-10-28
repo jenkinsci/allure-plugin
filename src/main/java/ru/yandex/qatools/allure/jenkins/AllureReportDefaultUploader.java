@@ -6,8 +6,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.Descriptor;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
+import ru.yandex.qatools.allure.jenkins.exceptions.AllureUploadException;
 
-import java.io.IOException;
 import java.io.PrintStream;
 
 import static ru.yandex.qatools.allure.jenkins.AllureReportPlugin.getMasterReportFilePath;
@@ -24,9 +24,14 @@ public class AllureReportDefaultUploader extends AllureReportUploader {
     public AllureReportDefaultUploader() {}
 
     @Override
-    public String publish(FilePath reportDirectory, AbstractBuild<?, ?> build, PrintStream logger) throws IOException, InterruptedException {
+    public String publish(FilePath reportDirectory, AbstractBuild<?, ?> build, PrintStream logger) throws AllureUploadException {
 
-        reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
+        try {
+            reportDirectory.copyRecursiveTo(getMasterReportFilePath(build));
+        }
+        catch (Exception e) {
+            throw new AllureUploadException(e.getMessage());
+        }
         logger.println(String.format("Report successfully saved to `%s`", getMasterReportFilePath(build)));
         return Jenkins.getInstance().getRootUrl() + build.getUrl() + getAllureUrlName();
 

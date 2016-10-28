@@ -43,7 +43,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     private final AllureReportConfig config;
 
-    private transient final AllureReportUploader uploader;
+    private final transient AllureReportUploader uploader;
 
     public static final String ALLURE_PREFIX = "allure";
 
@@ -62,7 +62,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     public AllureReportUploader getUploader() {
-        return uploader == null ? new AllureReportDefaultUploader() : uploader;
+        return this.uploader == null ? new AllureReportDefaultUploader() : this.uploader;
     }
 
     @Override
@@ -201,10 +201,9 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             }
 
             // publish report
-            AllureReportUploader uploader = getUploader();
             logger.println(String.format("Uploading report using '%s' uploader",
-                                         uploader.getDescriptor().getDisplayName()));
-            String urlPublished = uploader.publish(reportDirectory, build, logger);
+                    getUploader().getDescriptor().getDisplayName()));
+            String urlPublished = getUploader().publish(reportDirectory, build, logger);
 
             // execute actions for report
             build.addAction(new AllureBuildAction(build, urlPublished));
@@ -213,9 +212,9 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
             e.printStackTrace(listener.getLogger());  //NOSONAR
             return false;
         }
-        catch (AllureUploadException e) {
+        catch (AllureUploadException e) { //NOSONAR
             logger.println(String.format("Report uploading failed. Reason: %s", e.getMessage()));
-            e.printStackTrace(listener.getLogger());
+            e.printStackTrace(listener.getLogger()); //NOSONAR
             return false;
         }
         finally {
