@@ -3,9 +3,9 @@ package io.qameta.jenkins.execption;
 /**
  * @author charlie (Dmitry Baev).
  */
-public class AllurePluginExecption extends RuntimeException {
+public class AllurePluginException extends RuntimeException {
 
-    public AllurePluginExecption(String message) {
+    public AllurePluginException(String message) {
         super(message);
     }
 }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author eroshenkoam (Artem Eroshenko)
@@ -35,7 +36,7 @@ public class AllureReportConfig implements Serializable {
         this.properties = properties;
         this.commandline = commandline;
         this.resultsPaths = Objects.isNull(resultsPaths) ? Collections.emptyList() : resultsPaths;
-        this.reportBuildPolicy = reportBuildPolicy;
+        this.reportBuildPolicy = Objects.isNull(reportBuildPolicy) ? ReportBuildPolicy.ALWAYS : reportBuildPolicy;
         this.includeProperties = Objects.isNull(includeProperties) ? false : includeProperties;
     }
 
@@ -52,6 +53,11 @@ public class AllureReportConfig implements Serializable {
     @Nonnull
     public List<String> getResultsPaths() {
         return resultsPaths;
+    }
+
+    @Nonnull
+    public String getResultsPathsAsNewLineString() {
+        return resultsPaths.stream().collect(Collectors.joining("\n"));
     }
 
     @Nullable

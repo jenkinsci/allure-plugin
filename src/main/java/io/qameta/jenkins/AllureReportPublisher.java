@@ -7,8 +7,6 @@ import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
-import hudson.model.AbstractProject;
-import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.JDK;
@@ -22,7 +20,7 @@ import io.qameta.jenkins.callables.AddExecutorInfo;
 import io.qameta.jenkins.callables.AddTestRunInfo;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
-import io.qameta.jenkins.execption.AllurePluginExecption;
+import io.qameta.jenkins.execption.AllurePluginException;
 import io.qameta.jenkins.tools.AllureInstallation;
 import io.qameta.jenkins.utils.BuildUtils;
 import io.qameta.jenkins.utils.FilePathUtils;
@@ -35,8 +33,6 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -76,12 +72,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     @Override
     @Nonnull
-    public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
-        return Collections.singletonList(new AllureReportProjectAction(project));
-    }
-
-    @Override
-    @Nonnull
     public AllureReportPublisherDescriptor getDescriptor() {
         return (AllureReportPublisherDescriptor) super.getDescriptor();
     }
@@ -92,6 +82,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         List<FilePath> results = getConfig().getResultsPaths().stream()
                 .map(workspace::child)
                 .collect(Collectors.toList());
+        prepareResults(results, run);
         generateReport(results, run, workspace, launcher, listener);
         copyResultsToParentIfNeeded(results, run, listener);
     }
@@ -163,19 +154,16 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 getDescriptor().getCommandlineInstallation(config.getCommandline());
 
         if (!installation.isPresent()) {
-            throw new AllurePluginExecption("Can not find any allure commandline installation.");
+            throw new AllurePluginException("Can not find any allure commandline installation.");
         }
 
-        copyHistory(resultsPaths, run);
-        addTestRunInfo(resultsPaths, run);
-        addExecutorInfo(resultsPaths, run);
         FilePath tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
         FilePath reportDirectory = tmpDirectory.child("allure-report");
 
         // configure commandline
         Optional<AllureInstallation> tool = BuildUtils.getBuildTool(installation.get(), buildEnvVars, listener);
         if (!tool.isPresent()) {
-            throw new AllurePluginExecption("Can not find any allure commandline installation for given environment.");
+            throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
         }
         AllureInstallation commandline = tool.get();
         configureJdk(buildEnvVars, listener);
@@ -193,14 +181,21 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             int exitCode = launcher.launch().cmds(arguments).envs(buildEnvVars).stdout(listener)
                     .pwd(workspace).join();
             if (exitCode != 0) {
-                throw new AllurePluginExecption("Can not generate Allure Report, exit code: " + exitCode);
+                throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
             }
             reportDirectory.copyRecursiveTo(new FilePath(new File(run.getRootDir(), "allure-report")));
             // execute actions for report
-            run.addAction(new AllureReportBuildBadgeAction(run));
+            run.addAction(new AllureReportBuildBadgeAction());
         } finally {
             FilePathUtils.deleteRecursive(tmpDirectory, listener.getLogger());
         }
+    }
+
+    private void prepareResults(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)
+            throws IOException, InterruptedException {
+        copyHistory(resultsPaths, run);
+        addTestRunInfo(resultsPaths, run);
+        addExecutorInfo(resultsPaths, run);
     }
 
     private void addTestRunInfo(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)

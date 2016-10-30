@@ -6,8 +6,7 @@
         <f:entry title="${%Results}:" field="resultsPaths" description="${%ResultsDescription}">
             <f:textarea
                     checkUrl="'descriptorByName/AllureReportPublisher/resultsPattern?results='+escape(this.value)"
-                    default="${descriptor.getResultsPatternDefault()}"
-                    value="${instance.getConfig().getResultsPaths()}"
+                    value="${instance.getConfig().getResultsPathsAsNewLineString()}"
                     style="width: 90%"/>
         </f:entry>
         <f:entry title="${%Properties}" field="properties">
@@ -59,11 +58,11 @@
                 </select>
             </f:entry>
             <f:entry title="${%Generate}:">
-                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
-                    <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
+                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}'>
+                    <f:radio title="${reportBuildPolicy.getTitle()}"
+                             name="reportBuildPolicy"
                              value="${reportBuildPolicy.getValue()}"
-                             checked="${instance.getConfig().getReportBuildPolicy() == null and status.first or
-                                instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
+                             checked="instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
                     <br/>
                 </j:forEach>
             </f:entry>

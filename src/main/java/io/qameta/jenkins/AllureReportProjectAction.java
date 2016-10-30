@@ -1,10 +1,12 @@
 package io.qameta.jenkins;
 
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
+import hudson.model.Job;
 import hudson.model.ProminentProjectAction;
+import hudson.model.Run;
 import org.kohsuke.stapler.StaplerProxy;
+
+import java.util.Objects;
 
 /**
  * {@link Action} that shows link to the allure report on the project page
@@ -12,10 +14,11 @@ import org.kohsuke.stapler.StaplerProxy;
  * @author pupssman
  */
 public class AllureReportProjectAction implements ProminentProjectAction, StaplerProxy {
-    private final AbstractProject<?, ?> project;
 
-    public AllureReportProjectAction(AbstractProject<?, ?> project) {
-        this.project = project;
+    private final Job<?, ?> job;
+
+    public AllureReportProjectAction(Job<?, ?> job) {
+        this.job = job;
     }
 
     @Override
@@ -35,7 +38,10 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     @Override
     public Object getTarget() {
-        AbstractBuild<?, ?> build = project.getLastBuild();
-        return build != null ? build.getAction(AllureReportBuildBadgeAction.class) : null;
+        Run<?, ?> last = job.getLastCompletedBuild();
+        if (Objects.nonNull(last)) {
+            return last.getAction(AllureReportBuildBadgeAction.class);
+        }
+        return null;
     }
 }
