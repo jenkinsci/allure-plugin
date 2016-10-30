@@ -1,1 +1,1 @@
-allure resultsPaths: [resultsPath]
+allure([resultsPaths: [resultsPath]])

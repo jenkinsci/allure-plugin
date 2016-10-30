@@ -32,7 +32,7 @@ public final class BuildUtils {
         if (node.isPresent() && Objects.nonNull(tool)) {
             return Optional.of(tool.forNode(node.get(), listener).forEnvironment(env));
         }
-        return Optional.empty();
+        return Optional.ofNullable(tool);
     }
 
     public static EnvVars getBuildEnvVars(Run<?, ?> run, TaskListener listener) //NOSONAR
