@@ -11,6 +11,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static io.qameta.jenkins.testdata.TestUtils.assertHasReport;
@@ -21,6 +22,9 @@ import static io.qameta.jenkins.testdata.TestUtils.getJdk;
  * @author charlie (Dmitry Baev).
  */
 public class PipelineIT {
+
+    @ClassRule
+    public static BuildWatcher buildWatcher = new BuildWatcher();
 
     @ClassRule
     public static JenkinsRule jRule = new JenkinsRule();
@@ -52,7 +56,6 @@ public class PipelineIT {
                 new StringParameterDefinition("resultsPath", "allure-results")
         ));
         WorkflowRun build = jRule.buildAndAssertSuccess(project);
-        System.out.println(JenkinsRule.getLog(build));
         assertHasReport(build);
     }
 }

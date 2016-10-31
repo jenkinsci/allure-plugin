@@ -17,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
 
@@ -38,6 +39,9 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 public class ReportGenerateIT {
 
     public static final String ALLURE_RESULTS = "allure-results/sample-testsuite.xml";
+
+    @ClassRule
+    public static BuildWatcher buildWatcher = new BuildWatcher();
 
     @ClassRule
     public static JenkinsRule jRule = new JenkinsRule();
