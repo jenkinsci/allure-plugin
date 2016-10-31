@@ -2,6 +2,7 @@ package io.qameta.jenkins.tools;
 
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.EnvironmentSpecific;
@@ -56,7 +57,7 @@ public class AllureInstallation extends ToolInstallation
 
     public Optional<Path> getExecutablePath() {
         return getHomePath()
-                .map(path -> path.resolve("bin/allure"))
+                .map(path -> Functions.isWindows() ? path.resolve("bin/allure.bat") : path.resolve("bin/allure"))
                 .filter(Files::isRegularFile);
     }
 
