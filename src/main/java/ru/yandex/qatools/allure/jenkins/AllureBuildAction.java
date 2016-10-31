@@ -2,24 +2,19 @@ package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
 import hudson.model.*;
-
-import java.io.IOException;
-
-import javax.servlet.ServletException;
-
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * {@link Action} that server allure report from archive directory on master of a given build.
+ * {@link Action} that server allure report from archive directory on master of a given createGenerator.
  *
  * @author pupssman
  */
 public class AllureBuildAction implements BuildBadgeAction {
 
-    private final AbstractBuild<?, ?> build;
+    private final Run<?, ?> build;
 
-    public AllureBuildAction(AbstractBuild<?, ?> build) {
+    public AllureBuildAction(Run<?, ?> build) {
         this.build = build;
     }
 
@@ -44,9 +39,8 @@ public class AllureBuildAction implements BuildBadgeAction {
     }
 
     @SuppressWarnings("unused")
-    public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp)
-            throws IOException, ServletException, InterruptedException {
-        AbstractProject<?, ?> project = build.getProject();
+    public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp) throws Exception { //NOSONAR
+        Job<?, ?> project = build.getParent();
         FilePath systemDirectory = new FilePath(AllureReportPlugin.getReportBuildDirectory(build));
         return new DirectoryBrowserSupport(this, systemDirectory, project.getDisplayName(), null, false);
     }

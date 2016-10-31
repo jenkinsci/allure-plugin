@@ -14,6 +14,7 @@ import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
 import hudson.tools.ToolInstaller;
 import hudson.tools.ToolProperty;
+import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -76,6 +78,14 @@ public class AllureCommandlineInstallation extends ToolInstallation
     @Override
     public AllureCommandlineInstallation forNode(Node node, TaskListener log) throws IOException, InterruptedException {
         return new AllureCommandlineInstallation(getName(), translateFor(node, log), getProperties().toList());
+    }
+
+    public static List<AllureCommandlineInstallation> getCommandlineInstallations() {
+        return Arrays.asList(
+                Jenkins.getInstance()
+                        .getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
+                        .getInstallations()
+        );
     }
 
     @Extension

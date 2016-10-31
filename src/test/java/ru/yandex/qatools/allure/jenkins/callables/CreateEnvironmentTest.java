@@ -22,7 +22,7 @@ public class CreateEnvironmentTest {
 
     private int buildNumber = 0;
 
-    private String buildName = "test-build";
+    private String buildName = "test-createGenerator";
 
     private String projectUrl = "http://jenkins.company.com/project";
 
