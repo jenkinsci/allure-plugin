@@ -65,7 +65,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     }
 
     private void handleException(BuildListener listener, Exception e) {
-        e.printStackTrace(listener.error("Failed to generate Allure Report"));
+        e.printStackTrace(listener.error("Failed to generate Allure Report")); //NOSONAR
     }
 
     @Override
@@ -98,7 +98,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
                 MatrixBuild parentBuild = ((MatrixRun) build).getParentBuild();
                 FilePath aggregationResults = getAggregationResultDirectory(parentBuild);
-                listener.getLogger().printf("copy matrix createGenerator results to directory [%s]\n", aggregationResults);
+                listener.getLogger().printf("copy matrix createGenerator results to directory [%s]%n", aggregationResults);
                 for (FilePath resultsPath : resultsPaths) {
                     copyRecursiveTo(resultsPath, aggregationResults, parentBuild, listener.getLogger());
                 }
@@ -113,30 +113,7 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
 
     @Override
     public MatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
-        return new MatrixAggregator(build, launcher, listener) {
-
-            @Override
-            public boolean endBuild() throws InterruptedException, IOException {
-                try {
-                    FilePath results = getAggregationResultDirectory(build);
-
-                    createGeneratorBuilder()
-                            .workspace(build.getWorkspace())
-                            .launcher(launcher)
-                            .listener(listener)
-                            .run(build)
-                            .createGenerator(Collections.singletonList(results))
-                            .generateReport();
-
-                    deleteRecursive(results, listener.getLogger());
-
-                    return true;
-                } catch (Exception e) {
-                    handleException(listener, e);
-                    return false;
-                }
-            }
-        };
+        return new MatrixAggregatorImpl(build, launcher, listener);
     }
 
     private ReportGenerator.Builder createGeneratorBuilder() {
@@ -146,5 +123,37 @@ public class AllureReportPublisher extends Recorder implements Serializable, Mat
     private FilePath getAggregationResultDirectory(AbstractBuild<?, ?> build) {
         String curBuildNumber = Integer.toString(build.getNumber());
         return build.getWorkspace().child(ALLURE_PREFIX + curBuildNumber);
+    }
+
+    private class MatrixAggregatorImpl extends MatrixAggregator {
+        private MatrixAggregatorImpl(MatrixBuild build, Launcher launcher, BuildListener listener) {
+            super(build, launcher, listener);
+        }
+
+        @Override
+        public boolean endBuild() throws InterruptedException, IOException {
+            try {
+                FilePath results = getAggregationResultDirectory(build);
+
+                generateReport(results);
+
+                deleteRecursive(results, listener.getLogger());
+
+                return true;
+            } catch (Exception e) {
+                handleException(listener, e);
+                return false;
+            }
+        }
+
+        private void generateReport(FilePath results) throws AllureReportGenerationException {
+            createGeneratorBuilder()
+                    .workspace(build.getWorkspace())
+                    .launcher(launcher)
+                    .listener(listener)
+                    .run(build)
+                    .createGenerator(Collections.singletonList(results))
+                    .generateReport();
+        }
     }
 }

@@ -3,7 +3,6 @@ package ru.yandex.qatools.allure.jenkins;
 import hudson.FilePath;
 import hudson.Plugin;
 import hudson.PluginWrapper;
-import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
 

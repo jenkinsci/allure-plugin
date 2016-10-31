@@ -70,12 +70,16 @@ public class AllureReportStep extends AbstractStepImpl implements Serializable {
 
     AllureReportConfig toConfig() {
         AllureReportConfig config = AllureReportConfig.newInstance(paths);
-        if (jdk != null) config.setJdk(jdk);
-        if (commandLine != null) config.setCommandline(commandLine);
-        if (includeProperties != null) config.setIncludeProperties(includeProperties);
+        if (jdk != null)
+            config.setJdk(jdk);
+        if (commandLine != null)
+            config.setCommandline(commandLine);
+        if (includeProperties != null)
+            config.setIncludeProperties(includeProperties);
 
         List<PropertyConfig> propertiesList = createPropertyConfigList();
-        if (!propertiesList.isEmpty()) config.setProperties(propertiesList);
+        if (!propertiesList.isEmpty())
+            config.setProperties(propertiesList);
 
         return config;
     }
@@ -129,7 +133,7 @@ public class AllureReportStep extends AbstractStepImpl implements Serializable {
                         .createGenerator(resultPaths)
                         .generateReport();
             } catch (Exception e) {
-                e.printStackTrace(listener.error("Failed to generate Allure Report"));
+                e.printStackTrace(listener.error("Failed to generate Allure Report")); //NOSONAR
                 throw e;
             }
 

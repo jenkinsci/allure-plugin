@@ -48,7 +48,7 @@ public class ReportGenerator {
     private boolean invalidBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
         if (!reportBuildPolicy.isNeedToBuildReport(run)) {
             listener.getLogger().printf(
-                    "allure report generation reject by policy [%s]\n",
+                    "allure report generation reject by policy [%s]%n",
                     reportBuildPolicy.getTitle()
             );
             return true;
@@ -64,10 +64,20 @@ public class ReportGenerator {
         return false;
     }
 
+    private FilePath createTmpDirectory() throws AllureReportGenerationException {
+        FilePath tmpDirectory;
+        try {
+            tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
+        } catch (Exception e) {
+            throw new AllureReportGenerationException("Failed to create tmp directory for report", e);
+        }
+        return tmpDirectory;
+    }
+
     private AllureCommandlineInstallation setupCommandLine(AllureCommandlineInstallation commandline) throws IOException, InterruptedException {
-        commandline = commandline.forNode(run.getExecutor().getOwner().getNode(), listener);
-        commandline = commandline.forEnvironment(run.getEnvironment(listener));
-        return commandline;
+        return commandline
+                .forNode(run.getExecutor().getOwner().getNode(), listener)
+                .forEnvironment(run.getEnvironment(listener));
     }
 
     private Map<String, String> getBuildVariables() {
@@ -167,7 +177,32 @@ public class ReportGenerator {
         return null;
     }
 
-    public void generateReport() throws IOException, InterruptedException {
+    private void doGenerate(AllureCommandlineInstallation commandline, FilePath tmpDirectory) throws IOException, InterruptedException, AllureReportGenerationException {
+        // create tmp report path
+        FilePath reportDirectory = tmpDirectory.child(REPORT_PATH);
+        ArgumentListBuilder arguments = setupArguments(commandline, tmpDirectory, reportDirectory);
+        EnvVars buildEnv = getBuildEnv(commandline, tmpDirectory);
+
+        int exitCode = launcher
+                .launch()
+                .cmds(arguments)
+                .envs(buildEnv)
+                .stdout(listener)
+                .pwd(workspace)
+                .join();
+
+        if (exitCode != 0)
+            throw new AllureReportGenerationException("Allure commandline exit code: " + exitCode);
+
+        // copy report on master
+        FilePath reportFilePath = getMasterReportFilePath(run);
+        if (reportFilePath != null)
+            reportDirectory.copyRecursiveTo(reportFilePath);
+        // execute actions for report
+        run.addAction(new AllureBuildAction(run));
+    }
+
+    public void generateReport() throws AllureReportGenerationException {
         ReportBuildPolicy reportBuildPolicy = config.getReportBuildPolicy();
         if (invalidBuildPolicy(reportBuildPolicy))
             return ;
@@ -177,34 +212,15 @@ public class ReportGenerator {
         if (invalidCommandLine(commandline))
             return ;
 
-        commandline = setupCommandLine(commandline);
-
         // create config file
-        FilePath tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
+        FilePath tmpDirectory = createTmpDirectory();
 
         try {
-            // create tmp report path
-            FilePath reportDirectory = tmpDirectory.child(REPORT_PATH);
-            ArgumentListBuilder arguments = setupArguments(commandline, tmpDirectory, reportDirectory);
-            EnvVars buildEnv = getBuildEnv(commandline, tmpDirectory);
-
-            int exitCode = launcher
-                    .launch()
-                    .cmds(arguments)
-                    .envs(buildEnv)
-                    .stdout(listener)
-                    .pwd(workspace)
-                    .join();
-
-            if (exitCode != 0)
-                throw new RuntimeException("Allure commandline exit code: " + exitCode);
-
-            // copy report on master
-            FilePath reportFilePath = getMasterReportFilePath(run);
-            if (reportFilePath != null)
-                reportDirectory.copyRecursiveTo(reportFilePath);
-            // execute actions for report
-            run.addAction(new AllureBuildAction(run));
+            doGenerate(setupCommandLine(commandline), tmpDirectory);
+        } catch (AllureReportGenerationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AllureReportGenerationException("Failed to generate Allure report", e);
         } finally {
             deleteRecursive(tmpDirectory, listener.getLogger());
         }
