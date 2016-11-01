@@ -38,7 +38,7 @@ public class AllureInstallation extends ToolInstallation
         super(Util.fixEmptyAndTrim(name), Util.fixEmptyAndTrim(home), properties);
     }
 
-    public String getExecutable(Launcher launcher) throws InterruptedException, IOException { //NOSONAR
+    public String getExecutable(@Nonnull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
             @Override
             public String call() throws IOException {

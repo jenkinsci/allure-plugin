@@ -15,7 +15,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
-import hudson.util.ArgumentListBuilder;
 import io.qameta.jenkins.callables.AddExecutorInfo;
 import io.qameta.jenkins.callables.AddTestRunInfo;
 import io.qameta.jenkins.config.AllureReportConfig;
@@ -149,6 +148,25 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         EnvVars buildEnvVars = getBuildEnvVars(run, listener);
+        configureJdk(buildEnvVars, listener);
+        AllureInstallation commandline = getCommandline(listener, buildEnvVars);
+
+        FilePath reportPath = workspace.createTempDir("allure", "report");
+        try {
+            int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
+                    .build(resultsPaths, reportPath);
+            if (exitCode != 0) {
+                throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
+            }
+            reportPath.copyRecursiveTo(new FilePath(new File(run.getRootDir(), "allure-report")));
+            run.addAction(new AllureReportBuildBadgeAction());
+        } finally {
+            FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
+        }
+    }
+
+    private AllureInstallation getCommandline(@Nonnull TaskListener listener, @Nonnull EnvVars buildEnvVars)
+            throws IOException, InterruptedException {
         // discover commandline
         Optional<AllureInstallation> installation =
                 getDescriptor().getCommandlineInstallation(config.getCommandline());
@@ -157,38 +175,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             throw new AllurePluginException("Can not find any allure commandline installation.");
         }
 
-        FilePath tmpDirectory = workspace.createTempDir(FilePathUtils.ALLURE_PREFIX, null);
-        FilePath reportDirectory = tmpDirectory.child("allure-report");
-
         // configure commandline
         Optional<AllureInstallation> tool = BuildUtils.getBuildTool(installation.get(), buildEnvVars, listener);
         if (!tool.isPresent()) {
             throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
         }
-        AllureInstallation commandline = tool.get();
-        configureJdk(buildEnvVars, listener);
-
-        // configure arguments
-        ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(commandline.getExecutable(launcher));
-        arguments.add("generate");
-        for (FilePath resultsPath : resultsPaths) {
-            arguments.addQuoted(resultsPath.getRemote());
-        }
-        arguments.add("-o").addQuoted(reportDirectory.getRemote());
-
-        try {
-            int exitCode = launcher.launch().cmds(arguments).envs(buildEnvVars).stdout(listener)
-                    .pwd(workspace).join();
-            if (exitCode != 0) {
-                throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
-            }
-            reportDirectory.copyRecursiveTo(new FilePath(new File(run.getRootDir(), "allure-report")));
-            // execute actions for report
-            run.addAction(new AllureReportBuildBadgeAction());
-        } finally {
-            FilePathUtils.deleteRecursive(tmpDirectory, listener.getLogger());
-        }
+        return tool.get();
     }
 
     private void prepareResults(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)
