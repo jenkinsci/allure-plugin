@@ -1,18 +1,21 @@
 package io.qameta.jenkins;
 
+import hudson.FilePath;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterDefinition;
-import io.qameta.jenkins.testdata.ResourceWithJenkinsfileScm;
-import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import static io.qameta.jenkins.testdata.TestUtils.assertHasReport;
 import static io.qameta.jenkins.testdata.TestUtils.getAllureCommandline;
@@ -43,19 +46,24 @@ public class PipelineIT {
     }
 
     @Test
-    @Ignore("doesn't work properly yet")
     public void shouldSupportPipeline() throws Exception {
         WorkflowJob project = jRule.createProject(WorkflowJob.class);
-        project.setDefinition(new CpsScmFlowDefinition(new ResourceWithJenkinsfileScm(
-                "sample-testsuite.xml",
-                "allure-results/sample-testsuite.xml",
-                "sample-jenkinsFile",
-                "jenkinsFile"
-        ), "jenkinsFile"));
+        prepareWorkspace(project);
+
+        FlowDefinition definition = new CpsFlowDefinition("node { allure(resultsPaths: [paths]) }", true);
+        project.setDefinition(definition);
         project.addProperty(new ParametersDefinitionProperty(
-                new StringParameterDefinition("resultsPath", "allure-results")
+                new StringParameterDefinition("paths", "allure-results")
         ));
         WorkflowRun build = jRule.buildAndAssertSuccess(project);
         assertHasReport(build);
+    }
+
+    private void prepareWorkspace(WorkflowJob project) throws IOException, InterruptedException {
+        FilePath workspace = jRule.jenkins.getWorkspaceFor(project);
+        String testSuiteFileName = "sample-testsuite.xml";
+        FilePath allureReportsDir = workspace.child("allure-results").child(testSuiteFileName);
+        InputStream testResultStream = getClass().getClassLoader().getResourceAsStream(testSuiteFileName);
+        allureReportsDir.copyFrom(testResultStream);
     }
 }
