@@ -42,9 +42,9 @@ public class ReportBuilder {
         arguments.add("generate");
         resultsPaths.stream()
                 .map(FilePath::getRemote)
-                .forEach(arguments::add);
+                .forEach(arguments::addQuoted);
         arguments.add("-o");
-        arguments.add(reportPath.getRemote());
+        arguments.addQuoted(reportPath.getRemote());
         return arguments;
     }
 

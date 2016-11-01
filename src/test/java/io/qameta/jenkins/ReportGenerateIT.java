@@ -1,6 +1,7 @@
 package io.qameta.jenkins;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import hudson.Launcher;
 import hudson.matrix.Axis;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
@@ -10,9 +11,12 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.labels.LabelAtom;
+import hudson.remoting.LocalChannel;
 import hudson.scm.SCM;
+import hudson.util.StreamTaskListener;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
+import org.apache.commons.io.output.NullOutputStream;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -27,6 +31,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.qameta.jenkins.testdata.TestUtils.assertHasReport;
 import static io.qameta.jenkins.testdata.TestUtils.getAllureCommandline;
@@ -56,8 +62,8 @@ public class ReportGenerateIT {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        jdk = getJdk(jRule);
-        commandline = getAllureCommandline(jRule, folder);
+        jdk = getJdk(jRule).getName();
+        commandline = getAllureCommandline(jRule, folder).getName();
     }
 
     @Test

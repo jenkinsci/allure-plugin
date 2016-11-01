@@ -41,8 +41,8 @@ public class PipelineIT {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        jdk = getJdk(jRule);
-        commandline = getAllureCommandline(jRule, folder);
+        jdk = getJdk(jRule).getName();
+        commandline = getAllureCommandline(jRule, folder).getName();
     }
 
     @Test
@@ -63,7 +63,8 @@ public class PipelineIT {
         FilePath workspace = jRule.jenkins.getWorkspaceFor(project);
         String testSuiteFileName = "sample-testsuite.xml";
         FilePath allureReportsDir = workspace.child("allure-results").child(testSuiteFileName);
-        InputStream testResultStream = getClass().getClassLoader().getResourceAsStream(testSuiteFileName);
-        allureReportsDir.copyFrom(testResultStream);
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(testSuiteFileName)) {
+            allureReportsDir.copyFrom(is);
+        }
     }
 }
