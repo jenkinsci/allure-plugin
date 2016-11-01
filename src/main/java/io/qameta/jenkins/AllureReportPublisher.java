@@ -151,7 +151,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         configureJdk(buildEnvVars, listener);
         AllureInstallation commandline = getCommandline(listener, buildEnvVars);
 
-        FilePath reportPath = workspace.createTempDir("allure", "report");
+        FilePath reportPath = workspace.createTempDir(ALLURE_PREFIX, "report");
         try {
             int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
                     .build(resultsPaths, reportPath);
@@ -203,7 +203,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             throws IOException, InterruptedException {
         String rootUrl = Jenkins.getInstance().getRootUrl();
         String buildUrl = rootUrl + run.getUrl();
-        String reportUrl = buildUrl + "allure";
+        String reportUrl = buildUrl + ALLURE_PREFIX;
         AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl);
         for (FilePath path : resultsPaths) {
             path.act(callable);

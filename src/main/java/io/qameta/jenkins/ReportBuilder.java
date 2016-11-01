@@ -35,7 +35,7 @@ public class ReportBuilder {
         this.commandline = commandline;
     }
 
-    public ArgumentListBuilder getArguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath)
+    public ArgumentListBuilder getArguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));
@@ -48,7 +48,7 @@ public class ReportBuilder {
         return arguments;
     }
 
-    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath)
+    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         return launcher.launch().cmds(getArguments(resultsPaths, reportPath))
                 .envs(envVars).stdout(listener).pwd(workspace).join();
