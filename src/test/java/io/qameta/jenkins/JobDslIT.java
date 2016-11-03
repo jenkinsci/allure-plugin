@@ -14,7 +14,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -43,8 +49,10 @@ public class JobDslIT {
                 publisher.get(0), instanceOf(AllureReportPublisher.class));
         AllureReportPublisher allureReportPublisher = (AllureReportPublisher) publisher.get(0);
 
-        assertThat(allureReportPublisher.getConfig().getResultsPaths(),
-                hasItems("target/first-results", "target/second-results"));
+        assertThat(allureReportPublisher.getConfig().getResultsPaths(), hasItems(
+                hasProperty("path", equalTo("target/first-results")),
+                hasProperty("path", equalTo("target/second-results"))
+        ));
 
         assertThat(allureReportPublisher.getConfig().getProperties(), hasSize(1));
         assertThat(allureReportPublisher.getConfig().getProperties().get(0).getKey(), equalTo("key"));

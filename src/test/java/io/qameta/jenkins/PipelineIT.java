@@ -50,7 +50,7 @@ public class PipelineIT {
         WorkflowJob project = jRule.createProject(WorkflowJob.class);
         prepareWorkspace(project);
 
-        FlowDefinition definition = new CpsFlowDefinition("node { allure(resultsPaths: [paths]) }", true);
+        FlowDefinition definition = new CpsFlowDefinition("node { allure(resultsPaths: [[path: paths]]) }", true);
         project.setDefinition(definition);
         project.addProperty(new ParametersDefinitionProperty(
                 new StringParameterDefinition("paths", "allure-results")

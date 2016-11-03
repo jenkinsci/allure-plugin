@@ -2,7 +2,6 @@ package io.qameta.jenkins.dsl;
 
 import hudson.Extension;
 import io.qameta.jenkins.AllureReportPublisher;
-import io.qameta.jenkins.config.AllureReportConfig;
 import javaposse.jobdsl.dsl.helpers.publisher.PublisherContext;
 import javaposse.jobdsl.plugin.ContextExtensionPoint;
 import javaposse.jobdsl.plugin.DslExtensionMethod;
@@ -18,7 +17,7 @@ public class AllurePluginJobDslExtension extends ContextExtensionPoint {
 
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths) {
-        return new AllureReportPublisher(AllureReportConfig.newInstance(paths));
+        return new AllureReportPublisher(new AllureReportPublisherContext(paths).getConfig());
     }
 
     @DslExtensionMethod(context = PublisherContext.class)

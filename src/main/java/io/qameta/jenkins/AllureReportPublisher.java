@@ -19,6 +19,7 @@ import io.qameta.jenkins.callables.AddExecutorInfo;
 import io.qameta.jenkins.callables.AddTestRunInfo;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
+import io.qameta.jenkins.config.ResultsConfig;
 import io.qameta.jenkins.execption.AllurePluginException;
 import io.qameta.jenkins.tools.AllureInstallation;
 import io.qameta.jenkins.utils.BuildUtils;
@@ -79,6 +80,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                         @Nonnull TaskListener listener) throws InterruptedException, IOException {
         List<FilePath> results = getConfig().getResultsPaths().stream()
+                .map(ResultsConfig::getPath)
                 .map(workspace::child)
                 .collect(Collectors.toList());
         prepareResults(results, run);

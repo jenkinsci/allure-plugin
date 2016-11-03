@@ -1,7 +1,6 @@
 package io.qameta.jenkins;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import hudson.Launcher;
 import hudson.matrix.Axis;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
@@ -11,12 +10,10 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.model.Result;
 import hudson.model.labels.LabelAtom;
-import hudson.remoting.LocalChannel;
 import hudson.scm.SCM;
-import hudson.util.StreamTaskListener;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
-import org.apache.commons.io.output.NullOutputStream;
+import io.qameta.jenkins.config.ResultsConfig;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -27,12 +24,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.qameta.jenkins.testdata.TestUtils.assertHasReport;
 import static io.qameta.jenkins.testdata.TestUtils.getAllureCommandline;
@@ -134,7 +130,7 @@ public class ReportGenerateIT {
         FreeStyleProject project = jRule.createFreeStyleProject();
         project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
         project.getPublishersList().add(
-                createAllurePublisherWithoutCommandline(Collections.singletonList("allure-results"))
+                createAllurePublisherWithoutCommandline("allure-results")
         );
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         assertHasReport(build);
@@ -158,14 +154,16 @@ public class ReportGenerateIT {
     }
 
     protected AllureReportPublisher createAllurePublisher(String... resultsPaths) throws Exception {
+        List<ResultsConfig> paths = Stream.of(resultsPaths).map(ResultsConfig::new).collect(Collectors.toList());
         return new AllureReportPublisher(new AllureReportConfig(
-                jdk, commandline, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, Arrays.asList(resultsPaths)
+                jdk, commandline, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, paths
         ));
     }
 
-    protected AllureReportPublisher createAllurePublisherWithoutCommandline(List<String> resultsPaths) throws Exception {
+    protected AllureReportPublisher createAllurePublisherWithoutCommandline(String... resultsPaths) throws Exception {
+        List<ResultsConfig> paths = Stream.of(resultsPaths).map(ResultsConfig::new).collect(Collectors.toList());
         return new AllureReportPublisher(new AllureReportConfig(
-                jdk, null, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, resultsPaths
+                jdk, null, Collections.emptyList(), ReportBuildPolicy.ALWAYS, false, paths
         ));
     }
 }

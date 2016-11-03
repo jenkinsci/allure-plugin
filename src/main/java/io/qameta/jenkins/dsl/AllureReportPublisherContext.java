@@ -1,12 +1,14 @@
 package io.qameta.jenkins.dsl;
 
-import javaposse.jobdsl.dsl.Context;
 import io.qameta.jenkins.config.AllureReportConfig;
 import io.qameta.jenkins.config.PropertyConfig;
 import io.qameta.jenkins.config.ReportBuildPolicy;
+import io.qameta.jenkins.config.ResultsConfig;
+import javaposse.jobdsl.dsl.Context;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author mavlyutov (Marat Mavlutov) <mavlyutov@yandex-team.ru>
@@ -17,7 +19,7 @@ class AllureReportPublisherContext implements Context {
 
     private String commandline;
 
-    private List<String> paths;
+    private List<ResultsConfig> paths;
 
     private List<PropertyConfig> properties = new ArrayList<>();
 
@@ -26,7 +28,7 @@ class AllureReportPublisherContext implements Context {
     private boolean includeProperties;
 
     public AllureReportPublisherContext(List<String> paths) {
-        this.paths = paths;
+        this.paths = paths.stream().map(ResultsConfig::new).collect(Collectors.toList());
     }
 
     public AllureReportConfig getConfig() {

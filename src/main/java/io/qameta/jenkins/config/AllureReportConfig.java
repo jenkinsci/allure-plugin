@@ -1,27 +1,27 @@
 package io.qameta.jenkins.config;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.export.ExportedBean;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * @author eroshenkoam (Artem Eroshenko)
  * @author charlie (Dmitry Baev)
  */
+@ExportedBean
 public class AllureReportConfig implements Serializable {
 
     private final String jdk;
 
     private final String commandline;
 
-    private final List<String> resultsPaths;
+    private final List<ResultsConfig> resultsPaths;
 
     private final List<PropertyConfig> properties;
 
@@ -31,7 +31,8 @@ public class AllureReportConfig implements Serializable {
 
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, List<PropertyConfig> properties,
-                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties, List<String> resultsPaths) {
+                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties,
+                              List<ResultsConfig> resultsPaths) {
         this.jdk = jdk;
         this.properties = properties;
         this.commandline = commandline;
@@ -51,13 +52,8 @@ public class AllureReportConfig implements Serializable {
     }
 
     @Nonnull
-    public List<String> getResultsPaths() {
+    public List<ResultsConfig> getResultsPaths() {
         return resultsPaths;
-    }
-
-    @Nonnull
-    public String getResultsPathsAsNewLineString() {
-        return resultsPaths.stream().collect(Collectors.joining("\n"));
     }
 
     @Nullable
@@ -73,16 +69,4 @@ public class AllureReportConfig implements Serializable {
     public boolean getIncludeProperties() {
         return includeProperties;
     }
-
-    public static AllureReportConfig newInstance(List<String> paths) {
-        return new AllureReportConfig(
-                null,
-                null,
-                new ArrayList<>(),
-                ReportBuildPolicy.ALWAYS,
-                true,
-                paths
-        );
-    }
-
 }

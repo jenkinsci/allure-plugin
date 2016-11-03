@@ -12,7 +12,7 @@
     <groupId>io.qameta.jenkins</groupId>
     <artifactId>allure</artifactId>
     <name>Allure Plugin</name>
-    <description>Plugin to generate Allure Report from your tests results</description>
+    <description>This plugin integrates Allure reporting tool into Jenkins</description>
 
     <packaging>hpi</packaging>
 
