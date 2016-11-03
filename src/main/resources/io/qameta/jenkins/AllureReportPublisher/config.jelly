@@ -1,0 +1,79 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:section name="config">
+        <f:entry title="${%Results}:" field="resultsPaths" description="${%ResultsDescription}">
+            <f:repeatable var="resultsPaths" items="${instance.getConfig().getResultsPaths()}" minimum="1">
+                <table width="90%">
+                    <f:entry title="Path" field="path">
+                        <f:textbox value="${resultsPaths.path}" default="allure-results" clazz="required"
+                                   checkMessage="Path can't be empty!"/>
+                    </f:entry>
+                </table>
+                <div align="right">
+                    <f:repeatableDeleteButton/>
+                </div>
+            </f:repeatable>
+        </f:entry>
+        <f:entry title="${%Properties}" field="properties">
+            <f:repeatable var="properties" items="${instance.getConfig().getProperties()}">
+                <table width="90%">
+                    <f:entry title="Key" field="key">
+                        <f:textbox value="${properties.key}" clazz="required"
+                                   checkMessage="Property key can't be empty!" autoCompleteField="propertyKey"/>
+                    </f:entry>
+                    <f:entry title="Value" field="value">
+                        <f:textbox value="${properties.value}"/>
+                    </f:entry>
+                </table>
+                <div align="right">
+                    <f:repeatableDeleteButton/>
+                </div>
+            </f:repeatable>
+        </f:entry>
+        <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
+        <f:entry>
+            <j:if test="${empty(installations)}">
+                <div class="error">
+                    ${%CommandlineMissingError(rootURL)}
+                </div>
+            </j:if>
+        </f:entry>
+        <f:advanced>
+            <f:entry title="${%Commandline}:">
+                <select class="setting-input" style="width: 90%" name="commandline">
+                    <j:forEach var="inst" items="${installations}">
+                        <f:option selected="${inst.name==instance.getConfig().getCommandline()}"
+                                  value="${inst.name}">
+                            ${inst.name}
+                        </f:option>
+                    </j:forEach>
+                </select>
+            </f:entry>
+            <j:set var="jdks" value="${app.JDKs}"/>
+            <f:entry title="JDK" description="${%JDKDescription}">
+                <select class="setting-input" style="width: 90%" name="jdk">
+                    <option value="">${%InheritFromJob}</option>
+                    <j:forEach var="inst" items="${jdks}">
+                        <f:option selected="${inst.name==instance.getConfig().getJdk()}" value="${inst.name}">
+                            ${inst.name}
+                        </f:option>
+                    </j:forEach>
+                </select>
+            </f:entry>
+            <f:entry title="${%Policy}:">
+                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}'>
+                    <f:radio title="${reportBuildPolicy.getTitle()}"
+                             name="reportBuildPolicy"
+                             value="${reportBuildPolicy}"
+                             checked="${instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
+                    <br/>
+                </j:forEach>
+            </f:entry>
+            <f:entry title="${%IncludeEnvironment}" field="includeProperties">
+                <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
+            </f:entry>
+        </f:advanced>
+    </f:section>
+</j:jelly>

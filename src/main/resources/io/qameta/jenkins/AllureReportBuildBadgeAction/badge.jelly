@@ -1,0 +1,8 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <a href="${app.rootUrl}${it.getBuildUrl()}${it.getUrlName()}">
+        <img width="16" height="16" src="${rootURL}${it.getIconFileName()}" title="Allure Report"/>
+    </a>
+</j:jelly>
