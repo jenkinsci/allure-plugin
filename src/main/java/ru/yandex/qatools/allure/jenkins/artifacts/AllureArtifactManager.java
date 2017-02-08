@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class AllureArtifactManager extends StandardArtifactManager {
 
-    AllureArtifactManager(Run<?,?> build) {
+    public AllureArtifactManager(Run<?,?> build) {
         super(build);
     }
 
