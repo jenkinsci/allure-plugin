@@ -42,8 +42,10 @@ public class AllureCommandlineInstallation extends ToolInstallation
             @Override
             public String call() throws IOException {
                 Path executable = getExecutablePath();
-                return executable == null || Files.notExists(executable) ?
-                        "allure" : executable.toAbsolutePath().toString();
+                if (executable == null || Files.notExists(executable)) {
+                    throw new IOException(String.format("Can't find allure commandline <%s>", executable));
+                }
+                return executable.toAbsolutePath().toString();
             }
         });
     }
