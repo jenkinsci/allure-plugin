@@ -73,10 +73,9 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @Nonnull
     public List<AllureCommandlineInstallation> getCommandlineInstallations() {
-        AllureCommandlineInstallation[] installations = Jenkins.getInstance()
+        return Arrays.asList(Jenkins.getInstance()
                 .getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
-                .getInstallations();
-        return Arrays.asList(installations);
+                .getInstallations());
     }
 
     public AllureCommandlineInstallation getCommandlineInstallation(String name) {
