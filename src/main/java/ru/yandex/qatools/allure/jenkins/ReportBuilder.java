@@ -10,6 +10,7 @@ import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 
 /**
@@ -83,7 +84,7 @@ public class ReportBuilder {
         arguments.add("version");
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
             launcher.launch().cmds(arguments).stdout(stream).pwd(workspace).join();
-            String version = new String(stream.toByteArray());
+            String version = new String(stream.toByteArray(), Charset.forName("UTF-8"));
             listener.getLogger().format("Allure version: %s", version);
             return version;
         }
