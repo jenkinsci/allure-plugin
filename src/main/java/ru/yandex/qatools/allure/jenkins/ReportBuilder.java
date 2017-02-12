@@ -8,6 +8,7 @@ import hudson.util.ArgumentListBuilder;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -35,7 +36,35 @@ public class ReportBuilder {
         this.commandline = commandline;
     }
 
-    public ArgumentListBuilder getArguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
+    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
+            throws IOException, InterruptedException {
+        String version = getVersion();
+        ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
+
+        return launcher.launch().cmds(arguments)
+                .envs(envVars).stdout(listener).pwd(workspace).join();
+    }
+
+    private ArgumentListBuilder getArguments(String version, @Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath)
+            throws IOException, InterruptedException {
+        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath) :
+                getAllure1Arguments(resultsPaths, reportPath);
+    }
+
+    private ArgumentListBuilder getAllure2Arguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
+            throws IOException, InterruptedException {
+        ArgumentListBuilder arguments = new ArgumentListBuilder();
+        arguments.add(commandline.getExecutable(launcher));
+        arguments.add("generate");
+        for (FilePath resultsPath : resultsPaths) {
+            arguments.add(resultsPath.getRemote());
+        }
+        arguments.add("-o");
+        arguments.add(reportPath.getRemote());
+        return arguments;
+    }
+
+    private ArgumentListBuilder getAllure1Arguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));
@@ -48,9 +77,16 @@ public class ReportBuilder {
         return arguments;
     }
 
-    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
-            throws IOException, InterruptedException {
-        return launcher.launch().cmds(getArguments(resultsPaths, reportPath))
-                .envs(envVars).stdout(listener).pwd(workspace).join();
+    private String getVersion() throws IOException, InterruptedException {
+        ArgumentListBuilder arguments = new ArgumentListBuilder();
+        arguments.add(commandline.getExecutable(launcher));
+        arguments.add("version");
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+            launcher.launch().cmds(arguments).stdout(stream).pwd(workspace).join();
+            String version = new String(stream.toByteArray());
+            listener.getLogger().format("Allure version: %s", version);
+            return version;
+        }
     }
+
 }
