@@ -72,6 +72,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
         return new AllureCommandlineInstallation(getName(), translateFor(node, log), getProperties().toList());
     }
 
+    @Override
     public void buildEnvVars(EnvVars env) {
         Path home = this.getHomePath();
         if (home != null) {
