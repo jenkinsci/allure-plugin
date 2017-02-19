@@ -29,6 +29,7 @@ public final class BuildUtils {
         if (computer != null && computer.getNode() != null) {
             return tool.forNode(computer.getNode(), listener).forEnvironment(env);
         }
+        tool.buildEnvVars(env);
         return tool;
     }
 

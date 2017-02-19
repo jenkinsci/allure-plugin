@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Artem Eroshenko <eroshenkoam@yandex-team.ru>
@@ -69,6 +70,13 @@ public class AllureCommandlineInstallation extends ToolInstallation
     public AllureCommandlineInstallation forNode(@Nonnull Node node, TaskListener log)
             throws IOException, InterruptedException {
         return new AllureCommandlineInstallation(getName(), translateFor(node, log), getProperties().toList());
+    }
+
+    public void buildEnvVars(EnvVars env) {
+        Path home = this.getHomePath();
+        if (home != null) {
+            env.put("ALLURE_HOME", home.toAbsolutePath().toString());
+        }
     }
 
     @Extension
