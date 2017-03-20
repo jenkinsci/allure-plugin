@@ -20,6 +20,7 @@
         <allureCommandline.version>1.4.24.RC3</allureCommandline.version>
         <jenkins.version>2.7.4</jenkins.version>
         <java.level>7</java.level>
+        <truezip.version>7.7.10</truezip.version>
     </properties>
 
     <developers>
@@ -231,6 +232,16 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.7.0</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.schlichtherle.truezip</groupId>
+            <artifactId>truezip-driver-zip</artifactId>
+            <version>${truezip.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.schlichtherle.truezip</groupId>
+            <artifactId>truezip-file</artifactId>
+            <version>${truezip.version}</version>
         </dependency>
     </dependencies>
 

@@ -14,11 +14,13 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
+import hudson.util.io.ArchiverFactory;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
+import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
@@ -31,10 +33,7 @@ import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -168,7 +167,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
             listener.getLogger().println("Allure report was successfully generated.");
 
-            archiving(reportPath, reportArchive, listener.getLogger());
+            archiving(reportPath, reportArchive, workspace, listener.getLogger());
 
             listener.getLogger().println("Creating artifact for the build.");
 
@@ -184,13 +183,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private void archiving(FilePath reportPath, FilePath reportArchive, PrintStream logger) throws IOException, InterruptedException {
+    private void archiving(FilePath reportPath, FilePath reportArchive,
+                           @Nonnull FilePath workspace, PrintStream logger) throws IOException, InterruptedException {
         logger.println("Creating archive for the report.");
-        Date start = new Date();
-        reportPath.zip(reportArchive);
-        Date end = new Date();
-        logger.println("Archive: " + reportArchive.getName() + " was successfully created " +
-                "in " + Math.ceil((end.getTime() - start.getTime())/1000) + " seconds.");
+        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName()+"/**");
+        logger.println("Archive for the report was successfully created.");
     }
 
     private AllureCommandlineInstallation getCommandline(@Nonnull TaskListener listener, @Nonnull EnvVars buildEnvVars)
