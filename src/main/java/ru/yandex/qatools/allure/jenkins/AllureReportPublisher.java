@@ -14,7 +14,6 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
-import hudson.util.io.ArchiverFactory;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
@@ -35,7 +34,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -214,6 +212,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             copyHistory(resultsPaths, run);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
+            listener.getLogger().println(e);
         }
         addTestRunInfo(resultsPaths, run);
         addExecutorInfo(resultsPaths, run);
