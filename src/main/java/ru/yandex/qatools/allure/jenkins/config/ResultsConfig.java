@@ -7,7 +7,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.io.Serializable;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 25/12/16
  */
 public class ResultsConfig implements Serializable {
@@ -31,7 +31,7 @@ public class ResultsConfig implements Serializable {
     @Override
     public boolean equals(Object object) {
         if (object instanceof ResultsConfig) {
-            ResultsConfig other = (ResultsConfig) object;
+            final ResultsConfig other = (ResultsConfig) object;
             return new EqualsBuilder().append(path, other.path).isEquals();
         } else {
             return false;

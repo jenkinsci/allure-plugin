@@ -7,7 +7,7 @@ import hudson.model.Run;
 import org.kohsuke.stapler.StaplerProxy;
 
 /**
- * {@link Action} that shows link to the allure report on the project page
+ * {@link Action} that shows link to the allure report on the project page.
  *
  * @author pupssman
  */
@@ -36,7 +36,7 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     @Override
     public Object getTarget() {
-        Run<?, ?> last = job.getLastCompletedBuild();
+        final Run<?, ?> last = job.getLastCompletedBuild();
         return last == null ? null : last.getAction(AllureReportBuildAction.class);
     }
 }

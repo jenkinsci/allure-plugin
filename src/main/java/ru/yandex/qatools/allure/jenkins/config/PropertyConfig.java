@@ -45,7 +45,7 @@ public class PropertyConfig implements Serializable {
     @Override
     public boolean equals(Object object) {
         if (object instanceof PropertyConfig) {
-            PropertyConfig other = (PropertyConfig) object;
+            final PropertyConfig other = (PropertyConfig) object;
             return new EqualsBuilder().append(key, other.key).append(value, other.value).isEquals();
         } else {
             return false;

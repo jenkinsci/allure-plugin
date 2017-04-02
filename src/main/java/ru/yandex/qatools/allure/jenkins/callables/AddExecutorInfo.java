@@ -26,7 +26,7 @@ public class AddExecutorInfo extends AbstractAddInfo {
 
     @Override
     protected Object getData() {
-        HashMap<String, Object> data = new HashMap<>();
+        final HashMap<String, Object> data = new HashMap<>();
         data.put("name", "Jenkins");
         data.put("type", "jenkins");
         data.put("url", url);

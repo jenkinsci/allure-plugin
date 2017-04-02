@@ -45,11 +45,11 @@ public class AllureBuildAction implements BuildBadgeAction {
         return build.getUrl();
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "TrailingComment"})
     public DirectoryBrowserSupport doDynamic(StaplerRequest req, StaplerResponse rsp) //NOSONAR
             throws IOException, ServletException, InterruptedException {
-        AbstractProject<?, ?> project = build.getProject();
-        FilePath systemDirectory = new FilePath(AllureReportPlugin.getReportBuildDirectory(build));
+        final AbstractProject<?, ?> project = build.getProject();
+        final FilePath systemDirectory = new FilePath(AllureReportPlugin.getReportBuildDirectory(build));
         return new DirectoryBrowserSupport(this, systemDirectory, project.getDisplayName(), null, false);
     }
 

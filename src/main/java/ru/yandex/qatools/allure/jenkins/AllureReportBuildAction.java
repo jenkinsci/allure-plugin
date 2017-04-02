@@ -3,6 +3,7 @@ package ru.yandex.qatools.allure.jenkins;
 import hudson.FilePath;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
+import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Job;
 import hudson.model.Run;
 import jenkins.model.RunAction2;
@@ -54,7 +55,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     @Override
     public Collection<? extends Action> getProjectActions() {
-        Job<?, ?> job = run.getParent();
+        final Job<?, ?> job = run.getParent();
         return Collections.singleton(new AllureReportProjectAction(job));
     }
 
@@ -64,15 +65,18 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     @SuppressWarnings("unused")
-    public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp) //NOSONAR
+    public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
-        FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
         return new ArchiveReportBrowser(archive);
     }
 
+    /**
+     * {@link DirectoryBrowserSupport} a modified browser support class that serves from an archive.
+     */
     private static class ArchiveReportBrowser implements HttpResponse {
 
-        FilePath archive;
+        private FilePath archive;
 
         ArchiveReportBrowser(FilePath archive) {
             this.archive = archive;
@@ -81,9 +85,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         @Override
         public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node)
                 throws IOException, ServletException {
-            String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
+            final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
-                ZipEntry entry = allureReport.getEntry("allure-report" + path);
+                final ZipEntry entry = allureReport.getEntry("allure-report" + path);
                 rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L,
                         entry.getName());
             }

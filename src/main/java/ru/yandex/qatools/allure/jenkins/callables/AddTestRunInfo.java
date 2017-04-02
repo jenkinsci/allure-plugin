@@ -23,7 +23,7 @@ public class AddTestRunInfo extends AbstractAddInfo {
 
     @Override
     protected Object getData() {
-        HashMap<String, Object> data = new HashMap<>();
+        final HashMap<String, Object> data = new HashMap<>();
         data.put("name", name);
         data.put("start", start);
         data.put("stop", stop);

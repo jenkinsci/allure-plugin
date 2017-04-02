@@ -38,11 +38,16 @@ import java.nio.charset.Charset;
 
 /**
  * {@link FileVisitor} that creates a zip archive via TrueZip.
- *
+ * <p>
  * Modified version of {@link hudson.util.io.ZipArchiver} that created archives
  * larger than 4G successfully.
  */
 public final class TrueZipArchiver extends Archiver {
+
+    public static final ArchiverFactory FACTORY = new Factory();
+    // Bitmask indicating directories in 'external attributes' of a ZIP archive entry.
+    private static final long BITMASK_IS_DIRECTORY = 1 << 4;
+
     private final byte[] buf = new byte[8192];
     private final ZipOutputStream zip;
 
@@ -51,16 +56,16 @@ public final class TrueZipArchiver extends Archiver {
     }
 
     @Override
-    public void visit(final File f, final String _relativePath) throws IOException {
+    public void visit(final File f, final String rawRelativePath) throws IOException {
         // int mode = IOUtils.mode(f); // TODO
 
         // On Windows, the elements of relativePath are separated by 
         // back-slashes (\), but Zip files need to have their path elements separated
         // by forward-slashes (/)
-        String relativePath = _relativePath.replace('\\', '/');
-        
-        if(f.isDirectory()) {
-            ZipEntry dirZipEntry = new ZipEntry(relativePath+'/');
+        final String relativePath = rawRelativePath.replace('\\', '/');
+
+        if (f.isDirectory()) {
+            final ZipEntry dirZipEntry = new ZipEntry(relativePath + '/');
             // Setting this bit explicitly is needed by some unzipping applications (see JENKINS-3294).
             dirZipEntry.setExternalAttributes(BITMASK_IS_DIRECTORY);
             //if (mode!=-1)   dirZipEntry.setUnixMode(mode); // TODO
@@ -68,15 +73,16 @@ public final class TrueZipArchiver extends Archiver {
             zip.putNextEntry(dirZipEntry);
             zip.closeEntry();
         } else {
-            ZipEntry fileZipEntry = new ZipEntry(relativePath);
+            final ZipEntry fileZipEntry = new ZipEntry(relativePath);
             //if (mode!=-1)   fileZipEntry.setUnixMode(mode); // TODO
             fileZipEntry.setTime(f.lastModified());
             zip.putNextEntry(fileZipEntry);
-            FileInputStream in = new FileInputStream(f);
+            final FileInputStream in = new FileInputStream(f);
             try {
                 int len;
-                while((len=in.read(buf))>=0)
-                    zip.write(buf,0,len);
+                while ((len = in.read(buf)) >= 0) {
+                    zip.write(buf, 0, len);
+                }
             } finally {
                 in.close();
             }
@@ -89,16 +95,15 @@ public final class TrueZipArchiver extends Archiver {
         zip.close();
     }
 
-    // Bitmask indicating directories in 'external attributes' of a ZIP archive entry.
-    private static final long BITMASK_IS_DIRECTORY = 1<<4;
-    
-    public static final ArchiverFactory FACTORY = new Factory();
-
+    /**
+     * A factory class for TrueZipArchivers.
+     */
     private static final class Factory extends ArchiverFactory {
         private static final long serialVersionUID = 1L;
+
         @Override
         public Archiver create(OutputStream out) throws IOException {
             return new TrueZipArchiver(out);
         }
-    }; 
+    }
 }

@@ -3,7 +3,7 @@ package ru.yandex.qatools.allure.jenkins.config;
 import hudson.model.Run;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 6/28/14
  */
 public interface ReportBuildPolicyDecision {

@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 30/07/14
  */
 public class AllureReportConfig implements Serializable {
@@ -21,7 +21,7 @@ public class AllureReportConfig implements Serializable {
     private String commandline;
 
     /**
-     * @deprecated
+     * @deprecated Please, someone write why is this deprecated?
      */
     @Deprecated
     private String resultsPattern;
@@ -36,7 +36,8 @@ public class AllureReportConfig implements Serializable {
 
     @DataBoundConstructor
     public AllureReportConfig(String jdk, String commandline, List<PropertyConfig> properties,
-                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties, List<ResultsConfig> results) {
+                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties,
+                              List<ResultsConfig> results) {
         this.jdk = jdk;
         this.commandline = commandline;
 
@@ -105,7 +106,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     private static AllureReportConfig newInstance(String jdk, String commandline, List<String> paths) {
-        List<ResultsConfig> results = convertPaths(paths);
+        final List<ResultsConfig> results = convertPaths(paths);
         return new AllureReportConfig(jdk, commandline, new ArrayList<PropertyConfig>(),
                 ReportBuildPolicy.ALWAYS, true, results);
     }
@@ -115,7 +116,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     private static List<ResultsConfig> convertPaths(List<String> paths) {
-        List<ResultsConfig> results = new ArrayList<>();
+        final List<ResultsConfig> results = new ArrayList<>();
         for (String path : paths) {
             results.add(new ResultsConfig(path));
         }

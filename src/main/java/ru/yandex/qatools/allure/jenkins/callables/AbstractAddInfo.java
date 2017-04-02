@@ -20,9 +20,9 @@ public abstract class AbstractAddInfo extends MasterToSlaveFileCallable<FilePath
 
     @Override
     public FilePath invoke(File file, VirtualChannel channel) throws IOException, InterruptedException {
-        Path outputDirectory = Paths.get(file.toURI());
+        final Path outputDirectory = Paths.get(file.toURI());
         Files.createDirectories(outputDirectory);
-        Path testRun = outputDirectory.resolve(getFileName());
+        final Path testRun = outputDirectory.resolve(getFileName());
         try (Writer writer = Files.newBufferedWriter(testRun, StandardCharsets.UTF_8)) {
             JSONObject.fromObject(getData())
                     .write(writer)

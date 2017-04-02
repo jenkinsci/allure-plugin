@@ -9,7 +9,7 @@ import jenkins.model.Jenkins;
 import java.io.File;
 
 /**
- * User: eroshenkoam
+ * User: eroshenkoam.
  * Date: 10/9/13, 8:29 PM
  */
 public class AllureReportPlugin extends Plugin {
@@ -27,7 +27,7 @@ public class AllureReportPlugin extends Plugin {
     public static final String DEFAULT_TMS_PATTERN = DEFAULT_URL_PATTERN;
 
     public static FilePath getMasterReportFilePath(AbstractBuild<?, ?> build) {
-        File file = getReportBuildDirectory(build);
+        final File file = getReportBuildDirectory(build);
         return file == null ? null : new FilePath(file);
     }
 
@@ -41,7 +41,7 @@ public class AllureReportPlugin extends Plugin {
     }
 
     public static String getIconFilename() {
-        PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin(AllureReportPlugin.class);
+        final PluginWrapper wrapper = Jenkins.getInstance().getPluginManager().getPlugin(AllureReportPlugin.class);
         return wrapper == null ? "" : String.format("/plugin/%s/img/icon.png", wrapper.getShortName());
     }
 

@@ -39,12 +39,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * User: eroshenkoam
+ * User: eroshenkoam.
  * Date: 10/8/13, 6:20 PM
  * <p/>
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "ClassDataAbstractionCoupling", "ClassFanOutComplexity"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -77,7 +77,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                         @Nonnull TaskListener listener) throws InterruptedException, IOException {
-        List<FilePath> results = new ArrayList<>();
+        final List<FilePath> results = new ArrayList<>();
         for (ResultsConfig resultsConfig : getConfig().getResults()) {
             results.add(workspace.child(resultsConfig.getPath()));
         }
@@ -101,13 +101,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void copyResultsToParentIfNeeded(@Nonnull List<FilePath> results, @Nonnull Run<?, ?> run,
                                              @Nonnull TaskListener listener) throws IOException, InterruptedException {
         if (run instanceof MatrixRun) {
-            MatrixBuild parentBuild = ((MatrixRun) run).getParentBuild();
-            FilePath workspace = parentBuild.getWorkspace();
+            final MatrixBuild parentBuild = ((MatrixRun) run).getParentBuild();
+            final FilePath workspace = parentBuild.getWorkspace();
             if (workspace == null) {
                 listener.getLogger().format("Can not find workspace for parent build %s", parentBuild.getDisplayName());
                 return;
             }
-            FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_SUFFIX);
+            final FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_SUFFIX);
             listener.getLogger().format("Copy matrix build results to directory [%s]", aggregationDir);
             for (FilePath resultsPath : results) {
                 FilePathUtils.copyRecursiveTo(resultsPath, aggregationDir, parentBuild, listener.getLogger());
@@ -124,7 +124,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return new MatrixAggregator(build, launcher, listener) {
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
-                List<FilePath> resultsPaths = new ArrayList<>();
+                final List<FilePath> resultsPaths = new ArrayList<>();
                 for (FilePath directory : workspace.listDirectories()) {
                     if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().endsWith(ALLURE_SUFFIX)) {
                         resultsPaths.add(directory);
@@ -139,25 +139,26 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         };
     }
 
+    @SuppressWarnings("TrailingComment")
     private void generateReport(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run,
                                 @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                                 @Nonnull TaskListener listener) throws IOException, InterruptedException { //NOSONAR
 
-        ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
+        final ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(run)) {
             listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
                     reportBuildPolicy.getTitle()));
             return;
         }
 
-        EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
+        final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
         configureJdk(buildEnvVars, listener);
-        AllureCommandlineInstallation commandline = getCommandline(listener, buildEnvVars);
+        final AllureCommandlineInstallation commandline = getCommandline(listener, buildEnvVars);
 
-        FilePath reportPath = workspace.child("allure-report");
-        FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
+        final FilePath reportPath = workspace.child("allure-report");
+        final FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
         try {
-            int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
+            final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
                     .build(resultsPaths, reportPath);
             if (exitCode != 0) {
                 throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
@@ -184,14 +185,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void archiving(FilePath reportPath, FilePath reportArchive,
                            @Nonnull FilePath workspace, PrintStream logger) throws IOException, InterruptedException {
         logger.println("Creating archive for the report.");
-        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName()+"/**");
+        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName() + "/**");
         logger.println("Archive for the report was successfully created.");
     }
 
     private AllureCommandlineInstallation getCommandline(@Nonnull TaskListener listener, @Nonnull EnvVars buildEnvVars)
             throws IOException, InterruptedException {
         // discover commandline
-        AllureCommandlineInstallation installation =
+        final AllureCommandlineInstallation installation =
                 getDescriptor().getCommandlineInstallation(config.getCommandline());
 
         if (installation == null) {
@@ -199,7 +200,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         // configure commandline
-        AllureCommandlineInstallation tool = BuildUtils.getBuildTool(installation, buildEnvVars, listener);
+        final AllureCommandlineInstallation tool = BuildUtils.getBuildTool(installation, buildEnvVars, listener);
         if (tool == null) {
             throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
         }
@@ -220,8 +221,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void addTestRunInfo(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)
             throws IOException, InterruptedException {
-        long start = run.getStartTimeInMillis();
-        long stop = run.getTimeInMillis();
+        final long start = run.getStartTimeInMillis();
+        final long stop = run.getTimeInMillis();
         for (FilePath path : resultsPaths) {
             path.act(new AddTestRunInfo(run.getFullDisplayName(), start, stop));
         }
@@ -229,10 +230,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void addExecutorInfo(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)
             throws IOException, InterruptedException {
-        String rootUrl = Jenkins.getInstance().getRootUrl();
-        String buildUrl = rootUrl + run.getUrl();
-        String reportUrl = buildUrl + ALLURE_PREFIX;
-        AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl);
+        final String rootUrl = Jenkins.getInstance().getRootUrl();
+        final String buildUrl = rootUrl + run.getUrl();
+        final String reportUrl = buildUrl + ALLURE_PREFIX;
+        final AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl);
         for (FilePath path : resultsPaths) {
             path.act(callable);
         }
@@ -240,24 +241,26 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void copyHistory(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run)
             throws IOException, InterruptedException {
-        Run<?, ?> previousRun = run.getPreviousCompletedBuild();
+        final Run<?, ?> previousRun = run.getPreviousCompletedBuild();
         if (previousRun == null) {
             return;
         }
 
-        FilePath previousReport = new FilePath(previousRun.getRootDir()).child("archive/allure-report.zip");
+        final FilePath previousReport = new FilePath(previousRun.getRootDir()).child("archive/allure-report.zip");
         if (previousReport.exists()) {
             makeCopyForEveryPath(previousReport, resultsPaths);
         }
     }
 
-    private void makeCopyForEveryPath(FilePath previousReport, List<FilePath> resultsPaths) throws IOException, InterruptedException {  //NOSONAR
+    @SuppressWarnings("TrailingComment")
+    private void makeCopyForEveryPath(FilePath previousReport, List<FilePath> resultsPaths) throws IOException,
+            InterruptedException {  //NOSONAR
         try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            ZipEntry history = archive.getEntry("allure-report/data/history.json");
+            final ZipEntry history = archive.getEntry("allure-report/data/history.json");
             if (history != null) {
                 for (FilePath resultsPath : resultsPaths) {
                     try (InputStream entryStream = archive.getInputStream(history)) {
-                        FilePath historyCopy = new FilePath(resultsPath, "history.json");
+                        final FilePath historyCopy = new FilePath(resultsPath, "history.json");
                         historyCopy.copyFrom(entryStream);
                     }
                 }
@@ -274,7 +277,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
      * Configure java environment variables such as JAVA_HOME.
      */
     private void configureJdk(EnvVars env, TaskListener listener) throws IOException, InterruptedException {
-        JDK jdk = BuildUtils.getBuildTool(getJdk(), env, listener);
+        final JDK jdk = BuildUtils.getBuildTool(getJdk(), env, listener);
         if (jdk != null) {
             jdk.buildEnvVars(env);
         }

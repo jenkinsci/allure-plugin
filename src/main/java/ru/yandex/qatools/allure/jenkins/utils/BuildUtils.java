@@ -13,19 +13,20 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 /**
- * @author Artem Eroshenko <erosenkoam@me.com>
+ * @author Artem Eroshenko {@literal <erosenkoam@me.com>}
  */
 public final class BuildUtils {
 
     private BuildUtils() {
     }
 
-    public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T getBuildTool(    //NOSONAR
+    @SuppressWarnings({"TrailingComment", "ReturnCount"})
+    public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T getBuildTool(//NOSONAR
             @Nullable T tool, EnvVars env, TaskListener listener) throws IOException, InterruptedException {
         if (tool == null) {
             return null;
         }
-        Computer computer = Computer.currentComputer();
+        final Computer computer = Computer.currentComputer();
         if (computer != null && computer.getNode() != null) {
             return tool.forNode(computer.getNode(), listener).forEnvironment(env);
         }
@@ -33,9 +34,10 @@ public final class BuildUtils {
         return tool;
     }
 
+    @SuppressWarnings("TrailingComment")
     public static EnvVars getBuildEnvVars(Run<?, ?> run, TaskListener listener) //NOSONAR
             throws IOException, InterruptedException {
-        EnvVars env = run.getEnvironment(listener);
+        final EnvVars env = run.getEnvironment(listener);
         if (run instanceof AbstractBuild) {
             env.overrideAll(((AbstractBuild<?, ?>) run).getBuildVariables());
         }

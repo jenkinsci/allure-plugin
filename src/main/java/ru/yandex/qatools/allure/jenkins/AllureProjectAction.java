@@ -39,7 +39,7 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
 
     @Override
     public Object getTarget() {
-        AbstractBuild<?, ?> build = project.getLastBuild();
+        final AbstractBuild<?, ?> build = project.getLastBuild();
         return build == null ? null : build.getAction(AllureBuildAction.class);
     }
 }

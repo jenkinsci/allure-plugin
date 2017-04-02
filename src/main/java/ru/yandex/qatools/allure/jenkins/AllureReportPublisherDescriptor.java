@@ -18,7 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * User: eroshenkoam
+ * User: eroshenkoam.
  * Date: 10/9/13, 7:49 PM
  */
 @Extension
@@ -48,7 +48,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         return ReportBuildPolicy.values();
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "ReturnCount"})
     @Nonnull
     public FormValidation doResultsPattern(@QueryParameter("results") String results) {
         if (Strings.isNullOrEmpty(results)) {
@@ -65,7 +65,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     @SuppressWarnings("unused")
     @Nonnull
     public AutoCompletionCandidates doAutoCompletePropertyKey() {
-        AutoCompletionCandidates candidates = new AutoCompletionCandidates();
+        final AutoCompletionCandidates candidates = new AutoCompletionCandidates();
         candidates.add("allure.issues.tracker.pattern");
         candidates.add("allure.tests.management.pattern");
         return candidates;
@@ -78,8 +78,9 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                 .getInstallations());
     }
 
+    @SuppressWarnings("ReturnCount")
     public AllureCommandlineInstallation getCommandlineInstallation(String name) {
-        List<AllureCommandlineInstallation> installations = getCommandlineInstallations();
+        final List<AllureCommandlineInstallation> installations = getCommandlineInstallations();
 
         for (AllureCommandlineInstallation installation : installations) {
             if (installation.getName().equals(name)) {

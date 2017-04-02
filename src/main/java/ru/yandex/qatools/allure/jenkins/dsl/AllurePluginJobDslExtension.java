@@ -10,7 +10,7 @@ import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import java.util.List;
 
 /**
- * @author Marat Mavlutov <mavlyutov@yandex-team.ru>
+ * @author Marat Mavlutov <{@literal mavlyutov@yandex-team.ru}>
  */
 @Extension(optional = true)
 public class AllurePluginJobDslExtension extends ContextExtensionPoint {
@@ -23,7 +23,8 @@ public class AllurePluginJobDslExtension extends ContextExtensionPoint {
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths, Runnable closure) {
 
-        AllureReportPublisherContext context = new AllureReportPublisherContext(AllureReportConfig.newInstance(paths));
+        final AllureReportPublisherContext context = new AllureReportPublisherContext(
+                AllureReportConfig.newInstance(paths));
         executeInContext(closure, context);
 
         return new AllureReportPublisher(context.getConfig());

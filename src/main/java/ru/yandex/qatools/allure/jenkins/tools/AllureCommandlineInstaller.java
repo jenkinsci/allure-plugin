@@ -9,7 +9,7 @@ import ru.yandex.qatools.allure.jenkins.Messages;
 import javax.annotation.Nonnull;
 
 /**
- * @author Artem Eroshenko <eroshenkoam@yandex-team.ru>
+ * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
  */
 public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
 
@@ -18,8 +18,13 @@ public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
         super(id);
     }
 
+    /**
+     * Descriptor implementation for Allure downloading.
+     */
+    @SuppressWarnings("TrailingComment")
     @Extension
-    public static class DescriptorImpl extends DownloadFromUrlInstaller.DescriptorImpl<AllureCommandlineInstaller> { //NOSONAR
+    public static class DescriptorImpl extends DownloadFromUrlInstaller
+            .DescriptorImpl<AllureCommandlineInstaller> { //NOSONAR
 
         @Override
         @Nonnull

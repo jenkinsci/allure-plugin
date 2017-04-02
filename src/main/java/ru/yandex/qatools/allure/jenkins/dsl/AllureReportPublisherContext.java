@@ -6,7 +6,7 @@ import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 
 /**
- * @author Marat Mavlutov <mavlyutov@yandex-team.ru>
+ * @author Marat Mavlutov <{@literal mavlyutov@yandex-team.ru}>
  */
 class AllureReportPublisherContext implements Context {
 
@@ -14,7 +14,7 @@ class AllureReportPublisherContext implements Context {
 
     private AllureReportConfig config;
 
-    public AllureReportPublisherContext(AllureReportConfig config) {
+    AllureReportPublisherContext(AllureReportConfig config) {
         this.config = config;
     }
 
@@ -23,7 +23,8 @@ class AllureReportPublisherContext implements Context {
     }
 
     public void buildFor(String buildPolicy) {
-        String policy = buildPolicy.equals(FAILURE_POLICY) ? ReportBuildPolicy.UNSUCCESSFUL.getValue() : buildPolicy;
+        final String policy = buildPolicy.equals(FAILURE_POLICY) ? ReportBuildPolicy.UNSUCCESSFUL.getValue()
+                : buildPolicy;
         getConfig().setReportBuildPolicy(ReportBuildPolicy.valueOf(policy));
     }
 

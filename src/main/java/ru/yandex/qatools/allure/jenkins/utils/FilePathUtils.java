@@ -7,18 +7,20 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 /**
- * @author Artem Eroshenko <eroshenkoam@yandex-team.ru>
+ * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
  */
-public class FilePathUtils {
+public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
 
     private FilePathUtils() {
     }
 
-    public static void copyRecursiveTo(FilePath from, FilePath to, AbstractBuild build, PrintStream logger) throws IOException, InterruptedException { //NOSONAR
+    @SuppressWarnings("TrailingComment")
+    public static void copyRecursiveTo(FilePath from, FilePath to, AbstractBuild build, PrintStream logger)
+            throws IOException, InterruptedException { //NOSONAR
         if (from.isRemote() && to.isRemote()) {
-            FilePath tmpMasterFilePath = new FilePath(build.getRootDir()).createTempDir(ALLURE_PREFIX, null);
+            final FilePath tmpMasterFilePath = new FilePath(build.getRootDir()).createTempDir(ALLURE_PREFIX, null);
             from.copyRecursiveTo(tmpMasterFilePath);
             tmpMasterFilePath.copyRecursiveTo(to);
             deleteRecursive(tmpMasterFilePath, logger);
@@ -27,7 +29,7 @@ public class FilePathUtils {
         }
     }
 
-
+    @SuppressWarnings("TrailingComment")
     public static void deleteRecursive(FilePath filePath, PrintStream logger) {
         try {
             filePath.deleteContents();
@@ -36,6 +38,4 @@ public class FilePathUtils {
             logger.println(String.format("Can't delete directory [%s]", filePath));
         }
     }
-
-
 }

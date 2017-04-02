@@ -4,9 +4,10 @@ import hudson.model.Result;
 import hudson.model.Run;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 6/25/14
  */
+@SuppressWarnings("TrailingComment")
 public enum ReportBuildPolicy {
 
     ALWAYS("For all builds", new ReportBuildPolicyDecision() {
