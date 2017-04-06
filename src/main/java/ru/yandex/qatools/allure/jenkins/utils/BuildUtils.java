@@ -7,7 +7,10 @@ import hudson.model.EnvironmentSpecific;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
+import hudson.tools.InstallSourceProperty;
 import hudson.tools.ToolInstallation;
+import hudson.tools.ToolProperty;
+import org.apache.commons.lang.reflect.FieldUtils;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -22,9 +25,15 @@ public final class BuildUtils {
 
     public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T getBuildTool(    //NOSONAR
             @Nullable T tool, EnvVars env, TaskListener listener) throws IOException, InterruptedException {
+
+        if (tool != null && tool.getHome() == null) {
+            tool = getNestedToolInstallation(tool);
+        }
+
         if (tool == null) {
             return null;
         }
+
         Computer computer = Computer.currentComputer();
         if (computer != null && computer.getNode() != null) {
             return tool.forNode(computer.getNode(), listener).forEnvironment(env);
@@ -40,6 +49,17 @@ public final class BuildUtils {
             env.overrideAll(((AbstractBuild<?, ?>) run).getBuildVariables());
         }
         return env;
+    }
+
+    //pipeline evil hug
+    @SuppressWarnings("unchecked")
+    private static <T extends ToolInstallation> T getNestedToolInstallation(T tool) {
+        try {
+            ToolProperty<?> property = tool.getProperties().get(0);
+            return (T) FieldUtils.readField(property, "tool", true);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
 }
