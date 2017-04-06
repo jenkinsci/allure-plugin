@@ -1,4 +1,4 @@
-package ru.yandex.qatools.allure.jenkins.execption;
+package ru.yandex.qatools.allure.jenkins.exception;
 
 /**
  * @author charlie (Dmitry Baev).
