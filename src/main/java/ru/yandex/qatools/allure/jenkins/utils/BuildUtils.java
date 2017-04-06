@@ -34,10 +34,6 @@ public final class BuildUtils {
             return null;
         }
 
-        if (tool.getHome() == null) {
-            tool = getNestedToolInstallation(tool);
-        }
-
         Computer computer = Computer.currentComputer();
         if (computer != null && computer.getNode() != null) {
             return tool.forNode(computer.getNode(), listener).forEnvironment(env);
