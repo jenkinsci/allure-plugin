@@ -51,6 +51,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String ALLURE_SUFFIX = "results";
 
     private final AllureReportConfig config;
+    private AllureCommandlineInstallation installation;
 
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull AllureReportConfig config) {
@@ -152,7 +153,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
         configureJdk(buildEnvVars, listener);
-        AllureCommandlineInstallation commandline = getCommandline(listener, buildEnvVars);
+        AllureCommandlineInstallation commandline = installation != null ? installation
+                : getCommandline(listener, buildEnvVars);
 
         FilePath reportPath = workspace.child("allure-report");
         FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
@@ -184,7 +186,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void archiving(FilePath reportPath, FilePath reportArchive,
                            @Nonnull FilePath workspace, PrintStream logger) throws IOException, InterruptedException {
         logger.println("Creating archive for the report.");
-        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName()+"/**");
+        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName() + "/**");
         logger.println("Archive for the report was successfully created.");
     }
 
@@ -263,6 +265,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 }
             }
         }
+    }
+
+    public AllureReportPublisher withAllureCliInstallation(AllureCommandlineInstallation installation) {
+        this.installation = installation;
+        return this;
     }
 
     @Nullable

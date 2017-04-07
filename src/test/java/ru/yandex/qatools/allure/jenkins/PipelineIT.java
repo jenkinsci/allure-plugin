@@ -1,8 +1,14 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
+import hudson.cli.BuildCommand;
+import hudson.model.Build;
+import hudson.model.Job;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
+import hudson.model.queue.QueueTaskFuture;
+import jenkins.model.ParameterizedJobMixIn;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -45,11 +51,34 @@ public class PipelineIT {
     }
 
     @Test
+    public void shouldFailWithWrongCommandline() throws Exception {
+        final WorkflowJob project = jRule.createProject(WorkflowJob.class);
+        prepareWorkspace(project);
+
+        final FlowDefinition definition = new CpsFlowDefinition(String.format("node { withAllure([commandline:'cli', " +
+                "results: [[path: paths]]]) }", commandline), true);
+        project.setDefinition(definition);
+        project.addProperty(new ParametersDefinitionProperty(
+                new StringParameterDefinition("paths", "allure-results")
+        ));
+
+        QueueTaskFuture f = new ParameterizedJobMixIn() {
+            @Override protected Job asJob() {
+                return project;
+            }
+        }.scheduleBuild2(0);
+        WorkflowRun build = (WorkflowRun) f.get();
+        jRule.assertBuildStatus(Result.FAILURE, build);
+        assertThat(build.getActions(AllureReportBuildAction.class)).isEmpty();
+    }
+
+    @Test
     public void shouldSupportPipeline() throws Exception {
         WorkflowJob project = jRule.createProject(WorkflowJob.class);
         prepareWorkspace(project);
 
-        FlowDefinition definition = new CpsFlowDefinition("node { allure(results: [[path: paths]]) }", true);
+        FlowDefinition definition = new CpsFlowDefinition(String.format("node { withAllure([commandline:'%s', " +
+                "results: [[path: paths]]]) }", commandline), true);
         project.setDefinition(definition);
         project.addProperty(new ParametersDefinitionProperty(
                 new StringParameterDefinition("paths", "allure-results")
