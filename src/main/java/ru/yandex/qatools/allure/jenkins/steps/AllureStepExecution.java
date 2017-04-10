@@ -11,8 +11,6 @@ import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
-import ru.yandex.qatools.allure.jenkins.AllureReportPublisher;
-import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import javax.annotation.Nonnull;
@@ -20,12 +18,15 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
 
+import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getAllureInstallations;
+
 /**
  * @author Egor Borisov ehborisov@gmail.com
  */
 public class AllureStepExecution extends StepExecution implements Serializable {
 
-    private final transient AllureReportConfig step;
+    private static final String WITH_ALLURE = "WITH_ALLURE";
+    private final transient WithAllureStep step;
     private final transient TaskListener listener;
     private final transient FilePath ws;
     private final transient Launcher launcher;
@@ -36,7 +37,7 @@ public class AllureStepExecution extends StepExecution implements Serializable {
     private transient Computer computer;
     private transient AllureCommandlineInstallation installation;
 
-    public AllureStepExecution(StepContext context, AllureReportConfig step) throws Exception {
+    public AllureStepExecution(StepContext context, WithAllureStep step) throws Exception {
         super(context);
         this.step = step;
         listener = context.get(TaskListener.class);
@@ -53,9 +54,7 @@ public class AllureStepExecution extends StepExecution implements Serializable {
         setupAllure();
 
         try {
-            new AllureReportPublisher(step)
-                    .withAllureCliInstallation(installation)
-                    .perform(build, ws, launcher, listener);
+            getContext().newBodyInvoker().withContexts(env).start();
             getContext().onSuccess(null);
         } catch (Exception e) {
             getContext().onFailure(e);
@@ -96,6 +95,7 @@ public class AllureStepExecution extends StepExecution implements Serializable {
 
         this.installation = installation.forNode(node, listener);
         this.installation.buildEnvVars(env);
+        env.put(WITH_ALLURE, allureInstallationName);
     }
 
     private
@@ -124,10 +124,5 @@ public class AllureStepExecution extends StepExecution implements Serializable {
         }
 
         return computer;
-    }
-
-    private static AllureCommandlineInstallation[] getAllureInstallations() {
-        return Jenkins.getInstance().getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
-                .getInstallations();
     }
 }

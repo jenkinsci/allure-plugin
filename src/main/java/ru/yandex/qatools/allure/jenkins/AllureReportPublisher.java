@@ -49,9 +49,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
+    private static final String WITH_ALLURE_KEY = "WITH_ALLURE";
 
     private final AllureReportConfig config;
-    private AllureCommandlineInstallation installation;
 
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull AllureReportConfig config) {
@@ -153,8 +153,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
         configureJdk(buildEnvVars, listener);
-        AllureCommandlineInstallation commandline = installation != null ? installation
-                : getCommandline(listener, buildEnvVars);
+        AllureCommandlineInstallation commandline = getCommandline(listener, buildEnvVars);
 
         FilePath reportPath = workspace.child("allure-report");
         FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
@@ -192,9 +191,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private AllureCommandlineInstallation getCommandline(@Nonnull TaskListener listener, @Nonnull EnvVars buildEnvVars)
             throws IOException, InterruptedException {
+        //if installation was configured for pipeline block
+        final String installationName = buildEnvVars.get(WITH_ALLURE_KEY) == null ? config.getCommandline()
+                : buildEnvVars.get(WITH_ALLURE_KEY);
         // discover commandline
         AllureCommandlineInstallation installation =
-                getDescriptor().getCommandlineInstallation(config.getCommandline());
+                getDescriptor().getCommandlineInstallation(installationName);
 
         if (installation == null) {
             throw new AllurePluginException("Can not find any allure commandline installation.");
@@ -265,11 +267,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 }
             }
         }
-    }
-
-    public AllureReportPublisher withAllureCliInstallation(AllureCommandlineInstallation installation) {
-        this.installation = installation;
-        return this;
     }
 
     @Nullable

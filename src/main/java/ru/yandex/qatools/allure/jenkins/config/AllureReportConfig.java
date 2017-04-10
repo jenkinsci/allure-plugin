@@ -1,19 +1,7 @@
 package ru.yandex.qatools.allure.jenkins.config;
 
-import com.google.common.collect.ImmutableSet;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.model.Run;
-import hudson.model.TaskListener;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.workflow.steps.Step;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
-import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.steps.AllureStepExecution;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -21,13 +9,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * eroshenkoam
  * 30/07/14
  */
-public class AllureReportConfig extends Step implements Serializable {
+public class AllureReportConfig implements Serializable {
 
     private String jdk;
 
@@ -133,35 +120,5 @@ public class AllureReportConfig extends Step implements Serializable {
             results.add(new ResultsConfig(path));
         }
         return results;
-    }
-
-    @Override
-    public StepExecution start(StepContext context) throws Exception {
-        return new AllureStepExecution(context, this);
-    }
-
-    @Extension
-    public static class DescriptorImpl extends StepDescriptor {
-
-        @Override
-        public String getFunctionName() {
-            return "withAllure";
-        }
-
-
-        @Override
-        public String getDisplayName() {
-            return "Provide Allure reporting";
-        }
-
-        @Override
-        public boolean takesImplicitBlockArgument() {
-            return false;
-        }
-
-        @Override
-        public Set<Class<?>> getRequiredContext() {
-            return ImmutableSet.of(TaskListener.class, FilePath.class, Launcher.class, EnvVars.class, Run.class);
-        }
     }
 }
