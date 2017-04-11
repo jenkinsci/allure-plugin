@@ -151,8 +151,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
-        configureJdk(buildEnvVars, listener);
-        AllureCommandlineInstallation commandline = getCommandline(listener, buildEnvVars);
+        configureJdk(launcher, listener, buildEnvVars);
+        AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
         FilePath reportPath = workspace.child("allure-report");
         FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
@@ -184,12 +184,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void archiving(FilePath reportPath, FilePath reportArchive,
                            @Nonnull FilePath workspace, PrintStream logger) throws IOException, InterruptedException {
         logger.println("Creating archive for the report.");
-        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName()+"/**");
+        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName() + "/**");
         logger.println("Archive for the report was successfully created.");
     }
 
-    private AllureCommandlineInstallation getCommandline(@Nonnull TaskListener listener, @Nonnull EnvVars buildEnvVars)
+    private AllureCommandlineInstallation getCommandline(
+            @Nonnull Launcher launcher, @Nonnull TaskListener listener, @Nonnull EnvVars env)
             throws IOException, InterruptedException {
+
         // discover commandline
         AllureCommandlineInstallation installation =
                 getDescriptor().getCommandlineInstallation(config.getCommandline());
@@ -199,7 +201,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         // configure commandline
-        AllureCommandlineInstallation tool = BuildUtils.getBuildTool(installation, buildEnvVars, listener);
+        AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
         if (tool == null) {
             throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
         }
@@ -273,8 +275,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     /**
      * Configure java environment variables such as JAVA_HOME.
      */
-    private void configureJdk(EnvVars env, TaskListener listener) throws IOException, InterruptedException {
-        JDK jdk = BuildUtils.getBuildTool(getJdk(), env, listener);
+    private void configureJdk(Launcher launcher, TaskListener listener, EnvVars env)
+            throws IOException, InterruptedException {
+        JDK jdk = BuildUtils.setUpTool(getJdk(), launcher, listener, env);
         if (jdk != null) {
             jdk.buildEnvVars(env);
         }
