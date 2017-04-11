@@ -48,8 +48,8 @@ public class ReportBuilder {
 
     private ArgumentListBuilder getArguments(String version, @Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath)
             throws IOException, InterruptedException {
-        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath) :
-                getAllure1Arguments(resultsPaths, reportPath);
+        return version.startsWith("1") ? getAllure1Arguments(resultsPaths, reportPath) :
+                getAllure2Arguments(resultsPaths, reportPath);
     }
 
     private ArgumentListBuilder getAllure2Arguments(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
