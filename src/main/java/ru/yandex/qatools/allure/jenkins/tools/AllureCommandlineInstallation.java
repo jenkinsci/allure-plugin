@@ -50,6 +50,19 @@ public class AllureCommandlineInstallation extends ToolInstallation
         });
     }
 
+    public String getMajorVersion(@Nonnull Launcher launcher) throws InterruptedException, IOException {
+        return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
+            @Override
+            public String call() throws IOException {
+                Path home = getHomePath();
+                if (home == null || Files.notExists(home)) {
+                    throw new IOException(String.format("Can't find allure commandline <%s>", home));
+                }
+                return Files.exists(home.resolve("app/allure-bundle.jar")) ? "1" : "2";
+            }
+        });
+    }
+
     private Path getHomePath() {
         String home = Util.replaceMacro(getHome(), EnvVars.masterEnvVars);
         return home == null ? null : Paths.get(home);

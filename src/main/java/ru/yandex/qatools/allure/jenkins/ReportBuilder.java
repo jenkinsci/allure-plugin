@@ -8,9 +8,7 @@ import hudson.util.ArgumentListBuilder;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import javax.annotation.Nonnull;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.List;
 
 /**
@@ -39,7 +37,7 @@ public class ReportBuilder {
 
     public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
-        String version = getVersion();
+        String version = commandline.getMajorVersion(launcher);
         ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
 
         return launcher.launch().cmds(arguments)
@@ -76,18 +74,6 @@ public class ReportBuilder {
         arguments.add("-o");
         arguments.addQuoted(reportPath.getRemote());
         return arguments;
-    }
-
-    private String getVersion() throws IOException, InterruptedException {
-        ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(commandline.getExecutable(launcher));
-        arguments.add("version");
-        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
-            launcher.launch().cmds(arguments).stdout(stream).pwd(workspace).join();
-            String version = new String(stream.toByteArray(), Charset.forName("UTF-8"));
-            listener.getLogger().format("Allure version: %s", version);
-            return version;
-        }
     }
 
 }
