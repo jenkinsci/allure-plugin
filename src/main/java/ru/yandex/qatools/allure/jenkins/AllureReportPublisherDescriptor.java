@@ -89,8 +89,8 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         // If no installation match then take the first one
         if (installation == null && !installations.isEmpty()) {
             return installations.get(0);
+        } else {
+            return installation;
         }
-
-        return null;
     }
 }

@@ -1,5 +1,6 @@
 package ru.yandex.qatools.allure.jenkins.steps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -27,9 +28,12 @@ import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getAllureInstall
  */
 public class AllureStepExecution extends StepExecution implements Serializable {
 
+    private static final long serialVersionUID = 42L;
     private final transient WithAllureStep step;
+    @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
     private final transient TaskListener listener;
     private final transient Launcher launcher;
+    @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
     private final transient EnvVars env;
 
     private transient PrintStream console;
