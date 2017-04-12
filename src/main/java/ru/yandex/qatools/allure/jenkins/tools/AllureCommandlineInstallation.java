@@ -58,7 +58,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
                 if (home == null || Files.notExists(home)) {
                     throw new IOException(String.format("Can't find allure commandline <%s>", home));
                 }
-                return home.resolve("app/allure-bundle.jar").toFile().exists() ? "1" : "2";
+                return Files.exists(home.resolve("app/allure-bundle.jar")) ? "1" : "2";
             }
         });
     }
