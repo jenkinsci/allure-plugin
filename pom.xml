@@ -18,7 +18,7 @@
 
     <properties>
         <allureCommandline.version>1.4.24.RC3</allureCommandline.version>
-        <jenkins.version>2.32.3</jenkins.version>
+        <jenkins.version>2.19.4</jenkins.version>
         <java.level>7</java.level>
         <truezip.version>7.7.10</truezip.version>
     </properties>
