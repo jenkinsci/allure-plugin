@@ -10,10 +10,13 @@ import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolInstallation;
 import jenkins.model.Jenkins;
+import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Artem Eroshenko <erosenkoam@me.com>
@@ -58,9 +61,8 @@ public final class BuildUtils {
         return env;
     }
 
-
-    public static AllureCommandlineInstallation[] getAllureInstallations() {
-        return Jenkins.getInstance().getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
-                .getInstallations();
+    public static List<AllureCommandlineInstallation> getAllureInstallations() {
+        return Arrays.asList(Jenkins.getInstance().getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
+                .getInstallations());
     }
 }
