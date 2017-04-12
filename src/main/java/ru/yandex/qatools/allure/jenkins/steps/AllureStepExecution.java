@@ -3,13 +3,8 @@ package ru.yandex.qatools.allure.jenkins.steps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.EnvVars;
-import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.Computer;
-import hudson.model.Node;
-import hudson.model.Run;
 import hudson.model.TaskListener;
-import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import ru.yandex.qatools.allure.jenkins.AllureReportPublisherDescriptor;
@@ -20,8 +15,6 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-
-import static ru.yandex.qatools.allure.jenkins.utils.BuildUtils.getAllureInstallations;
 
 /**
  * @author Egor Borisov ehborisov@gmail.com
@@ -38,7 +31,7 @@ public class AllureStepExecution extends StepExecution implements Serializable {
 
     private transient PrintStream console;
 
-    public AllureStepExecution(StepContext context, WithAllureStep step) throws Exception {
+    public AllureStepExecution(StepContext context, WithAllureStep step) throws IOException, InterruptedException {
         super(context);
         this.step = step;
         listener = context.get(TaskListener.class);
