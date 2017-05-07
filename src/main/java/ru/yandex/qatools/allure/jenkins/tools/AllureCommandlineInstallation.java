@@ -32,6 +32,8 @@ import java.util.List;
 public class AllureCommandlineInstallation extends ToolInstallation
         implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation> {
 
+    private static final String CAN_FIND_ALLURE_MESSAGE = "Can't find allure commandline <%s>";
+
     @DataBoundConstructor
     public AllureCommandlineInstallation(String name, String home, List<? extends ToolProperty<?>> properties) {
         super(Util.fixEmptyAndTrim(name), Util.fixEmptyAndTrim(home), properties);
@@ -44,7 +46,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
             public String call() throws IOException {
                 final Path executable = getExecutablePath();
                 if (executable == null || Files.notExists(executable)) {
-                    throw new IOException(String.format("Can't find allure commandline <%s>", executable));
+                    throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, executable));
                 }
                 return executable.toAbsolutePath().toString();
             }
@@ -55,9 +57,9 @@ public class AllureCommandlineInstallation extends ToolInstallation
         return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
             @Override
             public String call() throws IOException {
-                Path home = getHomePath();
+                final Path home = getHomePath();
                 if (home == null || Files.notExists(home)) {
-                    throw new IOException(String.format("Can't find allure commandline <%s>", home));
+                    throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, home));
                 }
                 return Files.exists(home.resolve("app/allure-bundle.jar")) ? "1" : "2";
             }

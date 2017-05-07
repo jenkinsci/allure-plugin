@@ -7,19 +7,19 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 11.04.17
  */
-public class ZipUtils {
+public final class ZipUtils {
 
     private ZipUtils() {
     }
 
     public static List<ZipEntry> listEntries(ZipFile zip, String path) {
-        Enumeration<? extends ZipEntry> entries = zip.entries();
-        List<ZipEntry> files = new ArrayList<>();
+        final Enumeration<? extends ZipEntry> entries = zip.entries();
+        final List<ZipEntry> files = new ArrayList<>();
         while (entries.hasMoreElements()) {
-            ZipEntry entry = entries.nextElement();
+            final ZipEntry entry = entries.nextElement();
             if (entry.getName().startsWith(path)) {
                 files.add(entry);
             }

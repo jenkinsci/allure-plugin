@@ -23,6 +23,7 @@ public final class BuildUtils {
     private BuildUtils() {
     }
 
+    @SuppressWarnings("ParameterAssignment")
     public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T setUpTool(
             @Nullable T tool, @Nonnull Launcher launcher, @Nonnull TaskListener listener, @Nonnull EnvVars env)
             throws IOException, InterruptedException {
