@@ -76,7 +76,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
      */
     private static class ArchiveReportBrowser implements HttpResponse {
 
-        private FilePath archive;
+        private final FilePath archive;
 
         ArchiveReportBrowser(FilePath archive) {
             this.archive = archive;
@@ -88,8 +88,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
                 final ZipEntry entry = allureReport.getEntry("allure-report" + path);
-                rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L,
-                        entry.getName());
+                if (entry != null) {
+                    rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
+                } else {
+                    rsp.sendRedirect("/index.html#404");
+                }
             }
         }
     }
