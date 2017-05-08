@@ -22,6 +22,7 @@ import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
+import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.config.ResultsConfig;
 import ru.yandex.qatools.allure.jenkins.exception.AllurePluginException;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static java.lang.String.format;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
@@ -157,6 +159,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
+        setAllureProperties(buildEnvVars);
         configureJdk(launcher, listener, buildEnvVars);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
@@ -212,6 +215,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
         }
         return tool;
+    }
+
+    private void setAllureProperties(final EnvVars envVars) {
+        final StringBuilder options = new StringBuilder();
+        for (PropertyConfig property : config.getProperties()) {
+            options.append(format("-D%s=%s ", property.getKey(), property.getValue()));
+        }
+        envVars.put("ALLURE_OPTS", options.toString());
     }
 
     private void prepareResults(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run,
