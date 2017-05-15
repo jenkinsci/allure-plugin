@@ -1,6 +1,7 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import com.google.common.collect.ImmutableMap;
+import com.jayway.awaitility.Duration;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -15,8 +16,10 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
+import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
+import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
@@ -33,15 +36,22 @@ import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static java.lang.String.format;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
@@ -56,6 +66,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
+    private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
 
     private final AllureReportConfig config;
 
@@ -179,7 +190,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             listener.getLogger().println("Creating artifact for the build.");
 
             new AllureArtifactManager(run).archive(workspace, launcher, BuildListenerAdapter.wrap(listener),
-                    ImmutableMap.of("allure-report.zip", reportArchive.getName()));
+                    ImmutableMap.of(REPORT_ARCHIVE_NAME, reportArchive.getName()));
+            waitForAllureReportChecksum(reportArchive, run, listener, launcher);
 
             listener.getLogger().println("Artifact was added to the build.");
 
@@ -187,6 +199,47 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         } finally {
             reportArchive.delete();
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
+        }
+    }
+
+    private void waitForAllureReportChecksum(final FilePath reportArchive, final Run<?, ?> run,
+                                             final TaskListener listener, final Launcher launcher) throws IOException,
+            InterruptedException {
+        try {
+            final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+            final byte[] reportSum = sha1.digest(getReportFileBytes(launcher, reportArchive));
+            await().pollInterval(Duration.ONE_SECOND).atMost(Duration.ONE_MINUTE).until(new Callable<Boolean>() {
+                @Override
+                public Boolean call() throws IOException {
+                    final File[] artifacts = run.getArtifactsDir().listFiles(new FilenameFilter() {
+                        @Override
+                        public boolean accept(File dir, String name) {
+                            return name.equals(REPORT_ARCHIVE_NAME);
+                        }
+                    });
+                    if (artifacts == null || artifacts.length == 0) {
+                        return false;
+                    }
+                    final File reportArtifact = artifacts[0];
+                    final byte[] actualSum = sha1.digest(IOUtils.toByteArray(reportArtifact.toURI()));
+                    return Arrays.equals(reportSum, actualSum);
+                }
+            });
+        } catch (NoSuchAlgorithmException e) {
+            listener.getLogger().println("Unable to get SHA-1 digest instance");
+        }
+    }
+
+    private static byte[] getReportFileBytes(final Launcher launcher, final FilePath reportPath) throws IOException {
+        try {
+            return launcher.getChannel().call(new MasterToSlaveCallable<byte[], Exception>() {
+                @Override
+                public byte[] call() throws Exception {
+                    return IOUtils.toByteArray(reportPath.toURI());
+                }
+            });
+        } catch (Exception e) {
+            throw new IOException(e);
         }
     }
 
