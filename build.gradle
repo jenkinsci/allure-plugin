@@ -91,7 +91,7 @@ dependencies {
     compile 'org.jenkins-ci.plugins:script-security:1.24@jar'
     compile 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
     compile 'org.jenkins-ci.plugins:junit:1.2@jar'
-    compile 'com.jayway.awaitility:awaitility:1.7.0'
+    compile 'org.awaitility:awaitility:3.0.0'
     compileOnly 'junit:junit:4.12'
 
     testCompile 'org.assertj:assertj-core:2.6.0'

@@ -1,7 +1,6 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import com.google.common.collect.ImmutableMap;
-import com.jayway.awaitility.Duration;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -19,6 +18,7 @@ import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
+import org.awaitility.Duration;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
@@ -45,8 +45,8 @@ import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static com.jayway.awaitility.Awaitility.await;
 import static java.lang.String.format;
+import static org.awaitility.Awaitility.await;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.computeSha1Sum;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
