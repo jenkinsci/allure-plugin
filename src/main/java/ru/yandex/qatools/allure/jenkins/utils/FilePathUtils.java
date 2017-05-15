@@ -7,6 +7,7 @@ import hudson.model.TaskListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -45,26 +46,16 @@ public final class FilePathUtils {
         }
     }
 
-    public static InputStream getFileInputStream(final FilePath path, final TaskListener listener) {
-        try {
-            return path.read();
-        } catch (IOException | InterruptedException e) {
-            listener.getLogger().println("Unable to read file: " + e);
-        }
-        return null;
-    }
-
-    public static byte[] computeSha1Sum(final InputStream stream, final TaskListener listener) {
-        try {
-            MessageDigest md = getSha1Digest();
-            try (DigestInputStream dis = new DigestInputStream(stream, md)) {
+    public static String computeSha1Sum(final FilePath filePath, final TaskListener listener) {
+        final MessageDigest md = getSha1Digest();
+        try (InputStream is = filePath.read()) {
+            try (DigestInputStream dis = new DigestInputStream(is, md)) {
                 while (dis.read(DEFAULT_BUFFER) != -1) ;
             }
-            return md.digest();
-        } catch (IOException e) {
+        } catch (InterruptedException | IOException e) {
             listener.getLogger().println("Unable to compute SHA-1 checksum for the report file: " + e);
         }
-        return new byte[]{};
+        return new BigInteger(1, md.digest()).toString(16);
     }
 
     private static MessageDigest getSha1Digest() {

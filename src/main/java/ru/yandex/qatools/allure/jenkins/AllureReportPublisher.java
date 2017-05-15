@@ -35,15 +35,11 @@ import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.zip.ZipEntry;
@@ -52,7 +48,6 @@ import java.util.zip.ZipFile;
 import static com.jayway.awaitility.Awaitility.await;
 import static java.lang.String.format;
 import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.computeSha1Sum;
-import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.getFileInputStream;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
@@ -205,38 +200,23 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void waitForAllureReportChecksum(final FilePath reportArchive, final Run<?, ?> run,
                                              final TaskListener listener, final Launcher launcher) throws IOException,
             InterruptedException {
-        final byte[] reportSum = getReportShaFromSlave(launcher, reportArchive, listener);
+        final String reportSum = getReportShaFromSlave(launcher, reportArchive, listener);
         await().pollInterval(Duration.ONE_SECOND).atMost(Duration.ONE_MINUTE).until(new Callable<Boolean>() {
             @Override
             public Boolean call() throws IOException {
-                final File[] artifacts = run.getArtifactsDir().listFiles(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        return name.equals(REPORT_ARCHIVE_NAME);
-                    }
-                });
-                if (artifacts == null || artifacts.length == 0) {
-                    return false;
-                }
-                final File reportArtifact = artifacts[0];
-                final byte[] actualSum = FilePathUtils.computeSha1Sum(Files.newInputStream(reportArtifact.toPath()),
-                        listener);
-                return Arrays.equals(reportSum, actualSum);
+                final FilePath artifact = new FilePath(run.getArtifactsDir()).child(REPORT_ARCHIVE_NAME);
+                final String actualSum = computeSha1Sum(artifact, listener);
+                return reportSum.equals(actualSum);
             }
         });
     }
 
-
-    private static byte[] getReportShaFromSlave(final Launcher launcher, final FilePath reportPath,
+    private static String getReportShaFromSlave(final Launcher launcher, final FilePath reportPath,
                                                 final TaskListener listener) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new MasterToSlaveCallable<byte[], RuntimeException>() {
+        return launcher.getChannel().call(new MasterToSlaveCallable<String, RuntimeException>() {
             @Override
-            public byte[] call() {
-                final InputStream fileStream = getFileInputStream(reportPath, listener);
-                if (fileStream == null) {
-                    return new byte[]{};
-                }
-                return computeSha1Sum(fileStream, listener);
+            public String call() {
+                return computeSha1Sum(reportPath, listener);
             }
         });
     }
