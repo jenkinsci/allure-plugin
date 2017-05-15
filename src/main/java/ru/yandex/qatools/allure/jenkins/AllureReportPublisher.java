@@ -19,7 +19,6 @@ import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
-import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
@@ -42,8 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,6 +51,8 @@ import java.util.zip.ZipFile;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static java.lang.String.format;
+import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.computeSha1Sum;
+import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.getFileInputStream;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
@@ -205,42 +205,40 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void waitForAllureReportChecksum(final FilePath reportArchive, final Run<?, ?> run,
                                              final TaskListener listener, final Launcher launcher) throws IOException,
             InterruptedException {
-        try {
-            final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
-            final byte[] reportSum = sha1.digest(getReportFileBytes(launcher, reportArchive));
-            await().pollInterval(Duration.ONE_SECOND).atMost(Duration.ONE_MINUTE).until(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws IOException {
-                    final File[] artifacts = run.getArtifactsDir().listFiles(new FilenameFilter() {
-                        @Override
-                        public boolean accept(File dir, String name) {
-                            return name.equals(REPORT_ARCHIVE_NAME);
-                        }
-                    });
-                    if (artifacts == null || artifacts.length == 0) {
-                        return false;
+        final byte[] reportSum = getReportShaFromSlave(launcher, reportArchive, listener);
+        await().pollInterval(Duration.ONE_SECOND).atMost(Duration.ONE_MINUTE).until(new Callable<Boolean>() {
+            @Override
+            public Boolean call() throws IOException {
+                final File[] artifacts = run.getArtifactsDir().listFiles(new FilenameFilter() {
+                    @Override
+                    public boolean accept(File dir, String name) {
+                        return name.equals(REPORT_ARCHIVE_NAME);
                     }
-                    final File reportArtifact = artifacts[0];
-                    final byte[] actualSum = sha1.digest(IOUtils.toByteArray(reportArtifact.toURI()));
-                    return Arrays.equals(reportSum, actualSum);
+                });
+                if (artifacts == null || artifacts.length == 0) {
+                    return false;
                 }
-            });
-        } catch (NoSuchAlgorithmException e) {
-            listener.getLogger().println("Unable to get SHA-1 digest instance");
-        }
+                final File reportArtifact = artifacts[0];
+                final byte[] actualSum = FilePathUtils.computeSha1Sum(Files.newInputStream(reportArtifact.toPath()),
+                        listener);
+                return Arrays.equals(reportSum, actualSum);
+            }
+        });
     }
 
-    private static byte[] getReportFileBytes(final Launcher launcher, final FilePath reportPath) throws IOException {
-        try {
-            return launcher.getChannel().call(new MasterToSlaveCallable<byte[], Exception>() {
-                @Override
-                public byte[] call() throws Exception {
-                    return IOUtils.toByteArray(reportPath.toURI());
+
+    private static byte[] getReportShaFromSlave(final Launcher launcher, final FilePath reportPath,
+                                                final TaskListener listener) throws IOException, InterruptedException {
+        return launcher.getChannel().call(new MasterToSlaveCallable<byte[], RuntimeException>() {
+            @Override
+            public byte[] call() {
+                final InputStream fileStream = getFileInputStream(reportPath, listener);
+                if (fileStream == null) {
+                    return new byte[]{};
                 }
-            });
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
+                return computeSha1Sum(fileStream, listener);
+            }
+        });
     }
 
     private void archiving(FilePath reportPath, FilePath reportArchive,
