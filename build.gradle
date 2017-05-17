@@ -138,6 +138,8 @@ if (JavaVersion.current().isJava8Compatible()) {
     }
 }
 
+defaultTasks 'test', 'jpi'
+
 //apply plugin: 'ru.vyarus.quality'
 //
 //quality {
