@@ -125,7 +125,6 @@ task downloadAllureCli(type: Download) {
     src "https://github.com/allure-framework/allure1/releases/download/" +
             "allure-core-$allureCommandlineVersion/allure-commandline.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
-    overwrite false
 }
 
 processTestResources.dependsOn downloadAllureCli

@@ -2,15 +2,9 @@ package ru.yandex.qatools.allure.jenkins.utils;
 
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
-import hudson.model.TaskListener;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.math.BigInteger;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
@@ -18,7 +12,6 @@ import java.security.NoSuchAlgorithmException;
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
-    private static final byte[] DEFAULT_BUFFER = new byte[8192];
 
     private FilePathUtils() {
     }
