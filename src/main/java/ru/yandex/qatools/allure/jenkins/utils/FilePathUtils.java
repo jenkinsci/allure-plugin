@@ -45,24 +45,4 @@ public final class FilePathUtils {
             logger.println(String.format("Can't delete directory [%s]", filePath));
         }
     }
-
-    public static String computeSha1Sum(final FilePath filePath, final TaskListener listener) {
-        final MessageDigest md = getSha1Digest();
-        try (InputStream is = filePath.read()) {
-            try (DigestInputStream dis = new DigestInputStream(is, md)) {
-                while (dis.read(DEFAULT_BUFFER) != -1) ;
-            }
-        } catch (InterruptedException | IOException e) {
-            listener.getLogger().println("Unable to compute SHA-1 checksum for the report file: " + e);
-        }
-        return new BigInteger(1, md.digest()).toString(16);
-    }
-
-    private static MessageDigest getSha1Digest() {
-        try {
-            return MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Unable to get SHA-1 digest instance");
-        }
-    }
 }

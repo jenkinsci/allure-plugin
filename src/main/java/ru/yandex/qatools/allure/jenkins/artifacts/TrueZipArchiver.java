@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package ru.yandex.qatools.allure.jenkins.utils;
+package ru.yandex.qatools.allure.jenkins.artifacts;
 
 import de.schlichtherle.truezip.zip.ZipEntry;
 import de.schlichtherle.truezip.zip.ZipOutputStream;

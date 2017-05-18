@@ -1,9 +1,9 @@
 package ru.yandex.qatools.allure.jenkins;
 
-import com.google.common.collect.ImmutableMap;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
@@ -12,13 +12,14 @@ import hudson.model.BuildListener;
 import hudson.model.JDK;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
+import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.Jenkins;
-import jenkins.security.MasterToSlaveCallable;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
-import org.awaitility.Duration;
+import org.apache.tools.ant.types.FileSet;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
@@ -31,23 +32,21 @@ import ru.yandex.qatools.allure.jenkins.exception.AllurePluginException;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.BuildUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
-import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static java.lang.String.format;
-import static org.awaitility.Awaitility.await;
-import static ru.yandex.qatools.allure.jenkins.utils.FilePathUtils.computeSha1Sum;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
@@ -61,7 +60,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
-    private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
 
     private final AllureReportConfig config;
 
@@ -180,13 +178,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
             listener.getLogger().println("Allure report was successfully generated.");
 
-            archiving(reportPath, reportArchive, workspace, listener.getLogger());
-
             listener.getLogger().println("Creating artifact for the build.");
 
             new AllureArtifactManager(run).archive(workspace, launcher, BuildListenerAdapter.wrap(listener),
-                    ImmutableMap.of(REPORT_ARCHIVE_NAME, reportArchive.getName()));
-            waitForAllureReportChecksum(reportArchive, run, listener, launcher);
+                    workspace.act(new ListFiles(reportPath.getName() + "/**", "", false,
+                            false)));
 
             listener.getLogger().println("Artifact was added to the build.");
 
@@ -195,37 +191,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             reportArchive.delete();
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
         }
-    }
-
-    private void waitForAllureReportChecksum(final FilePath reportArchive, final Run<?, ?> run,
-                                             final TaskListener listener, final Launcher launcher) throws IOException,
-            InterruptedException {
-        final String reportSum = getReportShaFromSlave(launcher, reportArchive, listener);
-        await().pollInterval(Duration.ONE_SECOND).atMost(Duration.ONE_MINUTE).until(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws IOException {
-                final FilePath artifact = new FilePath(run.getArtifactsDir()).child(REPORT_ARCHIVE_NAME);
-                final String actualSum = computeSha1Sum(artifact, listener);
-                return reportSum.equals(actualSum);
-            }
-        });
-    }
-
-    private static String getReportShaFromSlave(final Launcher launcher, final FilePath reportPath,
-                                                final TaskListener listener) throws IOException, InterruptedException {
-        return launcher.getChannel().call(new MasterToSlaveCallable<String, RuntimeException>() {
-            @Override
-            public String call() {
-                return computeSha1Sum(reportPath, listener);
-            }
-        });
-    }
-
-    private void archiving(FilePath reportPath, FilePath reportArchive,
-                           @Nonnull FilePath workspace, PrintStream logger) throws IOException, InterruptedException {
-        logger.println("Creating archive for the report.");
-        workspace.archive(TrueZipArchiver.FACTORY, reportArchive.write(), reportPath.getName() + "/**");
-        logger.println("Archive for the report was successfully created.");
     }
 
     private AllureCommandlineInstallation getCommandline(
@@ -342,6 +307,35 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final JDK jdk = BuildUtils.setUpTool(getJdk(), launcher, listener, env);
         if (jdk != null) {
             jdk.buildEnvVars(env);
+        }
+    }
+
+    private static final class ListFiles extends MasterToSlaveFileCallable<Map<String, String>> {
+        private static final long serialVersionUID = 1;
+        private final String includes, excludes;
+        private final boolean defaultExcludes;
+        private final boolean caseSensitive;
+
+        ListFiles(String includes, String excludes, boolean defaultExcludes, boolean caseSensitive) {
+            this.includes = includes;
+            this.excludes = excludes;
+            this.defaultExcludes = defaultExcludes;
+            this.caseSensitive = caseSensitive;
+        }
+
+        @Override
+        public Map<String, String> invoke(final File basedir, final VirtualChannel channel)
+                throws IOException, InterruptedException {
+            final Map<String, String> r = new HashMap<>();
+
+            final FileSet fileSet = Util.createFileSet(basedir, includes, excludes);
+            fileSet.setDefaultexcludes(defaultExcludes);
+            fileSet.setCaseSensitive(caseSensitive);
+            for (String f : fileSet.getDirectoryScanner().getIncludedFiles()) {
+                f = f.replace(File.separatorChar, '/');
+                r.put(f, f);
+            }
+            return r;
         }
     }
 }

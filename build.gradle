@@ -91,7 +91,6 @@ dependencies {
     compile 'org.jenkins-ci.plugins:script-security:1.24@jar'
     compile 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
     compile 'org.jenkins-ci.plugins:junit:1.2@jar'
-    compile 'org.awaitility:awaitility:3.0.0'
     compileOnly 'junit:junit:4.12'
 
     testCompile 'org.assertj:assertj-core:2.6.0'
@@ -126,6 +125,7 @@ task downloadAllureCli(type: Download) {
     src "https://github.com/allure-framework/allure1/releases/download/" +
             "allure-core-$allureCommandlineVersion/allure-commandline.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
+    overwrite false
 }
 
 processTestResources.dependsOn downloadAllureCli

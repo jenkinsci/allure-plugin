@@ -15,16 +15,17 @@ import java.util.Map;
  */
 public class AllureArtifactManager extends StandardArtifactManager {
 
+    private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+
     public AllureArtifactManager(Run<?, ?> build) {
         super(build);
     }
 
     @Override
     public void archive(FilePath workspace, Launcher launcher, BuildListener listener,
-                        final Map<String, String> artifacts) throws IOException, InterruptedException {
+                        final Map<String, String> reportFiles) throws IOException, InterruptedException {
         final File artifactsDir = build.getArtifactsDir();
-        for (Map.Entry<String, String> entry : artifacts.entrySet()) {
-            workspace.child(entry.getValue()).copyTo(new FilePath(artifactsDir).child(entry.getKey()));
-        }
+        artifactsDir.mkdirs();
+        ZipStorage.archive(new File(artifactsDir, REPORT_ARCHIVE_NAME), workspace, launcher, listener, reportFiles);
     }
 }
