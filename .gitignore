@@ -1,16 +1,22 @@
-#IDEA Files
+# Idea
 .idea
-target
 *.iml
 *.ipr
 
-#Eclipse files
+# Maven
+target
+
+# Gradle
+.gradle
+build
+
+# Eclipse
 *.settings
 *.classpath
 *.project
 
-#Work
+# Work
 work
 
-# macos stuff
+# Mac OS
 .DS_Store

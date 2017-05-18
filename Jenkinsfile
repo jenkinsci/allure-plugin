@@ -18,6 +18,11 @@ pipeline {
                         canComputeNew: false, healthy: '', unHealthy: ''
             }
         }
+        stage('Archive') {
+            steps{
+                archiveArtifacts 'build/libs/*.hpi'
+            }
+        }
     }
     post {
         always {
