@@ -181,8 +181,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             listener.getLogger().println("Creating artifact for the build.");
 
             new AllureArtifactManager(run).archive(workspace, launcher, BuildListenerAdapter.wrap(listener),
-                    workspace.act(new ListFiles(reportPath.getName() + "/**", "", false,
-                            false)));
+                    workspace.act(new ListFiles(reportPath.getName() + "/**")));
 
             listener.getLogger().println("Artifact was added to the build.");
 
@@ -312,15 +311,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private static final class ListFiles extends MasterToSlaveFileCallable<Map<String, String>> {
         private static final long serialVersionUID = 1;
-        private final String includes, excludes;
-        private final boolean defaultExcludes;
-        private final boolean caseSensitive;
+        private final String pattern;
 
-        ListFiles(String includes, String excludes, boolean defaultExcludes, boolean caseSensitive) {
-            this.includes = includes;
-            this.excludes = excludes;
-            this.defaultExcludes = defaultExcludes;
-            this.caseSensitive = caseSensitive;
+        ListFiles(String pattern) {
+            this.pattern = pattern;
         }
 
         @Override
@@ -328,9 +322,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 throws IOException, InterruptedException {
             final Map<String, String> r = new HashMap<>();
 
-            final FileSet fileSet = Util.createFileSet(basedir, includes, excludes);
-            fileSet.setDefaultexcludes(defaultExcludes);
-            fileSet.setCaseSensitive(caseSensitive);
+            final FileSet fileSet = Util.createFileSet(basedir, pattern, "");
+            fileSet.setDefaultexcludes(false);
+            fileSet.setCaseSensitive(false);
             for (String f : fileSet.getDirectoryScanner().getIncludedFiles()) {
                 f = f.replace(File.separatorChar, '/');
                 r.put(f, f);

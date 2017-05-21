@@ -7,7 +7,9 @@ import hudson.model.Run;
 import jenkins.model.StandardArtifactManager;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 
 /**
@@ -26,6 +28,13 @@ public class AllureArtifactManager extends StandardArtifactManager {
                         final Map<String, String> reportFiles) throws IOException, InterruptedException {
         final File artifactsDir = build.getArtifactsDir();
         artifactsDir.mkdirs();
-        ZipStorage.archive(new File(artifactsDir, REPORT_ARCHIVE_NAME), workspace, launcher, listener, reportFiles);
+        final File archive = new File(artifactsDir, REPORT_ARCHIVE_NAME);
+        final File tempArchive = new File(archive.getAbsolutePath() + ".writing.zip");
+
+        try (OutputStream os = new FileOutputStream(tempArchive)) {
+            workspace.archive(TrueZipArchiver.FACTORY, os, new FilePath.ExplicitlySpecifiedDirScanner(reportFiles));
+        }
+
+        tempArchive.renameTo(archive);
     }
 }
