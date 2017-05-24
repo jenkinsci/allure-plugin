@@ -5,17 +5,12 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                sh './gradlew build'
+                sh './gradlew build jpi'
             }
         }
         stage("Reports") {
             steps {
-                checkstyle pattern: '**/build/reports/checkstyle/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: ''
-                findbugs pattern: '**/build/reports/findbugs/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: '', excludePattern: '', includePattern: ''
-                pmd pattern: '**/build/reports/pmd/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: ''
+                junit 'build/test-results/test/*.xml'
             }
         }
         stage('Archive') {

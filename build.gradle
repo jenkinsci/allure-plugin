@@ -1,83 +1,51 @@
+import de.undercouch.gradle.tasks.download.Download
+
 buildscript {
     repositories {
-        maven {
-            url('https://repo.jenkins-ci.org/public/')
-        }
+        maven { url('https://repo.jenkins-ci.org/public/') }
     }
     dependencies {
-        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
-        classpath 'ru.vyarus:gradle-quality-plugin:2.2.0'
+        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
     }
 }
 
-plugins {
-    id "de.undercouch.download" version "3.2.0"
-    id "org.jenkins-ci.jpi" version "0.22.0"
-    id "java"
-}
-
-group = 'ru.yandex.qatools.allure'
-version = '2.15-SNAPSHOT'
+apply plugin: 'java'
+apply plugin: 'de.undercouch.download'
+apply from: "${rootProject.projectDir}/gradle/jenkins.gradle"
 
 description = 'Allure Jenkins Plugin'
+group = 'ru.yandex.qatools.allure'
 
-sourceCompatibility = "$javaLevel"
-targetCompatibility = "$javaLevel"
+defaultTasks 'test', 'jpi'
 
-repositories {
-    mavenCentral()
-    maven {
-        url('https://repo.jenkins-ci.org/public/')
-    }
+compileJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+    options.encoding = 'UTF-8'
 }
 
-jenkinsPlugin {
-    coreVersion = "$jenkinsVersion"
-    displayName = "Allure reporting plugin for Jenkins CI"
-    url = 'https://qameta.io/allure'
-    gitHubUrl = 'https://github.com/jenkinsci/allure-plugin'
+compileTestJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+    options.encoding = 'UTF-8'
+}
 
-    developers {
-        developer {
-            id 'dchr'
-            name 'Denis Chernilevsky'
-            email 'dchr@yandex-team.ru'
-        }
-        developer {
-            id 'eroshenkoam'
-            name 'Artem Eroshenko'
-            email 'eroshenkoam@qameta.io'
-        }
-        developer {
-            id 'mavlyutov'
-            name 'Marat Mavlyutov'
-            email 'mavlyutov@yandex-team.ru'
-        }
-        developer {
-            id 'pupssman'
-            name 'Ivan Kalinin'
-            email 'pupssman@yandex-team.ru'
-        }
-        developer {
-            id 'vania-pooh'
-            name 'Ivan Krutov'
-            email 'vania-pooh@yandex-team.ru'
-        }
-        developer {
-            id 'baev'
-            name 'Dmitry Baev'
-            email 'baev.dm@gmail.com'
-        }
-    }
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
 
-    licenses {
-        license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
-        }
-    }
+task downloadAllure(type: Download) {
+    src 'https://github.com/allure-framework/allure1/releases/download/allure-core-1.4.24.RC3/allure-commandline.zip'
+    dest "$buildDir/resources/test/allure-commandline.zip"
+    overwrite false
+}
+
+processTestResources.dependsOn(downloadAllure)
+
+repositories {
+    maven { url('https://repo.jenkins-ci.org/public/') }
 }
 
 dependencies {
@@ -112,34 +80,3 @@ dependencies {
     testCompile 'org.jboss.marshalling:jboss-marshalling:1.4.9.Final'
     testCompile 'org.jboss.marshalling:jboss-marshalling-river:1.4.9.Final'
 }
-
-import de.undercouch.gradle.tasks.download.Download
-
-task downloadAllureCli(type: Download) {
-    src "https://github.com/allure-framework/allure1/releases/download/" +
-            "allure-core-$allureCommandlineVersion/allure-commandline.zip"
-    dest "$buildDir/resources/test/allure-commandline.zip"
-    overwrite false
-}
-
-processTestResources.dependsOn downloadAllureCli
-
-if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-        tasks.withType(Javadoc) {
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
-    }
-}
-
-defaultTasks 'test', 'jpi'
-
-//apply plugin: 'ru.vyarus.quality'
-//
-//quality {
-//    checkstyleVersion = '7.6'
-//    pmdVersion = '5.5.4'
-//    findbugsVersion = '3.0.1'
-//    codenarcVersion = '0.26.0'
-//    excludeSources = fileTree('build/generated-sources')
-//}
