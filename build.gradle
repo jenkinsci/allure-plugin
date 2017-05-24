@@ -56,8 +56,8 @@ dependencies {
     compile 'org.jenkins-ci.plugins:junit:1.2@jar'
     compile 'org.jenkins-ci.plugins:structs:1.6@jar'
     compile 'org.jenkins-ci.plugins:script-security:1.25@jar'
-    compile "de.schlichtherle.truezip:truezip-driver-zip:$truezipVersion"
-    compile "de.schlichtherle.truezip:truezip-file:$truezipVersion"
+    compile 'de.schlichtherle.truezip:truezip-driver-zip:7.7.10'
+    compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
 
     testCompile 'org.assertj:assertj-core:2.6.0'
     testCompile 'ru.yandex.qatools.matchers:nio-matchers:1.3'
