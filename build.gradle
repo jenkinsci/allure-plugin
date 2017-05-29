@@ -83,33 +83,27 @@ jenkinsPlugin {
 dependencies {
     compile 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.4@jar'
     compile 'org.jenkins-ci.plugins:job-dsl:1.51@jar'
-    compile 'org.jenkins-ci.plugins:structs:1.5@jar'
-    compile "de.schlichtherle.truezip:truezip-driver-zip:$truezipVersion"
-    compile "de.schlichtherle.truezip:truezip-file:$truezipVersion"
     compile 'org.jenkins-ci.plugins:job-dsl-core:1.51@jar'
     compile 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
-    compile 'org.jenkins-ci.plugins:script-security:1.24@jar'
-    compile 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
     compile 'org.jenkins-ci.plugins:junit:1.2@jar'
-    compileOnly 'junit:junit:4.12'
+    compile 'org.jenkins-ci.plugins:structs:1.6@jar'
+    compile 'org.jenkins-ci.plugins:script-security:1.25@jar'
+    compile "de.schlichtherle.truezip:truezip-driver-zip:$truezipVersion"
+    compile "de.schlichtherle.truezip:truezip-file:$truezipVersion"
 
     testCompile 'org.assertj:assertj-core:2.6.0'
     testCompile 'ru.yandex.qatools.matchers:nio-matchers:1.3'
     testCompile 'com.fasterxml.jackson.core:jackson-databind:2.7.0'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-cps:2.21@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-job:2.8@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-scm-step:1.15@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-support:2.9@jar'
-    testCompile 'org.jenkins-ci.plugins.workflow:workflow-api:2.4@jar'
-    testCompile 'org.jenkins-ci.plugins:durable-task:1.12@jar'
-    testCompile 'org.jenkins-ci.plugins:scm-api:1.1@jar'
-    testCompile 'org.jenkins-ci.plugins:mailer:1.3@jar'
-
-    testCompile "org.jenkins-ci.ui:ace-editor:1.0.1"
-    testCompile "org.jenkins-ci.ui:bootstrap:1.3.2:core-assets@jar"
-    testCompile "org.jenkins-ci.ui:handlebars:1.1.1:core-assets@jar"
+    jenkinsTest 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-cps:2.21@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-job:2.8@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-scm-step:1.15@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-support:2.9@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-api:2.4@jar'
+    jenkinsTest 'org.jenkins-ci.plugins:durable-task:1.12@jar'
+    jenkinsTest 'org.jenkins-ci.plugins:scm-api:1.1@jar'
     testCompile "org.jenkins-ci.ui:jquery-detached:1.2.1"
     testCompile "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
 
@@ -125,6 +119,7 @@ task downloadAllureCli(type: Download) {
     src "https://github.com/allure-framework/allure1/releases/download/" +
             "allure-core-$allureCommandlineVersion/allure-commandline.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
+    overwrite false
 }
 
 processTestResources.dependsOn downloadAllureCli
