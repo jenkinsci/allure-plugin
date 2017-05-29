@@ -3,7 +3,6 @@ package ru.yandex.qatools.allure.jenkins;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
@@ -12,13 +11,10 @@ import hudson.model.BuildListener;
 import hudson.model.JDK;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.remoting.VirtualChannel;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
-import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import org.apache.tools.ant.types.FileSet;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
@@ -41,9 +37,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -314,30 +308,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final JDK jdk = BuildUtils.setUpTool(getJdk(), launcher, listener, env);
         if (jdk != null) {
             jdk.buildEnvVars(env);
-        }
-    }
-
-    private static final class ListFiles extends MasterToSlaveFileCallable<Map<String, String>> {
-        private static final long serialVersionUID = 1;
-        private final String pattern;
-
-        ListFiles(String pattern) {
-            this.pattern = pattern;
-        }
-
-        @Override
-        public Map<String, String> invoke(final File basedir, final VirtualChannel channel)
-                throws IOException, InterruptedException {
-            final Map<String, String> r = new HashMap<>();
-
-            final FileSet fileSet = Util.createFileSet(basedir, pattern, "");
-            fileSet.setDefaultexcludes(false);
-            fileSet.setCaseSensitive(false);
-            for (String f : fileSet.getDirectoryScanner().getIncludedFiles()) {
-                f = f.replace(File.separatorChar, '/');
-                r.put(f, f);
-            }
-            return r;
         }
     }
 }
