@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package ru.yandex.qatools.allure.jenkins.artifacts;
+package ru.yandex.qatools.allure.jenkins.utils;
 
 import de.schlichtherle.truezip.zip.ZipEntry;
 import de.schlichtherle.truezip.zip.ZipOutputStream;
@@ -42,7 +42,7 @@ import java.nio.charset.Charset;
  * Modified version of {@link hudson.util.io.ZipArchiver} that created archives
  * larger than 4G successfully.
  */
-final class TrueZipArchiver extends Archiver {
+public final class TrueZipArchiver extends Archiver {
 
     public static final ArchiverFactory FACTORY = new Factory();
     // Bitmask indicating directories in 'external attributes' of a ZIP archive entry.

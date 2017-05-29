@@ -18,10 +18,8 @@ import hudson.tasks.Recorder;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
-import jenkins.util.BuildListenerAdapter;
 import org.apache.tools.ant.types.FileSet;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.artifacts.AllureArtifactManager;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
@@ -32,12 +30,15 @@ import ru.yandex.qatools.allure.jenkins.exception.AllurePluginException;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.BuildUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
+import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +61,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
+    private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
 
     private final AllureReportConfig config;
 
@@ -168,28 +170,34 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
         final FilePath reportPath = workspace.child("allure-report");
-        final FilePath reportArchive = workspace.createTempFile(ALLURE_PREFIX, "report-archive");
         try {
             final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
                     .build(resultsPaths, reportPath);
             if (exitCode != 0) {
                 throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
             }
-
             listener.getLogger().println("Allure report was successfully generated.");
-
-            listener.getLogger().println("Creating artifact for the build.");
-
-            new AllureArtifactManager(run).archive(workspace, launcher, BuildListenerAdapter.wrap(listener),
-                    workspace.act(new ListFiles(reportPath.getName() + "/**")));
-
-            listener.getLogger().println("Artifact was added to the build.");
-
+            saveAllureArtifact(run, workspace, reportPath, listener);
             run.addAction(new AllureReportBuildAction());
         } finally {
-            reportArchive.delete();
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
         }
+    }
+
+    private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final FilePath reportPath,
+                                    final TaskListener listener)
+            throws IOException, InterruptedException {
+        listener.getLogger().println("Creating artifact for the build.");
+        final File artifactsDir = run.getArtifactsDir();
+        artifactsDir.mkdirs();
+        final File archive = new File(artifactsDir, REPORT_ARCHIVE_NAME);
+        final File tempArchive = new File(archive.getAbsolutePath() + ".writing.zip");
+
+        try (OutputStream os = new FileOutputStream(tempArchive)) {
+            workspace.archive(TrueZipArchiver.FACTORY, os, reportPath.getName() + "/**");
+        }
+        tempArchive.renameTo(archive);
+        listener.getLogger().println("Artifact was added to the build.");
     }
 
     private AllureCommandlineInstallation getCommandline(
