@@ -8,25 +8,13 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '/home/jenkins/.jenkins-ci.org')]) {
-                    sh './gradlew build jpi publish'
-                }
-            }
-        }
-        stage("Reports") {
-            steps {
-                checkstyle pattern: '**/build/reports/checkstyle/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: ''
-                findbugs pattern: '**/build/reports/findbugs/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: '', excludePattern: '', includePattern: ''
-                pmd pattern: '**/build/reports/pmd/main.xml', defaultEncoding: 'UTF8',
-                        canComputeNew: false, healthy: '', unHealthy: ''
+                sh './gradlew build'
             }
         }
         stage('Release') {
             when { expression { return params.RELEASE } }
             steps {
-                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '~/.jenkins-ci.org')]) {
+                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '/home/jenkins/.jenkins-ci.org')]) {
                     sshagent(['qameta-ci_ssh']) {
                         sh 'git checkout master && git pull origin master'
                         sh "./gradlew release -Prelease.useAutomaticVersion=true " +
