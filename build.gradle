@@ -8,12 +8,14 @@ buildscript {
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
         classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
+        classpath 'net.researchgate:gradle-release:2.6.0'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'de.undercouch.download'
 apply from: "${rootProject.projectDir}/gradle/jenkins.gradle"
+apply from: "${rootProject.projectDir}/gradle/release.gradle"
 
 description = 'Allure Jenkins Plugin'
 group = 'ru.yandex.qatools.allure'
@@ -80,5 +82,12 @@ dependencies {
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
     jenkinsTest "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
+}
 
+gradle.taskGraph.whenReady { taskGraph ->
+    PublishingExtension publishingExtension = project.extensions.getByType(PublishingExtension)
+    publishingExtension.repositories.getByName('jenkins').credentials {
+        username System.getenv('JENKINS_USER')
+        password System.getenv('JENKISN_PASS')
+    }
 }
