@@ -37,7 +37,7 @@ tasks.withType(Javadoc) {
 }
 
 task downloadAllure(type: Download) {
-    src 'https://github.com/allure-framework/allure1/releases/download/allure-core-1.4.24.RC3/allure-commandline.zip'
+    src "https://github.com/allure-framework/allure1/releases/download/allure-core-${allureVersion}/allure-commandline.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
 }
 
