@@ -1,145 +1,84 @@
+import de.undercouch.gradle.tasks.download.Download
+
 buildscript {
     repositories {
-        maven {
-            url('https://repo.jenkins-ci.org/public/')
-        }
+        maven { url('https://repo.jenkins-ci.org/public/') }
     }
     dependencies {
-        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
-        classpath 'ru.vyarus:gradle-quality-plugin:2.2.0'
+        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
     }
 }
 
-plugins {
-    id "de.undercouch.download" version "3.2.0"
-    id "org.jenkins-ci.jpi" version "0.22.0"
-    id "java"
-}
-
-group = 'ru.yandex.qatools.allure'
-version = '2.15-SNAPSHOT'
+apply plugin: 'java'
+apply plugin: 'de.undercouch.download'
+apply from: "${rootProject.projectDir}/gradle/jenkins.gradle"
 
 description = 'Allure Jenkins Plugin'
+group = 'ru.yandex.qatools.allure'
 
-sourceCompatibility = "$javaLevel"
-targetCompatibility = "$javaLevel"
+defaultTasks 'test', 'jpi'
 
-repositories {
-    mavenCentral()
-    maven {
-        url('https://repo.jenkins-ci.org/public/')
-    }
+compileJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+    options.encoding = 'UTF-8'
 }
 
-jenkinsPlugin {
-    coreVersion = "$jenkinsVersion"
-    displayName = "Allure reporting plugin for Jenkins CI"
-    url = 'https://qameta.io/allure'
-    gitHubUrl = 'https://github.com/jenkinsci/allure-plugin'
+compileTestJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+    options.encoding = 'UTF-8'
+}
 
-    developers {
-        developer {
-            id 'dchr'
-            name 'Denis Chernilevsky'
-            email 'dchr@yandex-team.ru'
-        }
-        developer {
-            id 'eroshenkoam'
-            name 'Artem Eroshenko'
-            email 'eroshenkoam@qameta.io'
-        }
-        developer {
-            id 'mavlyutov'
-            name 'Marat Mavlyutov'
-            email 'mavlyutov@yandex-team.ru'
-        }
-        developer {
-            id 'pupssman'
-            name 'Ivan Kalinin'
-            email 'pupssman@yandex-team.ru'
-        }
-        developer {
-            id 'vania-pooh'
-            name 'Ivan Krutov'
-            email 'vania-pooh@yandex-team.ru'
-        }
-        developer {
-            id 'baev'
-            name 'Dmitry Baev'
-            email 'baev.dm@gmail.com'
-        }
-    }
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
 
-    licenses {
-        license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
-        }
-    }
+task downloadAllure(type: Download) {
+    src 'https://github.com/allure-framework/allure1/releases/download/allure-core-1.4.24.RC3/allure-commandline.zip'
+    dest "$buildDir/resources/test/allure-commandline.zip"
+}
+
+processTestResources.dependsOn(downloadAllure)
+
+repositories {
+    maven { url('https://repo.jenkins-ci.org/public/') }
 }
 
 dependencies {
-    compile 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.4@jar'
-    compile 'org.jenkins-ci.plugins:job-dsl:1.51@jar'
-    compile 'org.jenkins-ci.plugins:job-dsl-core:1.51@jar'
-    compile 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
-    compile 'org.jenkins-ci.plugins:junit:1.2@jar'
-    compile 'org.jenkins-ci.plugins:structs:1.6@jar'
-    compile 'org.jenkins-ci.plugins:script-security:1.25@jar'
-    compile "de.schlichtherle.truezip:truezip-driver-zip:$truezipVersion"
-    compile "de.schlichtherle.truezip:truezip-file:$truezipVersion"
+    compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
+    compile 'de.schlichtherle.truezip:truezip-driver-zip:7.7.10'
 
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:structs:1.5@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl:1.51@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl-core:1.51@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.4@jar'
+
+    testCompile 'junit:junit:4.12'
     testCompile 'org.assertj:assertj-core:2.6.0'
     testCompile 'ru.yandex.qatools.matchers:nio-matchers:1.3'
     testCompile 'com.fasterxml.jackson.core:jackson-databind:2.7.0'
-    jenkinsTest 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-cps:2.21@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-job:2.8@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-scm-step:1.15@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-support:2.9@jar'
-    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-api:2.4@jar'
-    jenkinsTest 'org.jenkins-ci.plugins:durable-task:1.12@jar'
-    jenkinsTest 'org.jenkins-ci.plugins:scm-api:1.1@jar'
-    testCompile "org.jenkins-ci.ui:jquery-detached:1.2.1"
-    testCompile "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
 
     testCompile 'com.cloudbees:groovy-cps:1.12'
     testCompile 'org.kohsuke:groovy-sandbox:1.11'
     testCompile 'org.jboss.marshalling:jboss-marshalling:1.4.9.Final'
     testCompile 'org.jboss.marshalling:jboss-marshalling-river:1.4.9.Final'
+
+    jenkinsTest 'org.jenkins-ci.plugins:junit:1.2@jar'
+    jenkinsTest 'org.jenkins-ci.plugins:scm-api:1.1@jar'
+    jenkinsTest 'org.jenkins-ci.plugins:durable-task:1.12@jar'
+    jenkinsTest 'org.jenkins-ci.plugins:script-security:1.25@jar'
+    jenkinsTest 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-api:2.4@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-job:2.8@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-cps:2.21@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-support:2.9@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-scm-step:1.15@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
+    jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
+    jenkinsTest "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
+
 }
-
-import de.undercouch.gradle.tasks.download.Download
-
-task downloadAllureCli(type: Download) {
-    src "https://github.com/allure-framework/allure1/releases/download/" +
-            "allure-core-$allureCommandlineVersion/allure-commandline.zip"
-    dest "$buildDir/resources/test/allure-commandline.zip"
-    overwrite false
-}
-
-processTestResources.dependsOn downloadAllureCli
-
-if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-        tasks.withType(Javadoc) {
-            options.addStringOption('Xdoclint:none', '-quiet')
-        }
-    }
-}
-
-defaultTasks 'test', 'jpi'
-
-//apply plugin: 'ru.vyarus.quality'
-//
-//quality {
-//    checkstyleVersion = '7.6'
-//    pmdVersion = '5.5.4'
-//    findbugsVersion = '3.0.1'
-//    codenarcVersion = '0.26.0'
-//    excludeSources = fileTree('build/generated-sources')
-//}
