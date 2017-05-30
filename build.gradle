@@ -58,7 +58,6 @@ dependencies {
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.4@jar'
 
-
     testCompile 'junit:junit:4.12'
     testCompile 'org.assertj:assertj-core:2.6.0'
     testCompile 'ru.yandex.qatools.matchers:nio-matchers:1.3'
