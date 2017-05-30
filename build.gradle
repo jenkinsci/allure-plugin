@@ -8,15 +8,12 @@ buildscript {
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
         classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
-        classpath 'net.researchgate:gradle-release:2.6.0'
     }
 }
 
 apply plugin: 'java'
-apply plugin: 'maven'
 apply plugin: 'de.undercouch.download'
 apply from: "${rootProject.projectDir}/gradle/jenkins.gradle"
-apply from: "${rootProject.projectDir}/gradle/release.gradle"
 
 description = 'Allure Jenkins Plugin'
 group = 'ru.yandex.qatools.allure'
@@ -46,14 +43,20 @@ task downloadAllure(type: Download) {
 
 processTestResources.dependsOn(downloadAllure)
 
+repositories {
+    maven { url('https://repo.jenkins-ci.org/public/') }
+}
+
 dependencies {
     compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
     compile 'de.schlichtherle.truezip:truezip-driver-zip:7.7.10'
 
+    jenkinsPlugins 'org.jenkins-ci.plugins:script-security:1.25@jar'
+    jenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
+
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:structs:1.5@jar'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl:1.51@jar'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl-core:1.51@jar'
-    optionalJenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins.workflow:workflow-step-api:2.4@jar'
 
     testCompile 'junit:junit:4.12'
@@ -69,7 +72,6 @@ dependencies {
     jenkinsTest 'org.jenkins-ci.plugins:junit:1.2@jar'
     jenkinsTest 'org.jenkins-ci.plugins:scm-api:1.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins:durable-task:1.12@jar'
-    jenkinsTest 'org.jenkins-ci.plugins:script-security:1.25@jar'
     jenkinsTest 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-api:2.4@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-job:2.8@jar'
@@ -79,4 +81,5 @@ dependencies {
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
     jenkinsTest "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
+
 }
