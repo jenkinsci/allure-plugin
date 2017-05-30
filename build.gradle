@@ -66,6 +66,7 @@ dependencies {
     testCompile 'com.cloudbees:groovy-cps:1.12'
     testCompile 'org.kohsuke:groovy-sandbox:1.11'
 
+    jenkinsTest 'org.jenkins-ci.plugins:junit:1.2@jar'
     jenkinsTest 'org.jenkins-ci.plugins:scm-api:1.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins:script-security:1.25@jar'
     jenkinsTest 'org.jenkins-ci.main:jenkins-test-harness:2.15@jar'
