@@ -1,0 +1,50 @@
+apply plugin: 'org.jenkins-ci.jpi'
+
+jenkinsPlugin {
+    coreVersion = '2.7.4'
+    shortName = 'allure-jenkins-plugin'
+    displayName = 'Allure Jenkins Plugin'
+    url = 'http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin'
+    gitHubUrl = 'https://github.com/jenkinsci/allure-plugin'
+
+    developers {
+        developer {
+            id 'dchr'
+            name 'Denis Chernilevsky'
+            email 'dchr@yandex-team.ru'
+        }
+        developer {
+            id 'eroshenkoam'
+            name 'Artem Eroshenko'
+            email 'eroshenkoam@qameta.io'
+        }
+        developer {
+            id 'mavlyutov'
+            name 'Marat Mavlyutov'
+            email 'mavlyutov@yandex-team.ru'
+        }
+        developer {
+            id 'pupssman'
+            name 'Ivan Kalinin'
+            email 'pupssman@yandex-team.ru'
+        }
+        developer {
+            id 'vania-pooh'
+            name 'Ivan Krutov'
+            email 'vania-pooh@yandex-team.ru'
+        }
+        developer {
+            id 'baev'
+            name 'Dmitry Baev'
+            email 'baev.dm@gmail.com'
+        }
+    }
+
+    licenses {
+        license {
+            name 'The Apache Software License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution 'repo'
+        }
+    }
+}
