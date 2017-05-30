@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '~/.jenkins-ci.org')]) {
+                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '/home/jenkins/.jenkins-ci.org')]) {
                     sh './gradlew build jpi publish'
                 }
             }
