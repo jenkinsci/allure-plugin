@@ -13,6 +13,7 @@ buildscript {
 }
 
 apply plugin: 'java'
+apply plugin: 'maven'
 apply plugin: 'de.undercouch.download'
 apply from: "${rootProject.projectDir}/gradle/jenkins.gradle"
 apply from: "${rootProject.projectDir}/gradle/release.gradle"
@@ -44,10 +45,6 @@ task downloadAllure(type: Download) {
 }
 
 processTestResources.dependsOn(downloadAllure)
-
-repositories {
-    maven { url('https://repo.jenkins-ci.org/public/') }
-}
 
 dependencies {
     compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
@@ -82,12 +79,4 @@ dependencies {
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
     jenkinsTest "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
-}
-
-gradle.taskGraph.whenReady { taskGraph ->
-    PublishingExtension publishingExtension = project.extensions.getByType(PublishingExtension)
-    publishingExtension.repositories.getByName('jenkins').credentials {
-        username System.getenv('JENKINS_USER')
-        password System.getenv('JENKISN_PASS')
-    }
 }

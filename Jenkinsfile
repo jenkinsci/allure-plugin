@@ -8,7 +8,9 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                sh './gradlew build'
+                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '~/.jenkins-ci.org')]) {
+                    sh './gradlew build'
+                }
             }
         }
         stage("Reports") {
@@ -24,8 +26,7 @@ pipeline {
         stage('Release') {
             when { expression { return params.RELEASE } }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'qameta-ci_jenkins',
-                        usernameVariable: 'JENKINS_USER', passwordVariable: 'JENKINS_PASS')]) {
+                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '~/.jenkins-ci.org')]) {
                     sshagent(['qameta-ci_ssh']) {
                         sh 'git checkout master && git pull origin master'
                         sh "./gradlew release -Prelease.useAutomaticVersion=true " +
@@ -36,7 +37,7 @@ pipeline {
             }
         }
         stage('Archive') {
-            steps{
+            steps {
                 archiveArtifacts 'build/libs/*.hpi'
             }
         }

@@ -7,6 +7,9 @@ jenkinsPlugin {
     url = 'http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin'
     gitHubUrl = 'https://github.com/jenkinsci/allure-plugin'
 
+    repoUrl = 'https://repo.jenkins-ci.org/releases'
+    snapshotRepoUrl = 'https://repo.jenkins-ci.org/snapshots'
+
     developers {
         developer {
             id 'dchr'

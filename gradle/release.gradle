@@ -4,4 +4,4 @@ release {
     tagTemplate = '${version}'
 }
 
-afterReleaseBuild.dependsOn publish
+afterReleaseBuild.dependsOn 'publish'
