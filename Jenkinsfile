@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                sh './gradlew build'
+                sh './gradlew test jpi'
             }
         }
         stage('Release') {
