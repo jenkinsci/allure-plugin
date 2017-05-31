@@ -11,6 +11,11 @@ pipeline {
                 sh './gradlew test jpi'
             }
         }
+        stage('Archive') {
+            steps {
+                archiveArtifacts 'build/libs/*.hpi'
+            }
+        }
         stage('Release') {
             when { expression { return params.RELEASE } }
             steps {
@@ -22,11 +27,6 @@ pipeline {
                                 "-Prelease.newVersion=${NEXT_VERSION}-SNAPSHOT"
                     }
                 }
-            }
-        }
-        stage('Archive') {
-            steps {
-                archiveArtifacts 'build/libs/*.hpi'
             }
         }
     }
