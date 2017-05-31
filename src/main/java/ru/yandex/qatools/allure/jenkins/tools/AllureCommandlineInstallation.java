@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -74,23 +73,23 @@ public class AllureCommandlineInstallation extends ToolInstallation
             return null;
         }
 
+        if (Files.exists(Paths.get(home).resolve("app/allure-bundle.jar"))) {
+            return Paths.get(home);
+        }
+
         final File[] listOfFiles = Paths.get(home).toFile().listFiles();
         if (listOfFiles == null || listOfFiles.length == 0) {
             return null;
         }
 
-        final List<File> directories = new ArrayList<>();
+        File allureDir = null;
         for (File file : listOfFiles) {
-            if (file.isDirectory()) {
-                directories.add(file);
+            if (file.isDirectory() && file.getName().startsWith("allure")) {
+                allureDir = file;
             }
         }
 
-        if (directories.size() == 1 && directories.get(0).getName().startsWith("allure")) {
-            return directories.get(0).toPath();
-        }
-
-        return Paths.get(home);
+        return allureDir == null ? null : allureDir.toPath();
     }
 
     private Path getExecutablePath() {
