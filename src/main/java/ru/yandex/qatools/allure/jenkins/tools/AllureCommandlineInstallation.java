@@ -89,7 +89,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
             }
         }
 
-        if(directories.size() == 1 && files.isEmpty()){
+        if (directories.size() == 1 && directories.get(0).getName().startsWith("allure")) {
             return directories.get(0).toPath();
         }
 
