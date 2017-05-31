@@ -79,13 +79,10 @@ public class AllureCommandlineInstallation extends ToolInstallation
             return null;
         }
 
-        final List<File> files = new ArrayList<>();
         final List<File> directories = new ArrayList<>();
         for (File file : listOfFiles) {
             if (file.isDirectory()) {
                 directories.add(file);
-            } else {
-                files.add(file);
             }
         }
 
