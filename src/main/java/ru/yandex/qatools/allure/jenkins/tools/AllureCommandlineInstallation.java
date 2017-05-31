@@ -73,7 +73,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
             return null;
         }
 
-        if (Files.exists(Paths.get(home).resolve("app/allure-bundle.jar"))) {
+        if (Files.exists(Paths.get(home).resolve("bin").resolve("allure"))) {
             return Paths.get(home);
         }
 
