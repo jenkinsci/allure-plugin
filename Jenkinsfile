@@ -8,7 +8,12 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                sh './gradlew build'
+                sh './gradlew test jpi'
+            }
+        }
+        stage('Archive') {
+            steps {
+                archiveArtifacts 'build/libs/*.hpi'
             }
         }
         stage('Release') {
@@ -22,11 +27,6 @@ pipeline {
                                 "-Prelease.newVersion=${NEXT_VERSION}-SNAPSHOT"
                     }
                 }
-            }
-        }
-        stage('Archive') {
-            steps {
-                archiveArtifacts 'build/libs/*.hpi'
             }
         }
     }
