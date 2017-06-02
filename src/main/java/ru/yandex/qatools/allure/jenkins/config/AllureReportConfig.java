@@ -74,7 +74,10 @@ public class AllureReportConfig implements Serializable {
     }
 
     public List<PropertyConfig> getProperties() {
-        return properties;
+        if (this.properties == null) {
+            this.properties = Collections.emptyList();
+        }
+        return this.properties;
     }
 
     public void setProperties(List<PropertyConfig> properties) {
@@ -82,7 +85,10 @@ public class AllureReportConfig implements Serializable {
     }
 
     public ReportBuildPolicy getReportBuildPolicy() {
-        return reportBuildPolicy;
+        if (this.reportBuildPolicy == null) {
+            this.reportBuildPolicy = ReportBuildPolicy.ALWAYS;
+        }
+        return this.reportBuildPolicy;
     }
 
     public void setReportBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
@@ -90,7 +96,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     public boolean getIncludeProperties() {
-        return includeProperties == null || includeProperties;
+        return this.includeProperties == null || this.includeProperties;
     }
 
     public void setIncludeProperties(Boolean includeProperties) {
