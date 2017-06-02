@@ -54,8 +54,11 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
-    private static final String ALLURE_SUFFIX = "results";
+    private static final String ALLURE_REPORT_SUFFIX = "report";
+    private static final String ALLURE_RESULTS_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+
+    private static final String ALLURE_REPORT_PATH_KEY = "ALLURE_REPORT";
 
     private final AllureReportConfig config;
 
@@ -114,7 +117,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 listener.getLogger().format("Can not find workspace for parent build %s", parentBuild.getDisplayName());
                 return;
             }
-            final FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_SUFFIX);
+            final FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_RESULTS_SUFFIX);
             listener.getLogger().format("Copy matrix build results to directory [%s]", aggregationDir);
             for (FilePath resultsPath : results) {
                 FilePathUtils.copyRecursiveTo(resultsPath, aggregationDir, parentBuild, listener.getLogger());
@@ -133,7 +136,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             public boolean endBuild() throws InterruptedException, IOException {
                 final List<FilePath> resultsPaths = new ArrayList<>();
                 for (FilePath directory : workspace.listDirectories()) {
-                    if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().endsWith(ALLURE_SUFFIX)) {
+                    if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().endsWith(ALLURE_RESULTS_SUFFIX)) {
                         resultsPaths.add(directory);
                     }
                 }
@@ -163,7 +166,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         configureJdk(launcher, listener, buildEnvVars);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
-        final FilePath reportPath = workspace.child("allure-report");
+        final FilePath reportPath = workspace.createTempDir(ALLURE_PREFIX, ALLURE_REPORT_SUFFIX);
         try {
             final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
                     .build(resultsPaths, reportPath);
