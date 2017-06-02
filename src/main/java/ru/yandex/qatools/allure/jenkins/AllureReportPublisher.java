@@ -217,7 +217,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void setAllureProperties(final EnvVars envVars) {
         final StringBuilder options = new StringBuilder();
         for (PropertyConfig property : config.getProperties()) {
-            options.append(format("-D%s=%s ", property.getKey(), property.getValue()));
+            options.append(format("-D%s=%s ", property.getKey(), envVars.expand(property.getValue())));
         }
         envVars.put("ALLURE_OPTS", options.toString());
     }
