@@ -85,8 +85,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                         @Nonnull TaskListener listener) throws InterruptedException, IOException {
         final List<FilePath> results = new ArrayList<>();
+
+        final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
         for (ResultsConfig resultsConfig : getConfig().getResults()) {
-            results.add(workspace.child(resultsConfig.getPath()));
+            results.add(workspace.child(buildEnvVars.expand(resultsConfig.getPath())));
         }
         prepareResults(results, run, listener);
         generateReport(results, run, workspace, launcher, listener);

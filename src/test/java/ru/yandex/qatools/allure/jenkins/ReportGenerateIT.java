@@ -8,7 +8,9 @@ import hudson.matrix.MatrixRun;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
+import hudson.model.StringParameterDefinition;
 import hudson.model.labels.LabelAtom;
 import hudson.scm.SCM;
 import org.assertj.core.api.Assertions;
@@ -74,6 +76,19 @@ public class ReportGenerateIT {
         assertThat(build.getArtifacts())
                 .as("An artifact for allure report should be created in the artifacts dir for the build")
                 .hasSize(1);
+    }
+
+    @Test
+    public void shouldGenerateReportForParameters() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.addProperty(new ParametersDefinitionProperty(
+                new StringParameterDefinition("RESULTS", "allure-results")));
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher("${RESULTS}"));
+        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+
     }
 
     @Test
