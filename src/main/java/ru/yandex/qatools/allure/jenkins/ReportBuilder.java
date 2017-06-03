@@ -19,6 +19,7 @@ public class ReportBuilder {
 
     private static final String GENERATE_COMMAND = "generate";
     private static final String OUTPUT_DIR_OPTION = "-o";
+    private static final String CLEAN_OPTION = "-c";
     private final FilePath workspace;
 
     private final Launcher launcher;
@@ -63,6 +64,7 @@ public class ReportBuilder {
         for (FilePath resultsPath : resultsPaths) {
             arguments.add(resultsPath.getRemote());
         }
+        arguments.add(CLEAN_OPTION);
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.add(reportPath.getRemote());
         return arguments;
