@@ -245,7 +245,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final String rootUrl = Jenkins.getInstance().getRootUrl();
         final String buildUrl = rootUrl + run.getUrl();
         final String reportUrl = buildUrl + ALLURE_PREFIX;
-        final AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl);
+        final String buildId = run.getId();
+        final AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl,
+                buildId);
         for (FilePath path : resultsPaths) {
             path.act(callable);
         }
