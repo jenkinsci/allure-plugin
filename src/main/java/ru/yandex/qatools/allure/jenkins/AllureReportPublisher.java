@@ -16,6 +16,7 @@ import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
@@ -57,11 +58,105 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String ALLURE_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
 
-    private final AllureReportConfig config;
+    private AllureReportConfig config;
+
+    private String jdk;
+
+    private String commandline;
+
+    private List<PropertyConfig> properties = new ArrayList<>();
+
+    private List<ResultsConfig> results;
+
+    private ReportBuildPolicy reportBuildPolicy;
+
+    private Boolean includeProperties;
 
     @DataBoundConstructor
-    public AllureReportPublisher(@Nonnull AllureReportConfig config) {
+    public AllureReportPublisher(@Nonnull List<ResultsConfig> results) {
+        this.results = results;
+    }
+
+    @Nonnull
+    public List<ResultsConfig> getResults() {
+        if (this.results != null) {
+            return this.results;
+        } else {
+            return config.getResults();
+        }
+    }
+
+    @DataBoundSetter
+    public void setConfig(final AllureReportConfig config) {
         this.config = config;
+    }
+
+    @DataBoundSetter
+    public void setJdk(final String jdk) {
+        this.jdk = jdk;
+    }
+
+    public String getJdkId() {
+        if (this.jdk != null) {
+            return this.jdk;
+        } else if (this.config != null) {
+            return config.getJdk();
+        }
+        return null;
+    }
+
+    @DataBoundSetter
+    public void setCommandline(String commandline) {
+        this.commandline = commandline;
+    }
+
+    public String getCommandline() {
+        if (this.commandline != null) {
+            return this.commandline;
+        } else if (this.config != null) {
+            return config.getCommandline();
+        }
+        return null;
+    }
+
+    @DataBoundSetter
+    public void setProperties(List<PropertyConfig> properties) {
+        this.properties = properties;
+    }
+
+    public List<PropertyConfig> getProperties() {
+        if (this.config != null) {
+            return config.getProperties();
+        }
+        return properties;
+    }
+
+    @DataBoundSetter
+    public void setReportBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
+        this.reportBuildPolicy = reportBuildPolicy;
+    }
+
+    public ReportBuildPolicy getReportBuildPolicy() {
+        if (this.reportBuildPolicy != null) {
+            return reportBuildPolicy;
+        } else if (this.config != null) {
+            return config.getReportBuildPolicy();
+        }
+        return ReportBuildPolicy.ALWAYS;
+    }
+
+    @DataBoundSetter
+    public void setIncludeProperties(Boolean includeProperties) {
+        this.includeProperties = includeProperties;
+    }
+
+    public boolean getIncludeProperties() {
+        if (this.includeProperties != null) {
+            return this.includeProperties;
+        } else if (this.config != null) {
+            return config.getIncludeProperties();
+        }
+        return true;
     }
 
     @Nonnull
@@ -87,7 +182,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final List<FilePath> results = new ArrayList<>();
 
         final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
-        for (ResultsConfig resultsConfig : getConfig().getResults()) {
+        for (final ResultsConfig resultsConfig : getResults()) {
             results.add(workspace.child(buildEnvVars.expand(resultsConfig.getPath())));
         }
         prepareResults(results, run, listener);
@@ -153,7 +248,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                                 @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                                 @Nonnull TaskListener listener) throws IOException, InterruptedException { //NOSONAR
 
-        final ReportBuildPolicy reportBuildPolicy = getConfig().getReportBuildPolicy();
+        final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(run)) {
             listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
                     reportBuildPolicy.getTitle()));
@@ -202,7 +297,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         // discover commandline
         final AllureCommandlineInstallation installation =
-                getDescriptor().getCommandlineInstallation(config.getCommandline());
+                getDescriptor().getCommandlineInstallation(getCommandline());
 
         if (installation == null) {
             throw new AllurePluginException("Can not find any allure commandline installation.");
@@ -218,7 +313,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void setAllureProperties(final EnvVars envVars) {
         final StringBuilder options = new StringBuilder();
-        for (PropertyConfig property : config.getProperties()) {
+        for (PropertyConfig property : getProperties()) {
             options.append(format("-D%s=%s ", property.getKey(), envVars.expand(property.getValue())));
         }
         envVars.put("ALLURE_OPTS", options.toString());
@@ -299,7 +394,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     @Nullable
     private JDK getJdk() {
-        return Jenkins.getInstance().getJDK(config.getJdk());
+        return Jenkins.getInstance().getJDK(getJdkId());
     }
 
     /**

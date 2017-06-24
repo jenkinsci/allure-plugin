@@ -13,7 +13,6 @@ import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
 import hudson.model.labels.LabelAtom;
 import hudson.scm.SCM;
-import org.assertj.core.api.Assertions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -22,10 +21,12 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
-import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
+import ru.yandex.qatools.allure.jenkins.config.ResultsConfig;
 import ru.yandex.qatools.allure.jenkins.testdata.TestUtils;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -172,10 +173,15 @@ public class ReportGenerateIT {
     }
 
     private AllureReportPublisher createAllurePublisher(String... resultsPaths) throws Exception {
-        return new AllureReportPublisher(AllureReportConfig.newInstance(jdk, commandline, resultsPaths));
+        final AllureReportPublisher publisher = createAllurePublisherWithoutCommandline(resultsPaths);
+        publisher.setCommandline(commandline);
+        return publisher;
     }
 
     private AllureReportPublisher createAllurePublisherWithoutCommandline(String... resultsPaths) throws Exception {
-        return new AllureReportPublisher(AllureReportConfig.newInstance(jdk, null, resultsPaths));
+        final List<ResultsConfig> results = ResultsConfig.convertPaths(Arrays.asList(resultsPaths));
+        final AllureReportPublisher publisher = new AllureReportPublisher(results);
+        publisher.setJdk(jdk);
+        return publisher;
     }
 }

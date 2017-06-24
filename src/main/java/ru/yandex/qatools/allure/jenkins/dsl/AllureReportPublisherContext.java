@@ -1,7 +1,7 @@
 package ru.yandex.qatools.allure.jenkins.dsl;
 
 import javaposse.jobdsl.dsl.Context;
-import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
+import ru.yandex.qatools.allure.jenkins.AllureReportPublisher;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 
@@ -12,35 +12,35 @@ class AllureReportPublisherContext implements Context {
 
     private static final String FAILURE_POLICY = "FAILURE";
 
-    private AllureReportConfig config;
+    private AllureReportPublisher publisher;
 
-    AllureReportPublisherContext(AllureReportConfig config) {
-        this.config = config;
+    AllureReportPublisherContext(AllureReportPublisher publisher) {
+        this.publisher = publisher;
     }
 
-    public AllureReportConfig getConfig() {
-        return config;
+    public AllureReportPublisher getPublisher() {
+        return publisher;
     }
 
     public void buildFor(String buildPolicy) {
         final String policy = buildPolicy.equals(FAILURE_POLICY) ? ReportBuildPolicy.UNSUCCESSFUL.getValue()
                 : buildPolicy;
-        getConfig().setReportBuildPolicy(ReportBuildPolicy.valueOf(policy));
+        getPublisher().setReportBuildPolicy(ReportBuildPolicy.valueOf(policy));
     }
 
     public void jdk(String jdk) {
-        this.getConfig().setJdk(jdk);
+        this.getPublisher().setJdk(jdk);
     }
 
     public void commandline(String commandline) {
-        getConfig().setCommandline(commandline);
+        getPublisher().setCommandline(commandline);
     }
 
     public void property(String key, String value) {
-        getConfig().getProperties().add(new PropertyConfig(key, value));
+        getPublisher().getProperties().add(new PropertyConfig(key, value));
     }
 
     public void includeProperties(boolean includeProperties) {
-        getConfig().setIncludeProperties(includeProperties);
+        getPublisher().setIncludeProperties(includeProperties);
     }
 }

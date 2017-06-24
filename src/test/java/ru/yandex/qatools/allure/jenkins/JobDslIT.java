@@ -44,15 +44,15 @@ public class JobDslIT {
                 .isInstanceOf(AllureReportPublisher.class);
         AllureReportPublisher allureReportPublisher = (AllureReportPublisher) publisher.get(0);
 
-        assertThat(allureReportPublisher.getConfig().getResults()).containsExactly(
+        assertThat(allureReportPublisher.getResults()).containsExactly(
                 new ResultsConfig("target/first-results"),
                 new ResultsConfig("target/second-results")
         );
 
-        assertThat(allureReportPublisher.getConfig().getProperties()).hasSize(1)
+        assertThat(allureReportPublisher.getProperties()).hasSize(1)
                 .containsExactly(new PropertyConfig("key", "value"));
 
-        assertThat(allureReportPublisher.getConfig().getIncludeProperties()).isEqualTo(Boolean.TRUE);
+        assertThat(allureReportPublisher.getIncludeProperties()).isEqualTo(Boolean.TRUE);
     }
 
     private FreeStyleProject buildJob(String script) throws Exception {

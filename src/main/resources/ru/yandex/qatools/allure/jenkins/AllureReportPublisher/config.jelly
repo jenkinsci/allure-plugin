@@ -2,9 +2,8 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-    <f:section name="config">
         <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
-            <f:repeatable var="results" items="${instance.getConfig().getResults()}" minimum="1">
+            <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
                 <table width="90%">
                     <f:entry title="Path" field="path">
                         <f:textbox value="${results.path}" default="allure-results" clazz="required"
@@ -17,7 +16,7 @@
             </f:repeatable>
         </f:entry>
         <f:entry title="${%Properties}" field="properties">
-            <f:repeatable var="properties" items="${instance.getConfig().getProperties()}">
+            <f:repeatable var="properties" items="${instance.getProperties()}">
                 <table width="100%">
                     <f:entry title="Key" field="key">
                         <f:textbox width="50%" value="${properties.key}" clazz="required"
@@ -45,7 +44,7 @@
                 <f:entry title="${%Commandline}:">
                     <select class="setting-input" style="width: 90%" name="commandline">
                         <j:forEach var="inst" items="${installations}">
-                            <f:option selected="${inst.name==instance.getConfig().getCommandline()}"
+                            <f:option selected="${inst.name==instance.getCommandline()}"
                                       value="${inst.name}">
                                 ${inst.name}
                             </f:option>
@@ -58,7 +57,7 @@
                 <select class="setting-input" style="width: 90%" name="jdk">
                     <option value="">${%InheritFromJob}</option>
                     <j:forEach var="inst" items="${jdks}">
-                        <f:option selected="${inst.name==instance.getConfig().getJdk()}" value="${inst.name}">
+                        <f:option selected="${inst.name==instance.getJdk()}" value="${inst.name}">
                             ${inst.name}
                         </f:option>
                     </j:forEach>
@@ -68,14 +67,13 @@
                 <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
                     <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
                              value="${reportBuildPolicy.getValue()}"
-                             checked="${instance.getConfig().getReportBuildPolicy() == null and status.first or
-                                instance.getConfig().getReportBuildPolicy().equals(reportBuildPolicy)}"/>
+                             checked="${instance.getReportBuildPolicy() == null and status.first or
+                                instance.getReportBuildPolicy().equals(reportBuildPolicy)}"/>
                     <br/>
                 </j:forEach>
             </f:entry>
             <f:entry title="${%IncludeEnvironment}" field="includeProperties">
-                <f:checkbox checked="${instance.getConfig().getIncludeProperties()}"/>
+                <f:checkbox checked="${instance.getIncludeProperties()}"/>
             </f:entry>
         </f:advanced>
-    </f:section>
 </j:jelly>
