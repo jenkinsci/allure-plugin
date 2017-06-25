@@ -17,11 +17,14 @@ public class AddExecutorInfo extends AbstractAddInfo {
 
     private final String reportUrl;
 
-    public AddExecutorInfo(String url, String buildName, String buildUrl, String reportUrl) {
+    private final String buildId;
+
+    public AddExecutorInfo(String url, String buildName, String buildUrl, String reportUrl, String buildId) {
         this.url = url;
         this.buildName = buildName;
         this.buildUrl = buildUrl;
         this.reportUrl = reportUrl;
+        this.buildId = buildId;
     }
 
     @Override
@@ -33,6 +36,7 @@ public class AddExecutorInfo extends AbstractAddInfo {
         data.put("buildName", buildName);
         data.put("buildUrl", buildUrl);
         data.put("reportUrl", reportUrl);
+        data.put("buildId", buildId);
         return data;
     }
 
