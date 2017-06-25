@@ -77,13 +77,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         this.results = results;
     }
 
-    @Nonnull
     public List<ResultsConfig> getResults() {
-        if (this.results != null) {
-            return this.results;
-        } else {
-            return config.getResults();
+        if (this.results == null && this.config != null) {
+            this.results = this.config.getResults();
         }
+        return results;
     }
 
     @DataBoundSetter
@@ -96,13 +94,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         this.jdk = jdk;
     }
 
-    public String getJdkId() {
-        if (this.jdk != null) {
-            return this.jdk;
-        } else if (this.config != null) {
-            return config.getJdk();
+    public String getJdk() {
+        if (this.jdk == null && this.config != null) {
+            this.jdk = this.config.getJdk();
         }
-        return null;
+        return this.jdk;
     }
 
     @DataBoundSetter
@@ -111,12 +107,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public String getCommandline() {
-        if (this.commandline != null) {
-            return this.commandline;
-        } else if (this.config != null) {
-            return config.getCommandline();
+        if (this.commandline == null && this.config != null) {
+            this.commandline = this.config.getCommandline();
         }
-        return null;
+        return this.commandline;
     }
 
     @DataBoundSetter
@@ -128,7 +122,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (this.config != null) {
             return config.getProperties();
         }
-        return properties;
+        return this.properties;
     }
 
     @DataBoundSetter
@@ -137,12 +131,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public ReportBuildPolicy getReportBuildPolicy() {
-        if (this.reportBuildPolicy != null) {
-            return reportBuildPolicy;
-        } else if (this.config != null) {
-            return config.getReportBuildPolicy();
+        if (this.reportBuildPolicy == null && this.config != null) {
+            this.reportBuildPolicy = this.config.getReportBuildPolicy();
         }
-        return ReportBuildPolicy.ALWAYS;
+        return reportBuildPolicy != null ? reportBuildPolicy : ReportBuildPolicy.ALWAYS;
     }
 
     @DataBoundSetter
@@ -150,13 +142,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         this.includeProperties = includeProperties;
     }
 
-    public boolean getIncludeProperties() {
-        if (this.includeProperties != null) {
-            return this.includeProperties;
-        } else if (this.config != null) {
-            return config.getIncludeProperties();
+    public Boolean getIncludeProperties() {
+        if (this.includeProperties == null && this.config != null) {
+            this.includeProperties = this.config.getIncludeProperties();
         }
-        return true;
+        return this.includeProperties != null ? includeProperties : Boolean.TRUE;
     }
 
     @Nonnull
@@ -393,8 +383,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @Nullable
-    private JDK getJdk() {
-        return Jenkins.getInstance().getJDK(getJdkId());
+    private JDK getJdkInstallation() {
+        return Jenkins.getInstance().getJDK(getJdk());
     }
 
     /**
@@ -402,7 +392,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
      */
     private void configureJdk(Launcher launcher, TaskListener listener, EnvVars env)
             throws IOException, InterruptedException {
-        final JDK jdk = BuildUtils.setUpTool(getJdk(), launcher, listener, env);
+        final JDK jdk = BuildUtils.setUpTool(getJdkInstallation(), launcher, listener, env);
         if (jdk != null) {
             jdk.buildEnvVars(env);
         }

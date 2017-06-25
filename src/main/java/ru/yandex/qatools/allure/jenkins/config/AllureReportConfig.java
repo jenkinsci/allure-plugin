@@ -33,7 +33,7 @@ public class AllureReportConfig implements Serializable {
 
     private ReportBuildPolicy reportBuildPolicy = ReportBuildPolicy.ALWAYS;
 
-    private Boolean includeProperties = Boolean.FALSE;
+    private Boolean includeProperties = Boolean.TRUE;
 
     @DataBoundConstructor
     public AllureReportConfig(List<ResultsConfig> results) {
