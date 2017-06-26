@@ -83,8 +83,13 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         }
 
         @Override
-        public void generateResponse(StaplerRequest req, StaplerResponse rsp, Object node)
+        public void generateResponse(final StaplerRequest req, final StaplerResponse rsp, final Object node)
                 throws IOException, ServletException {
+            rsp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            rsp.addHeader("Cache-Control", "post-check=0, pre-check=0");
+            rsp.setHeader("Pragma", "no-cache");
+            rsp.setDateHeader("Expires", 0);
+
             final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
                 final ZipEntry entry = allureReport.getEntry("allure-report" + path);
