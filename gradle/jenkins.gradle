@@ -9,6 +9,7 @@ jenkinsPlugin {
 
     repoUrl = 'https://repo.jenkins-ci.org/releases'
     snapshotRepoUrl = 'https://repo.jenkins-ci.org/snapshots'
+    compatibleSinceVersion = '2.19'
 
     developers {
         developer {
