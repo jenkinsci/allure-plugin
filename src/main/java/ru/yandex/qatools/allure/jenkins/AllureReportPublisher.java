@@ -19,6 +19,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
+import ru.yandex.qatools.allure.jenkins.callables.FindByGlob;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
@@ -173,7 +174,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
         for (final ResultsConfig resultsConfig : getResults()) {
-            results.add(workspace.child(buildEnvVars.expand(resultsConfig.getPath())));
+            String expandedPath = buildEnvVars.expand(resultsConfig.getPath());
+            results.addAll(workspace.act(new FindByGlob(expandedPath)));
         }
         prepareResults(results, run, listener);
         generateReport(results, run, workspace, launcher, listener);

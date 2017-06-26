@@ -93,6 +93,15 @@ public class ReportGenerateIT {
     }
 
     @Test
+    public void shouldGenerateReportForGlob() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", "target/".concat(ALLURE_RESULTS)));
+        project.getPublishersList().add(createAllurePublisher("**/allure-results"));
+        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+    }
+
+    @Test
     public void shouldGenerateReportForMatrixItem() throws Exception {
         MatrixProject project = jRule.createProject(MatrixProject.class);
         project.getAxes().add(new Axis("labels", "a", "b"));
