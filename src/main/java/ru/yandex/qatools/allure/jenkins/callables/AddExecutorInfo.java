@@ -33,10 +33,11 @@ public class AddExecutorInfo extends AbstractAddInfo {
         data.put("name", "Jenkins");
         data.put("type", "jenkins");
         data.put("url", url);
+        data.put("buildOrder", buildId);
         data.put("buildName", buildName);
         data.put("buildUrl", buildUrl);
         data.put("reportUrl", reportUrl);
-        data.put("buildId", buildId);
+        data.put("reportName", "AllureReport");
         return data;
     }
 
