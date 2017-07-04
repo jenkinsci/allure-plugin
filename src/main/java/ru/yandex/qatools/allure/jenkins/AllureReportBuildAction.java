@@ -8,8 +8,7 @@ import hudson.model.Job;
 import hudson.model.Run;
 import hudson.util.ChartUtil;
 import hudson.util.DataSetBuilder;
-import io.qameta.allure.entity.Statistic;
-import io.qameta.allure.summary.SummaryData;
+import hudson.util.Graph;
 import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
@@ -18,6 +17,7 @@ import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
 import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
@@ -38,16 +38,16 @@ import java.util.zip.ZipFile;
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private Run<?, ?> run;
-    private WeakReference<SummaryData> buildSummary;
+    private WeakReference<BuildSummary> buildSummary;
 
-    AllureReportBuildAction(final SummaryData buildSummary) {
+    AllureReportBuildAction(final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
         final CategoryDataset data = buildDataSet();
 
-        new hudson.util.Graph(-1, 600, 300) {
+        new Graph(-1, 600, 300) {
             protected JFreeChart createGraph() {
                 return ChartUtils.createChart(req, data);
             }
@@ -57,7 +57,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     public void doGraphMap(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
         final CategoryDataset data = buildDataSet();
 
-        new hudson.util.Graph(-1, 600, 300) {
+        new Graph(-1, 600, 300) {
             protected JFreeChart createGraph() {
                 return ChartUtils.createChart(req, data);
             }
@@ -68,32 +68,32 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         return this.buildSummary != null;
     }
 
-    public Statistic getStatistic() {
-        if (buildSummary.get() == null) {
-            buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run));
+    public BuildSummary getBuildSummary() {
+        if (this.buildSummary.get() == null) {
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run));
         }
-        final SummaryData data = this.buildSummary.get();
-        return data != null ? data.getStatistic() : new Statistic();
+        final BuildSummary data = this.buildSummary.get();
+        return data != null ? data : new BuildSummary();
     }
 
     public long getFailedCount() {
-        return getStatistic().getFailed();
+        return getBuildSummary().getFailedCount();
     }
 
     public long getPassedCount() {
-        return getStatistic().getPassed();
+        return getBuildSummary().getPassedCount();
     }
 
     public long getSkipCount() {
-        return getStatistic().getSkipped();
+        return getBuildSummary().getSkipCount();
     }
 
     public long getBrokenCount() {
-        return getStatistic().getBroken();
+        return getBuildSummary().getBrokenCount();
     }
 
     public long getUnknownCount() {
-        return getStatistic().getUnknown();
+        return getBuildSummary().getUnknownCount();
     }
 
     public long getTotalCount() {
@@ -140,6 +140,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         return getPreviousResult(true);
     }
 
+    //copied from junit-plugin
     private AllureReportBuildAction getPreviousResult(final boolean eager) {
         Run<?, ?> b = run;
         Set<Integer> loadedBuilds;

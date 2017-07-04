@@ -55,6 +55,7 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
         return true;
     }
 
+    //copied from junit-plugin
     public AllureReportBuildAction getLastAllureBuildAction() {
         final Run<?, ?> tb = job.getLastSuccessfulBuild();
         Run<?, ?> b = job.getLastBuild();
