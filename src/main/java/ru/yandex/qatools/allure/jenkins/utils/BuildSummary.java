@@ -14,7 +14,7 @@ public class BuildSummary {
         return this;
     }
 
-    public Integer getStatistic(final String key) {
+    private Integer getStatistic(final String key) {
         return this.statistics != null ? statistics.get(key) : 0;
     }
 
