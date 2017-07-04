@@ -7,6 +7,8 @@ import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
+import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.JDK;
 import hudson.model.Run;
@@ -39,6 +41,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -261,7 +265,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             }
             listener.getLogger().println("Allure report was successfully generated.");
             saveAllureArtifact(run, workspace, reportPath, listener);
-            run.addAction(new AllureReportBuildAction());
+            run.addAction(new AllureReportBuildAction(FilePathUtils.extractSummary(run)));
         } finally {
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
         }
@@ -311,6 +315,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         envVars.put("ALLURE_OPTS", options.toString());
     }
 
+    @Nonnull
+    @Override
+    public Collection<? extends Action> getProjectActions(final AbstractProject<?, ?> project) {
+        return Collections.singleton(new AllureReportProjectAction(
+                project
+        ));
+    }
+
     private void prepareResults(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run,
                                 @Nonnull TaskListener listener) throws IOException, InterruptedException {
         addHistory(resultsPaths, run, listener);
@@ -342,7 +354,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void addHistory(List<FilePath> resultsPaths, @Nonnull Run<?, ?> run, @Nonnull TaskListener listener)
             throws IOException, InterruptedException {
-        final FilePath previousReport = getPreviousReport(run);
+        final FilePath previousReport = FilePathUtils.getPreviousReport(run);
         if (previousReport == null) {
             return;
         }
@@ -372,18 +384,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 historyCopy.copyFrom(entryStream);
             }
         }
-    }
-
-    private FilePath getPreviousReport(Run<?, ?> run) throws IOException, InterruptedException {
-        Run<?, ?> current = run;
-        while (current != null) {
-            final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
-            if (previousReport.exists()) {
-                return previousReport;
-            }
-            current = current.getPreviousCompletedBuild();
-        }
-        return null;
     }
 
     @Nullable
