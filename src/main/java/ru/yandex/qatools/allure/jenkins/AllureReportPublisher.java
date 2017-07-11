@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,7 +46,6 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static java.lang.String.format;
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
@@ -307,7 +305,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return tool;
     }
 
-    private void setAllureProperties(final EnvVars envVars) throws UnsupportedEncodingException {
+    private void setAllureProperties(final EnvVars envVars){
         final StringBuilder options = new StringBuilder();
         Map<String, String> properties = new HashMap<>();
         //global properties
