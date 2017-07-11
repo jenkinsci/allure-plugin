@@ -15,6 +15,9 @@ public class PropertyConfig implements Serializable {
 
     private String value;
 
+    public PropertyConfig() {
+    }
+
     @DataBoundConstructor
     public PropertyConfig(String key, String value) {
         this.value = value;
