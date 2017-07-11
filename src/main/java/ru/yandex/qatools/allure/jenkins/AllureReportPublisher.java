@@ -38,9 +38,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -304,10 +307,20 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return tool;
     }
 
-    private void setAllureProperties(final EnvVars envVars) {
+    private void setAllureProperties(final EnvVars envVars) throws UnsupportedEncodingException {
         final StringBuilder options = new StringBuilder();
-        for (PropertyConfig property : getProperties()) {
-            options.append(format("-D%s=%s ", property.getKey(), envVars.expand(property.getValue())));
+        Map<String, String> properties = new HashMap<>();
+        //global properties
+        for (PropertyConfig config : getDescriptor().getProperties()) {
+            properties.put(config.getKey(), config.getValue());
+        }
+        //job properties
+        for (PropertyConfig config : getProperties()) {
+            properties.put(config.getKey(), config.getValue());
+        }
+        for (String key : properties.keySet()) {
+            String value = envVars.expand(properties.get(key));
+            options.append(String.format("-D%s=%s ", key, value));
         }
         envVars.put("ALLURE_OPTS", options.toString());
     }
