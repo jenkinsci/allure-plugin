@@ -39,4 +39,38 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
         final Run<?, ?> last = job.getLastCompletedBuild();
         return last == null ? null : last.getAction(AllureReportBuildAction.class);
     }
+
+    public boolean isCanBuildGraph() {
+        int dataPointsCount = 0;
+        AllureReportBuildAction allureBuildAction = getLastAllureBuildAction();
+        while (dataPointsCount < 2) {
+            if (allureBuildAction == null) {
+                return false;
+            }
+            if (allureBuildAction.hasSummaryLink()) {
+                dataPointsCount++;
+            }
+            allureBuildAction = allureBuildAction.getPreviousResult();
+        }
+        return true;
+    }
+
+    //copied from junit-plugin
+    public AllureReportBuildAction getLastAllureBuildAction() {
+        final Run<?, ?> tb = job.getLastSuccessfulBuild();
+        Run<?, ?> b = job.getLastBuild();
+        while (b != null) {
+            final AllureReportBuildAction a = b.getAction(AllureReportBuildAction.class);
+            if (a != null && (!b.isBuilding())) {
+                return a;
+            }
+            if (b == tb) {
+                // if even the last successful build didn't produce the test result,
+                // that means we just don't have any tests configured.
+                return null;
+            }
+            b = b.getPreviousBuild();
+        }
+        return null;
+    }
 }

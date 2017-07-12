@@ -1,10 +1,28 @@
 package ru.yandex.qatools.allure.jenkins.utils;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
+import hudson.model.Run;
 
+import javax.annotation.Nullable;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
@@ -12,6 +30,13 @@ import java.io.PrintStream;
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
+
+    private static final List<String> BUILD_STATISTICS_KEYS = Arrays.asList(
+            "passed",
+            "failed",
+            "broken",
+            "skipped",
+            "unknown");
 
     private FilePathUtils() {
     }
@@ -37,5 +62,50 @@ public final class FilePathUtils {
         } catch (IOException | InterruptedException e) { //NOSONAR
             logger.println(String.format("Can't delete directory [%s]", filePath));
         }
+    }
+
+    public static FilePath getPreviousReport(Run<?, ?> run) throws IOException, InterruptedException {
+        Run<?, ?> current = run;
+        while (current != null) {
+            final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
+            if (previousReport.exists()) {
+                return previousReport;
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
+    public static BuildSummary extractSummary(final Run<?, ?> run) {
+        final FilePath report = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        try {
+            if (!report.exists()) {
+                return null;
+            }
+            try (ZipFile archive = new ZipFile(report.getRemote())) {
+                List<ZipEntry> entries = listEntries(archive, "allure-report/export");
+                Optional<ZipEntry> summary = Iterables.tryFind(entries, new Predicate<ZipEntry>() {
+                    @Override
+                    public boolean apply(@Nullable ZipEntry input) {
+                        return input != null && input.getName().equals("allure-report/export/summary.json");
+                    }
+                });
+                if (summary.isPresent()) {
+                    try (InputStream is = archive.getInputStream(summary.get())) {
+                        JsonParser parser = new JsonParser();
+                        final JsonObject json = parser.parse(new BufferedReader(new InputStreamReader(is)))
+                                .getAsJsonObject();
+                        final JsonObject stat = json.getAsJsonObject("statistic");
+                        final Map<String, Integer> statisticsMap = new HashMap<>();
+                        for (String key : BUILD_STATISTICS_KEYS) {
+                            statisticsMap.put(key, stat.get(key).getAsInt());
+                        }
+                        return new BuildSummary().withStatistics(statisticsMap);
+                    }
+                }
+            }
+        } catch (IOException | InterruptedException ignore) {
+        }
+        return null;
     }
 }

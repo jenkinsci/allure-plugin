@@ -6,16 +6,27 @@ import hudson.model.BuildBadgeAction;
 import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.util.ChartUtil;
+import hudson.util.DataSetBuilder;
+import hudson.util.Graph;
 import jenkins.model.RunAction2;
+import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
+import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
+import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -27,6 +38,72 @@ import java.util.zip.ZipFile;
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private Run<?, ?> run;
+    private WeakReference<BuildSummary> buildSummary;
+
+    AllureReportBuildAction(final BuildSummary buildSummary) {
+        this.buildSummary = new WeakReference<>(buildSummary);
+    }
+
+    public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
+        final CategoryDataset data = buildDataSet();
+
+        new Graph(-1, 600, 300) {
+            protected JFreeChart createGraph() {
+                return ChartUtils.createChart(req, data);
+            }
+        }.doPng(req, rsp);
+    }
+
+    public void doGraphMap(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
+        final CategoryDataset data = buildDataSet();
+
+        new Graph(-1, 600, 300) {
+            protected JFreeChart createGraph() {
+                return ChartUtils.createChart(req, data);
+            }
+        }.doMap(req, rsp);
+    }
+
+    public boolean hasSummaryLink() {
+        return this.buildSummary != null;
+    }
+
+    public BuildSummary getBuildSummary() {
+        if (this.buildSummary.get() == null) {
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run));
+        }
+        final BuildSummary data = this.buildSummary.get();
+        return data != null ? data : new BuildSummary();
+    }
+
+    public long getFailedCount() {
+        return getBuildSummary().getFailedCount();
+    }
+
+    public long getPassedCount() {
+        return getBuildSummary().getPassedCount();
+    }
+
+    public long getSkipCount() {
+        return getBuildSummary().getSkipCount();
+    }
+
+    public long getBrokenCount() {
+        return getBuildSummary().getBrokenCount();
+    }
+
+    public long getUnknownCount() {
+        return getBuildSummary().getUnknownCount();
+    }
+
+    public long getTotalCount() {
+        return getFailedCount() + getBrokenCount() + getPassedCount()
+                + getSkipCount() + getUnknownCount();
+    }
+
+    public String getBuildNumber() {
+        return run.getId();
+    }
 
     @Override
     public String getDisplayName() {
@@ -57,6 +134,50 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     public Collection<? extends Action> getProjectActions() {
         final Job<?, ?> job = run.getParent();
         return Collections.singleton(new AllureReportProjectAction(job));
+    }
+
+    public AllureReportBuildAction getPreviousResult() {
+        return getPreviousResult(true);
+    }
+
+    //copied from junit-plugin
+    private AllureReportBuildAction getPreviousResult(final boolean eager) {
+        Run<?, ?> b = run;
+        Set<Integer> loadedBuilds;
+        if (!eager && run.getParent() instanceof LazyBuildMixIn.LazyLoadingJob) {
+            loadedBuilds = ((LazyBuildMixIn.LazyLoadingJob<?, ?>) run.getParent()).getLazyBuildMixIn()._getRuns().getLoadedBuilds().keySet();
+        } else {
+            loadedBuilds = null;
+        }
+        while (true) {
+            b = loadedBuilds == null || loadedBuilds.contains(b.number - /* assuming there are no gaps */1) ? b.getPreviousBuild() : null;
+            if (b == null)
+                return null;
+            AllureReportBuildAction r = b.getAction(AllureReportBuildAction.class);
+            if (r != null) {
+                if (r == this) {
+                    throw new IllegalStateException(this + " was attached to both " + b + " and " + run);
+                }
+                if (r.run.number != b.number) {
+                    throw new IllegalStateException(r + " was attached to both " + b + " and " + r.run);
+                }
+                return r;
+            }
+        }
+    }
+
+    private CategoryDataset buildDataSet() {
+        DataSetBuilder<String, ChartUtil.NumberOnlyBuildLabel> dsb = new DataSetBuilder<>();
+
+        for (AllureReportBuildAction a = this; a != null; a = a.getPreviousResult()) {
+            final ChartUtil.NumberOnlyBuildLabel columnKey = new ChartUtil.NumberOnlyBuildLabel(a.run);
+            dsb.add(a.getFailedCount(), "failed", columnKey);
+            dsb.add(a.getBrokenCount(), "broken", columnKey);
+            dsb.add(a.getPassedCount(), "passed", columnKey);
+            dsb.add(a.getSkipCount(), "skipped", columnKey);
+            dsb.add(a.getUnknownCount(), "unknown", columnKey);
+        }
+        return dsb.build();
     }
 
     @SuppressWarnings("unused")
