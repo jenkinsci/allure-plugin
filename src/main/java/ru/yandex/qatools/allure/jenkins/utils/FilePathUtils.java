@@ -1,19 +1,17 @@
 package ru.yandex.qatools.allure.jenkins.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -92,13 +90,12 @@ public final class FilePathUtils {
                 });
                 if (summary.isPresent()) {
                     try (InputStream is = archive.getInputStream(summary.get())) {
-                        JsonParser parser = new JsonParser();
-                        final JsonObject json = parser.parse(new BufferedReader(new InputStreamReader(is)))
-                                .getAsJsonObject();
-                        final JsonObject stat = json.getAsJsonObject("statistic");
+                        final ObjectMapper mapper = new ObjectMapper();
+                        final JsonNode summaryJson = mapper.readTree(is);
+                        final JsonNode statisticJson = summaryJson.get("statistic");
                         final Map<String, Integer> statisticsMap = new HashMap<>();
                         for (String key : BUILD_STATISTICS_KEYS) {
-                            statisticsMap.put(key, stat.get(key).getAsInt());
+                            statisticsMap.put(key, statisticJson.get(key).intValue());
                         }
                         return new BuildSummary().withStatistics(statisticsMap);
                     }
