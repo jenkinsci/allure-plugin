@@ -41,7 +41,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -125,9 +124,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     public List<PropertyConfig> getProperties() {
         if (this.config != null) {
-            return config.getProperties();
+            this.properties = config.getProperties();
         }
-        return this.properties;
+        return this.properties == null ? Collections.<PropertyConfig>emptyList() : properties;
     }
 
     @DataBoundSetter
@@ -139,7 +138,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (this.reportBuildPolicy == null && this.config != null) {
             this.reportBuildPolicy = this.config.getReportBuildPolicy();
         }
-        return reportBuildPolicy != null ? reportBuildPolicy : ReportBuildPolicy.ALWAYS;
+        return reportBuildPolicy == null ? ReportBuildPolicy.ALWAYS : reportBuildPolicy;
     }
 
     @DataBoundSetter
@@ -151,7 +150,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (this.includeProperties == null && this.config != null) {
             this.includeProperties = this.config.getIncludeProperties();
         }
-        return this.includeProperties != null ? includeProperties : Boolean.TRUE;
+        return this.includeProperties == null ? Boolean.TRUE : includeProperties;
     }
 
     @Nonnull
