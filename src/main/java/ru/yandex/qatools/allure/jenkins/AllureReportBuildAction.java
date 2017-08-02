@@ -4,14 +4,11 @@ import hudson.FilePath;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.DirectoryBrowserSupport;
-import hudson.model.Job;
 import hudson.model.Run;
 import hudson.util.ChartUtil;
 import hudson.util.DataSetBuilder;
 import hudson.util.Graph;
-import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
-import jenkins.tasks.SimpleBuildStep;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
@@ -24,8 +21,6 @@ import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -35,7 +30,7 @@ import java.util.zip.ZipFile;
  *
  * @author pupssman
  */
-public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
+public class AllureReportBuildAction implements BuildBadgeAction{
 
     private Run<?, ?> run;
     private WeakReference<BuildSummary> buildSummary;
@@ -118,22 +113,6 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     @Override
     public String getUrlName() {
         return AllureReportPlugin.URL_PATH;
-    }
-
-    @Override
-    public void onAttached(Run<?, ?> r) {
-        this.run = r;
-    }
-
-    @Override
-    public void onLoad(Run<?, ?> r) {
-        this.run = r;
-    }
-
-    @Override
-    public Collection<? extends Action> getProjectActions() {
-        final Job<?, ?> job = run.getParent();
-        return Collections.singleton(new AllureReportProjectAction(job));
     }
 
     public AllureReportBuildAction getPreviousResult() {
