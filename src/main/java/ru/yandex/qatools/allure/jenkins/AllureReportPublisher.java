@@ -266,7 +266,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             }
             listener.getLogger().println("Allure report was successfully generated.");
             saveAllureArtifact(run, workspace, reportPath, listener);
-            run.addAction(new AllureReportBuildAction(FilePathUtils.extractSummary(run)));
+            run.addAction(new AllureReportBuildAction(run, FilePathUtils.extractSummary(run)));
         } finally {
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
         }
@@ -308,7 +308,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return tool;
     }
 
-    private void setAllureProperties(final EnvVars envVars){
+    private void setAllureProperties(final EnvVars envVars) {
         final StringBuilder options = new StringBuilder();
         Map<String, String> properties = new HashMap<>();
         //global properties

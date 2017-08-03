@@ -30,13 +30,15 @@ import java.util.zip.ZipFile;
  *
  * @author pupssman
  */
-public class AllureReportBuildAction implements BuildBadgeAction{
+public class AllureReportBuildAction implements BuildBadgeAction {
 
-    private Run<?, ?> run;
+    private final Run<?, ?> run;
+
     private WeakReference<BuildSummary> buildSummary;
 
-    AllureReportBuildAction(final BuildSummary buildSummary) {
+    AllureReportBuildAction(final Run<?, ?> run, final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
+        this.run = run;
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
