@@ -8,6 +8,7 @@ import hudson.model.Run;
 import hudson.util.ChartUtil;
 import hudson.util.DataSetBuilder;
 import hudson.util.Graph;
+import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
@@ -30,15 +31,14 @@ import java.util.zip.ZipFile;
  *
  * @author pupssman
  */
-public class AllureReportBuildAction implements BuildBadgeAction {
+public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
-    private final Run<?, ?> run;
+    private Run<?, ?> run;
 
     private WeakReference<BuildSummary> buildSummary;
 
-    AllureReportBuildAction(final Run<?, ?> run, final BuildSummary buildSummary) {
+    AllureReportBuildAction(final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
-        this.run = run;
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
@@ -171,6 +171,16 @@ public class AllureReportBuildAction implements BuildBadgeAction {
             throws IOException, ServletException, InterruptedException {
         final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
         return new ArchiveReportBrowser(archive);
+    }
+
+    @Override
+    public void onAttached(Run<?, ?> r) {
+        run = r;
+    }
+
+    @Override
+    public void onLoad(Run<?, ?> r) {
+        run = r;
     }
 
     /**

@@ -266,7 +266,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             }
             listener.getLogger().println("Allure report was successfully generated.");
             saveAllureArtifact(run, workspace, reportPath, listener);
-            run.addAction(new AllureReportBuildAction(run, FilePathUtils.extractSummary(run)));
+            run.addAction(new AllureReportBuildAction(FilePathUtils.extractSummary(run)));
         } finally {
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
         }
