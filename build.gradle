@@ -48,6 +48,7 @@ repositories {
 }
 
 dependencies {
+    compile 'org.jenkins-ci:symbol-annotation:1.5'
     compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
     compile 'de.schlichtherle.truezip:truezip-driver-zip:7.7.10'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.0'
