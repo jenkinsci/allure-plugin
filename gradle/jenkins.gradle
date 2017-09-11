@@ -1,7 +1,7 @@
 apply plugin: 'org.jenkins-ci.jpi'
 
 jenkinsPlugin {
-    coreVersion = '1.651.3'
+    coreVersion = '1.642.4'
     shortName = 'allure-jenkins-plugin'
     displayName = 'Allure Jenkins Plugin'
     url = 'http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin'
