@@ -32,6 +32,10 @@ class AllureReportPublisherContext implements Context {
         this.getPublisher().setJdk(jdk);
     }
 
+    public void disabled(boolean disabled) {
+        this.getPublisher().setDisabled(disabled);
+    }
+
     public void commandline(String commandline) {
         getPublisher().setCommandline(commandline);
     }
