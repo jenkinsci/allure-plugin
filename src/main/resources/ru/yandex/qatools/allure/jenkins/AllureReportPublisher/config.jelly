@@ -2,8 +2,8 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-        <f:entry title="${%AllureReportDisabled}" field="allureReportDisabled">
-            <f:checkbox checked="${instance.getAllureReportDisabled()}"/>
+        <f:entry title="${%AllureReportDisabled}" field="disabled">
+            <f:checkbox checked="${instance.isDisabled()}"/>
         </f:entry>
         <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
             <f:repeatable var="results" items="${instance.getResults()}" minimum="1">

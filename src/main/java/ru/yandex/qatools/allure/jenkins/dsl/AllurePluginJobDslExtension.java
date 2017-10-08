@@ -17,14 +17,14 @@ public class AllurePluginJobDslExtension extends ContextExtensionPoint {
 
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths, boolean disabled) {
-        return new AllureReportPublisher(ResultsConfig.convertPaths(paths), disabled);
+        return new AllureReportPublisher(ResultsConfig.convertPaths(paths));
     }
 
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths, boolean disabled, Runnable closure) {
 
         final AllureReportPublisherContext context = new AllureReportPublisherContext(
-                new AllureReportPublisher(ResultsConfig.convertPaths(paths), disabled));
+                new AllureReportPublisher(ResultsConfig.convertPaths(paths)));
         executeInContext(closure, context);
 
         return context.getPublisher();
