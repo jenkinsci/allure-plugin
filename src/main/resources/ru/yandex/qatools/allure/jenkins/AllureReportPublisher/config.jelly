@@ -2,7 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-        <f:entry title="${%AllureReportDisabled}" field="disabled">
+        <f:entry title="${%Disabled}" field="disabled">
             <f:checkbox checked="${instance.isDisabled()}"/>
         </f:entry>
         <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
