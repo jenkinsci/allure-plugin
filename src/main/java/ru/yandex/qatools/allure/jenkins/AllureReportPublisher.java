@@ -285,15 +285,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             saveAllureArtifact(run, workspace, reportPath, listener);
             BuildSummary buildSummary = FilePathUtils.extractSummary(run);
             run.addAction(new AllureReportBuildAction(buildSummary));
-            setBuildResultBasedOnTestExecution(run, buildSummary);
+            run.setResult(buildSummary.getResult());
         } finally {
             FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
-        }
-    }
-
-    private void setBuildResultBasedOnTestExecution(@Nonnull Run<?, ?> run, BuildSummary buildSummary) {
-        if (buildSummary != null && (buildSummary.getFailedCount() > 0 || buildSummary.getBrokenCount() > 0)) {
-            run.setResult(Result.UNSTABLE);
         }
     }
 

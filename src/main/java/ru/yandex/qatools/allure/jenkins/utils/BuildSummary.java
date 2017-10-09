@@ -1,5 +1,7 @@
 package ru.yandex.qatools.allure.jenkins.utils;
 
+import hudson.model.Result;
+
 import java.util.Map;
 
 /**
@@ -36,5 +38,12 @@ public class BuildSummary {
 
     public long getUnknownCount() {
         return getStatistic("unknown");
+    }
+
+    public Result getResult() {
+        if (getFailedCount() > 0 || getBrokenCount() > 0) {
+            return Result.UNSTABLE;
+        }
+        return Result.SUCCESS;
     }
 }
