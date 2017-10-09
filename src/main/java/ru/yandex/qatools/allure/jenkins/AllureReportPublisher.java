@@ -336,7 +336,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
         for (String key : properties.keySet()) {
             String value = envVars.expand(properties.get(key));
-            options.append(String.format("-D%s=%s ", key, value));
+            options.append(String.format("-D%s=\"%s\" ", key, value));
         }
         envVars.put("ALLURE_OPTS", options.toString());
     }
