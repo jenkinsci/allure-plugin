@@ -91,7 +91,6 @@ public class ReportGenerateIT {
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
-
     }
 
     @Test
@@ -106,7 +105,16 @@ public class ReportGenerateIT {
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+    }
 
+    @Test
+    public void shouldGenerateReportWithUnstableResult() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite-with-failed.xml", ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher("allure-results"));
+        FreeStyleBuild build = jRule.assertBuildStatus(Result.UNSTABLE, project.scheduleBuild2(0));
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
