@@ -21,10 +21,12 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
+import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ResultsConfig;
 import ru.yandex.qatools.allure.jenkins.testdata.TestUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -86,6 +88,21 @@ public class ReportGenerateIT {
                 new StringParameterDefinition("RESULTS", "allure-results")));
         project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
         project.getPublishersList().add(createAllurePublisher("${RESULTS}"));
+        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+
+    }
+
+    @Test
+    public void shouldGenerateReportForWrappedParameters() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        AllureReportPublisher publisher = createAllurePublisher("allure-results");
+        List<PropertyConfig> properties = new ArrayList<>();
+        properties.add(new PropertyConfig("allure.tests.management.pattern", "http://tms.test?a=f&s=123"));
+        publisher.setProperties(properties);
+        project.getPublishersList().add(publisher);
         FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
