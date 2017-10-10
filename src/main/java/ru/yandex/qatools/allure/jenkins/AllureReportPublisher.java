@@ -1,5 +1,6 @@
 package ru.yandex.qatools.allure.jenkins;
 
+import com.google.common.base.Optional;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -195,7 +196,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final List<FilePath> results = new ArrayList<>();
 
         final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
-        for (final ResultsConfig resultsConfig : getResults()) {
+
+        List<ResultsConfig> resultsConfigs = getResults();
+        if (resultsConfigs == null) {
+            throw new AllurePluginException("The property 'Results' have to be specified!" +
+                    " Check your job's configuration.");
+        }
+        for (final ResultsConfig resultsConfig : resultsConfigs) {
             String expandedPath = buildEnvVars.expand(resultsConfig.getPath());
             results.addAll(workspace.act(new FindByGlob(expandedPath)));
         }
