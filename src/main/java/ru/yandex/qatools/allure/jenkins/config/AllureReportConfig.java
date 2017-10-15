@@ -35,6 +35,10 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties = Boolean.TRUE;
 
+    private Boolean disabled;
+
+    private String report;
+
     @DataBoundConstructor
     public AllureReportConfig(List<ResultsConfig> results) {
         this.results = results == null ? Collections.<ResultsConfig>emptyList() : results;
@@ -95,6 +99,24 @@ public class AllureReportConfig implements Serializable {
         return includeProperties;
     }
 
+    public Boolean isDisabled() {
+        return this.disabled;
+    }
+
+    @DataBoundSetter
+    public void setDisabled(Boolean disabled) {
+        this.disabled = disabled;
+    }
+
+    public String getReport() {
+        return this.report;
+    }
+
+    @DataBoundSetter
+    public void setReport(String report) {
+        this.report = report;
+    }
+
     public static AllureReportConfig newInstance(List<String> results) {
 
         return newInstance(null, null, results.toArray(new String[]{}));
@@ -110,6 +132,8 @@ public class AllureReportConfig implements Serializable {
         config.setJdk(jdk);
         config.setCommandline(commandline);
         config.setIncludeProperties(true);
+        config.setDisabled(false);
+        config.setReport("allure-report");
         return config;
     }
 

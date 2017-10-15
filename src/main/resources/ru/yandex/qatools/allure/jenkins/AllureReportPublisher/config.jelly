@@ -78,5 +78,9 @@
             <f:entry title="${%IncludeEnvironment}" field="includeProperties">
                 <f:checkbox checked="${instance.getIncludeProperties()}"/>
             </f:entry>
+            <f:entry title="${%Report}:" field="report" description="${%ReportDescription}">
+                <f:textbox value="${instance.getReport()}" default="allure-report" clazz="required"
+                           checkMessage="Path can't be empty!"/>
+            </f:entry>
         </f:advanced>
 </j:jelly>

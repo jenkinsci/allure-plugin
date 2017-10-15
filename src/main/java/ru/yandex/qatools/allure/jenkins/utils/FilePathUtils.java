@@ -74,18 +74,18 @@ public final class FilePathUtils {
         return null;
     }
 
-    public static BuildSummary extractSummary(final Run<?, ?> run) {
+    public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
         final FilePath report = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
         try {
             if (!report.exists()) {
                 return null;
             }
             try (ZipFile archive = new ZipFile(report.getRemote())) {
-                List<ZipEntry> entries = listEntries(archive, "allure-report/export");
+                List<ZipEntry> entries = listEntries(archive, reportPath + "/export");
                 Optional<ZipEntry> summary = Iterables.tryFind(entries, new Predicate<ZipEntry>() {
                     @Override
                     public boolean apply(@Nullable ZipEntry input) {
-                        return input != null && input.getName().equals("allure-report/export/summary.json");
+                        return input != null && input.getName().equals(reportPath + "/export/summary.json");
                     }
                 });
                 if (summary.isPresent()) {

@@ -108,6 +108,18 @@ public class ReportGenerateIT {
     }
 
     @Test
+    public void shouldGenerateReportInCustomReportPath() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        AllureReportPublisher publisher = createAllurePublisher("allure-results");
+        publisher.setReport("target/report");
+        project.getPublishersList().add(publisher);
+        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+    }
+
+    @Test
     public void shouldGenerateReportWithUnstableResult() throws Exception {
         FreeStyleProject project = jRule.createFreeStyleProject();
         project.setScm(getSimpleFileScm("sample-testsuite-with-failed.xml", ALLURE_RESULTS));

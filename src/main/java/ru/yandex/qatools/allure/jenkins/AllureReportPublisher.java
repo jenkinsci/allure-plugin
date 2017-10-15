@@ -1,6 +1,5 @@
 package ru.yandex.qatools.allure.jenkins;
 
-import com.google.common.base.Optional;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -12,7 +11,6 @@ import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.JDK;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
@@ -81,7 +79,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private Boolean includeProperties;
 
-    private boolean disabled;
+    private Boolean disabled;
+
+    private String report;
 
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull List<ResultsConfig> results) {
@@ -96,7 +96,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public boolean isDisabled() {
-        return this.disabled;
+        if (this.disabled == null && this.config != null ) {
+            this.disabled = this.config.isDisabled();
+        }
+        return this.disabled == null ? Boolean.FALSE : this.disabled;
     }
 
     @DataBoundSetter
@@ -169,6 +172,18 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return this.includeProperties == null ? Boolean.TRUE : includeProperties;
     }
 
+    @DataBoundSetter
+    public void setReport(String report) {
+        this.report = report;
+    }
+
+    public String getReport() {
+        if (this.report == null && this.config != null) {
+            this.report = this.config.getReport();
+        }
+        return this.report == null ? "allure-report" : this.report;
+    }
+
     @Nonnull
     public AllureReportConfig getConfig() {
         return config;
@@ -189,7 +204,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath workspace, @Nonnull Launcher launcher,
                         @Nonnull TaskListener listener) throws InterruptedException, IOException {
-        if (this.disabled) {
+        if (isDisabled()) {
             listener.getLogger().println("Allure report is disabled.");
             return;
         }
@@ -281,24 +296,21 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         configureJdk(launcher, listener, buildEnvVars);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
-        final FilePath reportPath = workspace.child("allure-report");
-        try {
-            final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
-                    .build(resultsPaths, reportPath);
-            if (exitCode != 0) {
-                throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
-            }
-            listener.getLogger().println("Allure report was successfully generated.");
-            saveAllureArtifact(run, workspace, reportPath, listener);
-            BuildSummary buildSummary = FilePathUtils.extractSummary(run);
-            run.addAction(new AllureReportBuildAction(buildSummary));
-            run.setResult(buildSummary.getResult());
-        } finally {
-            FilePathUtils.deleteRecursive(reportPath, listener.getLogger());
+        final FilePath reportPath = workspace.child(getReport());
+
+        final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
+                .build(resultsPaths, reportPath);
+        if (exitCode != 0) {
+            throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
         }
+        listener.getLogger().println("Allure report was successfully generated.");
+        saveAllureArtifact(run, workspace, getReport(), listener);
+        BuildSummary buildSummary = FilePathUtils.extractSummary(run, getReport());
+        run.addAction(new AllureReportBuildAction(buildSummary, getReport()));
+        run.setResult(buildSummary.getResult());
     }
 
-    private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final FilePath reportPath,
+    private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final String reportPath,
                                     final TaskListener listener)
             throws IOException, InterruptedException {
         listener.getLogger().println("Creating artifact for the build.");
@@ -308,7 +320,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final File tempArchive = new File(archive.getAbsolutePath() + ".writing.zip");
 
         try (OutputStream os = new FileOutputStream(tempArchive)) {
-            workspace.archive(TrueZipArchiver.FACTORY, os, reportPath.getName() + "/**");
+            workspace.archive(TrueZipArchiver.FACTORY, os, reportPath + "/**");
         }
         tempArchive.renameTo(archive);
         listener.getLogger().println("Artifact was added to the build.");
@@ -414,8 +426,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void copyHistoryToResultsPath(ZipFile archive, FilePath resultsPath)
             throws IOException, InterruptedException {
-        for (final ZipEntry historyEntry : listEntries(archive, "allure-report/history")) {
-            final String historyFile = historyEntry.getName().replace("allure-report/", "");
+        for (final ZipEntry historyEntry : listEntries(archive, getReport() + "/history")) {
+            final String historyFile = historyEntry.getName().replace(getReport() + "/", "");
             try (InputStream entryStream = archive.getInputStream(historyEntry)) {
                 final FilePath historyCopy = resultsPath.child(historyFile);
                 historyCopy.copyFrom(entryStream);

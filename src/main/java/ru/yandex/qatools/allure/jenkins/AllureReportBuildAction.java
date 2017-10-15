@@ -37,8 +37,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
     private WeakReference<BuildSummary> buildSummary;
 
-    AllureReportBuildAction(final BuildSummary buildSummary) {
+    private String reportPath;
+
+    AllureReportBuildAction(final BuildSummary buildSummary, String reportPath) {
         this.buildSummary = new WeakReference<>(buildSummary);
+        this.reportPath = reportPath;
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
@@ -67,7 +70,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
     public BuildSummary getBuildSummary() {
         if (this.buildSummary == null || this.buildSummary.get() == null) {
-            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run));
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.reportPath));
         }
         final BuildSummary data = this.buildSummary.get();
         return data != null ? data : new BuildSummary();
@@ -170,7 +173,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
     public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
         final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
-        return new ArchiveReportBrowser(archive);
+        return new ArchiveReportBrowser(archive, this.reportPath);
     }
 
     @Override
@@ -190,8 +193,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
         private final FilePath archive;
 
-        ArchiveReportBrowser(FilePath archive) {
+        private final String reportPath;
+
+        ArchiveReportBrowser(FilePath archive, String reportPath) {
             this.archive = archive;
+            this.reportPath = reportPath;
         }
 
         @Override
@@ -204,7 +210,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
             final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
-                final ZipEntry entry = allureReport.getEntry("allure-report" + path);
+                final ZipEntry entry = allureReport.getEntry( reportPath + path);
                 if (entry != null) {
                     rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
                 } else {
