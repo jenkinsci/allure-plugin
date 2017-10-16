@@ -299,8 +299,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         configureJdk(launcher, listener, buildEnvVars);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
-        //final FilePath reportPath = workspace.child(getReport());
-
         final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
                 .build(resultsPaths, this.reportPath);
         if (exitCode != 0) {
@@ -322,11 +320,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         artifactsDir.mkdirs();
         final File archive = new File(artifactsDir, REPORT_ARCHIVE_NAME);
         final File tempArchive = new File(archive.getAbsolutePath() + ".writing.zip");
-
-
-        //FilePath reportPath = workspace.child(getReport());
-        //TODO: REMOVE
-        listener.getLogger().println(this.reportPath.getName());
 
         try (OutputStream os = new FileOutputStream(tempArchive)) {
             reportPath.getParent().archive(TrueZipArchiver.FACTORY, os, this.reportPath.getName() + "/**");

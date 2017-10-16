@@ -222,7 +222,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
             final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
-                final ZipEntry entry = allureReport.getEntry( this.reportPath + path);
+                final ZipEntry entry = allureReport.getEntry(this.reportPath + path);
                 if (entry != null) {
                     rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
                 } else {
