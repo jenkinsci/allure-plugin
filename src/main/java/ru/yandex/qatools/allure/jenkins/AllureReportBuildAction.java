@@ -77,7 +77,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
     public BuildSummary getBuildSummary() {
         if (this.buildSummary == null || this.buildSummary.get() == null) {
-            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.reportPath));
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath()));
         }
         final BuildSummary data = this.buildSummary.get();
         return data != null ? data : new BuildSummary();
