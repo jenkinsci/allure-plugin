@@ -41,10 +41,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
     AllureReportBuildAction(final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
+        this.reportPath = "allure-report";
     }
 
     private String getReportPath() {
-        return this.reportPath == null ? "allure-report" : this.reportPath;
+        return this.reportPath;
     }
 
     public void setReportPath(FilePath reportPath) {
@@ -206,6 +207,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
         ArchiveReportBrowser(FilePath archive) {
             this.archive = archive;
+            this.reportPath = "allure-report";
         }
 
         private void setReportPath(String reportPath) {
