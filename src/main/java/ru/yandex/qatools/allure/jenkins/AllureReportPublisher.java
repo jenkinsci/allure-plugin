@@ -47,6 +47,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -98,9 +99,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public boolean isDisabled() {
-        if (this.disabled == null && this.config != null ) {
-            this.disabled = this.config.isDisabled();
-        }
         return this.disabled == null ? Boolean.FALSE : this.disabled;
     }
 
@@ -180,9 +178,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public String getReport() {
-        if (this.report == null && this.config != null) {
-            this.report = this.config.getReport();
-        }
         return this.report == null ? "allure-report" : this.report;
     }
 
