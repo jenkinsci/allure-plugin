@@ -83,6 +83,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private String report;
 
+    private FilePath reportPath;
+
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull List<ResultsConfig> results) {
         this.results = results;
@@ -221,6 +223,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             String expandedPath = buildEnvVars.expand(resultsConfig.getPath());
             results.addAll(workspace.act(new FindByGlob(expandedPath)));
         }
+        this.reportPath = workspace.child(getReport());
         prepareResults(results, run, listener);
         generateReport(results, run, workspace, launcher, listener);
         copyResultsToParentIfNeeded(results, run, listener);
@@ -296,22 +299,23 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         configureJdk(launcher, listener, buildEnvVars);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
-        final FilePath reportPath = workspace.child(getReport());
+        //final FilePath reportPath = workspace.child(getReport());
 
         final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
-                .build(resultsPaths, reportPath);
+                .build(resultsPaths, this.reportPath);
         if (exitCode != 0) {
             throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
         }
         listener.getLogger().println("Allure report was successfully generated.");
-        saveAllureArtifact(run, workspace, getReport(), listener);
-        BuildSummary buildSummary = FilePathUtils.extractSummary(run, getReport());
-        run.addAction(new AllureReportBuildAction(buildSummary, getReport()));
+        saveAllureArtifact(run, workspace, listener);
+        BuildSummary buildSummary = FilePathUtils.extractSummary(run, this.reportPath.getName());
+        AllureReportBuildAction buildAction = new AllureReportBuildAction(buildSummary);
+        buildAction.setReportPath(this.reportPath);
+        run.addAction(buildAction);
         run.setResult(buildSummary.getResult());
     }
 
-    private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final String reportPath,
-                                    final TaskListener listener)
+    private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final TaskListener listener)
             throws IOException, InterruptedException {
         listener.getLogger().println("Creating artifact for the build.");
         final File artifactsDir = run.getArtifactsDir();
@@ -319,8 +323,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final File archive = new File(artifactsDir, REPORT_ARCHIVE_NAME);
         final File tempArchive = new File(archive.getAbsolutePath() + ".writing.zip");
 
+
+        //FilePath reportPath = workspace.child(getReport());
+        //TODO: REMOVE
+        listener.getLogger().println(this.reportPath.getName());
+
         try (OutputStream os = new FileOutputStream(tempArchive)) {
-            workspace.archive(TrueZipArchiver.FACTORY, os, reportPath + "/**");
+            reportPath.getParent().archive(TrueZipArchiver.FACTORY, os, this.reportPath.getName() + "/**");
         }
         tempArchive.renameTo(archive);
         listener.getLogger().println("Artifact was added to the build.");
@@ -426,8 +435,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private void copyHistoryToResultsPath(ZipFile archive, FilePath resultsPath)
             throws IOException, InterruptedException {
-        for (final ZipEntry historyEntry : listEntries(archive, getReport() + "/history")) {
-            final String historyFile = historyEntry.getName().replace(getReport() + "/", "");
+        for (final ZipEntry historyEntry : listEntries(archive, this.reportPath.getName() + "/history")) {
+            final String historyFile = historyEntry.getName().replace(this.reportPath.getName() + "/", "");
             try (InputStream entryStream = archive.getInputStream(historyEntry)) {
                 final FilePath historyCopy = resultsPath.child(historyFile);
                 historyCopy.copyFrom(entryStream);

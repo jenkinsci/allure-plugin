@@ -39,9 +39,16 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
     private String reportPath;
 
-    AllureReportBuildAction(final BuildSummary buildSummary, String reportPath) {
+    AllureReportBuildAction(final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
-        this.reportPath = reportPath;
+    }
+
+    private String getReportPath() {
+        return this.reportPath == null ? "allure-report" : this.reportPath;
+    }
+
+    public void setReportPath(FilePath reportPath) {
+        this.reportPath = reportPath.getName();
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
@@ -173,7 +180,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
     public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
         final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
-        return new ArchiveReportBrowser(archive, this.reportPath);
+        ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
+        archiveReportBrowser.setReportPath(this.getReportPath());
+        return archiveReportBrowser;
     }
 
     @Override
@@ -193,10 +202,13 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
         private final FilePath archive;
 
-        private final String reportPath;
+        private String reportPath;
 
-        ArchiveReportBrowser(FilePath archive, String reportPath) {
+        ArchiveReportBrowser(FilePath archive) {
             this.archive = archive;
+        }
+
+        private void setReportPath(String reportPath) {
             this.reportPath = reportPath;
         }
 
@@ -210,7 +222,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
 
             final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
-                final ZipEntry entry = allureReport.getEntry( reportPath + path);
+                final ZipEntry entry = allureReport.getEntry( this.reportPath + path);
                 if (entry != null) {
                     rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
                 } else {
