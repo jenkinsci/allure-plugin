@@ -45,7 +45,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
     }
 
     private String getReportPath() {
-        return this.reportPath;
+        return this.reportPath == null ? "allure-report" : this.reportPath;
     }
 
     public void setReportPath(FilePath reportPath) {
