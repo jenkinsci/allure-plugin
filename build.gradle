@@ -58,7 +58,7 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.0'
 
     jenkinsPlugins 'org.jenkins-ci.plugins:script-security:1.25@jar'
-    jenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.7.1@jar'
+    jenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.11@jar'
 
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:structs:1.5@jar'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl:1.51@jar'
