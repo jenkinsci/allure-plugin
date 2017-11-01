@@ -20,6 +20,10 @@ apply from: "${rootProject.projectDir}/gradle/release.gradle"
 description = 'Allure Jenkins Plugin'
 group = 'ru.yandex.qatools.allure'
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.3'
+}
+
 compileJava {
     sourceCompatibility = 1.7
     targetCompatibility = 1.7
