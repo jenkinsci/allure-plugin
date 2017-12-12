@@ -301,11 +301,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
         listener.getLogger().println("Allure report was successfully generated.");
         saveAllureArtifact(run, workspace, listener);
-        BuildSummary buildSummary = FilePathUtils.extractSummary(run, this.reportPath.getName());
-        AllureReportBuildAction buildAction = new AllureReportBuildAction(buildSummary);
+        AllureReportBuildAction buildAction = new AllureReportBuildAction(FilePathUtils.extractSummary(run, this.reportPath.getName()));
         buildAction.setReportPath(this.reportPath);
         run.addAction(buildAction);
-        run.setResult(buildSummary.getResult());
+        run.setResult(buildAction.getBuildSummary().getResult());
     }
 
     private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final TaskListener listener)
