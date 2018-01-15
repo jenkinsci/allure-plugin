@@ -259,7 +259,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             public boolean endBuild() throws InterruptedException, IOException {
                 final List<FilePath> resultsPaths = new ArrayList<>();
                 for (FilePath directory : workspace.listDirectories()) {
-                    if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().endsWith(ALLURE_SUFFIX)) {
+                    if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().contains(ALLURE_SUFFIX)) {
                         resultsPaths.add(directory);
                     }
                 }
