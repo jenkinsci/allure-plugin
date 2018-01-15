@@ -1,15 +1,18 @@
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
+import hudson.Util;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.DirectoryBrowserSupport;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.util.ChartUtil;
 import hudson.util.DataSetBuilder;
 import hudson.util.Graph;
 import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
+import jenkins.tasks.SimpleBuildStep;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
@@ -22,6 +25,8 @@ import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -31,7 +36,7 @@ import java.util.zip.ZipFile;
  *
  * @author pupssman
  */
-public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
+public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private Run<?, ?> run;
 
@@ -156,6 +161,17 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2 {
                 return r;
             }
         }
+    }
+
+    //copied from junit-plugin
+    @Override
+    public Collection<? extends Action> getProjectActions() {
+        Job<?,?> job = run.getParent();
+        if (/* getAction(Class) produces a StackOverflowError */!Util.filter(job.getActions(), AllureReportProjectAction.class).isEmpty()) {
+            // JENKINS-26077: someone like XUnitPublisher already added one
+            return Collections.emptySet();
+        }
+        return Collections.singleton(new AllureReportProjectAction(job));
     }
 
     private CategoryDataset buildDataSet() {
