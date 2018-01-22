@@ -1,0 +1,3 @@
+java.lang.ref.WeakReference
+java.lang.ref.ReferenceQueue$Null
+java.lang.ref.ReferenceQueue$Lock
