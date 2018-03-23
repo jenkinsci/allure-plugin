@@ -47,4 +47,8 @@ class AllureReportPublisherContext implements Context {
     public void includeProperties(boolean includeProperties) {
         getPublisher().setIncludeProperties(includeProperties);
     }
+
+    public void configYml(String configYml) {
+        getPublisher().setConfigYml(configYml);
+    }
 }

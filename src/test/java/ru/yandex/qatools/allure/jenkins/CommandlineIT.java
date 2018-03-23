@@ -52,7 +52,7 @@ public class CommandlineIT {
             results.child("sample-testsuite.xml").copyFrom(is);
         }
         FilePath report = new FilePath(folder.getRoot()).child("some folder with (x22) spaces");
-        int exitCode = builder.build(Collections.singletonList(results), report);
+        int exitCode = builder.build(Collections.singletonList(results), report, null);
         assertThat(exitCode).as("Should exit with code 0").isEqualTo(0);
     }
 }
