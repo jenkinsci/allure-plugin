@@ -27,7 +27,11 @@ public enum ReportBuildPolicy {
     UNSUCCESSFUL("For unsuccessful builds", new ReportBuildPolicyDecision() {
         @Override
         public boolean isNeedToBuildReport(Run run) {
-            return run != null && Result.UNSTABLE.equals(run.getResult());
+            return run != null && isUnsuccessful(run.getResult());
+        }
+
+        private boolean isUnsuccessful(Result result) {
+            return Result.UNSTABLE.equals(result) || Result.FAILURE.equals(result);
         }
     });
 
