@@ -41,7 +41,7 @@ tasks.withType(Javadoc) {
 }
 
 task downloadAllure(type: Download) {
-    src "https://dl.bintray.com/qameta/generic/io/qameta/allure/allure/${allureVersion}/allure-${allureVersion}.zip"
+    src "http://central.maven.org/maven2/io/qameta/allure/allure-commandline/${allureVersion}/allure-commandline-${allureVersion}.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
 }
 
