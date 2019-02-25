@@ -39,14 +39,13 @@ public class ReportBuilder {
         this.listener = listener;
         this.envVars = envVars;
         this.commandline = commandline;
-
-        listener.getLogger().println("Starting allure report generate");
     }
 
-    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath, FilePath configYml) //NOSONAR
+    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath,
+                     FilePath configPath) //NOSONAR
             throws IOException, InterruptedException {
         final String version = commandline.getMajorVersion(launcher);
-        final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath, configYml);
+        final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath, configPath);
 
 
 
@@ -55,14 +54,15 @@ public class ReportBuilder {
     }
 
     private ArgumentListBuilder getArguments(String version, @Nonnull List<FilePath> resultsPaths,
-                                             @Nonnull FilePath reportPath, FilePath configYml)
+                                             @Nonnull FilePath reportPath, FilePath configPath)
             throws IOException, InterruptedException {
-        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath, configYml)
+        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath, configPath)
                 : getAllure1Arguments(resultsPaths, reportPath);
     }
 
     private ArgumentListBuilder getAllure2Arguments(@Nonnull List<FilePath> resultsPaths,
-                                                    @Nonnull FilePath reportPath, FilePath configYml) //NOSONAR
+                                                    @Nonnull FilePath reportPath,
+                                                    FilePath configPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));
@@ -73,9 +73,9 @@ public class ReportBuilder {
         arguments.add(CLEAN_OPTION);
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.add(reportPath.getRemote());
-        if (configYml != null) {
+        if (configPath != null) {
             arguments.add(CONFIG_OPTION);
-            arguments.add(configYml.getRemote());
+            arguments.add(configPath.getRemote());
         }
         return arguments;
     }

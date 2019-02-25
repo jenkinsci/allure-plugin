@@ -121,7 +121,6 @@ public class AllureReportConfig implements Serializable {
     }
 
     private static List<ResultsConfig> convertPaths(String paths) {
-
         return convertPaths(Arrays.asList(paths.split("\\n")));
     }
 

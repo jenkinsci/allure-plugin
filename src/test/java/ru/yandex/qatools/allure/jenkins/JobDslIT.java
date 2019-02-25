@@ -54,7 +54,7 @@ public class JobDslIT {
 
         assertThat(allureReportPublisher.getIncludeProperties()).isEqualTo(Boolean.TRUE);
 
-        assertThat(allureReportPublisher.getConfigYml()).isEqualTo(null);
+        assertThat(allureReportPublisher.getConfigPath()).isEqualTo(null);
     }
 
     private FreeStyleProject buildJob(String script) throws Exception {
