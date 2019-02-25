@@ -62,16 +62,32 @@ public final class FilePathUtils {
         }
     }
 
-    public static FilePath getPreviousReport(Run<?, ?> run) throws IOException, InterruptedException {
+    public static FilePath getPreviousReportWithHistory(Run<?, ?> run, String reportPath)
+            throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
-            if (previousReport.exists()) {
+            if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
             current = current.getPreviousCompletedBuild();
         }
         return null;
+    }
+
+    private static boolean isHistoryNotEmpty(FilePath previousReport, String reportPath) throws IOException {
+        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
+            List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
+            if (entries.size() == 1) {
+                ZipEntry historyEntry = entries.get(0);
+                try (InputStream is = archive.getInputStream(historyEntry)) {
+                    final ObjectMapper mapper = new ObjectMapper();
+                    final JsonNode historyJson = mapper.readTree(is);
+                    return historyJson.elements().hasNext();
+                }
+            }
+        }
+        return false;
     }
 
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
