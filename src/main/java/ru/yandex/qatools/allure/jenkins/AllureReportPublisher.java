@@ -1,5 +1,6 @@
 package ru.yandex.qatools.allure.jenkins;
 
+import com.google.common.base.Optional;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -17,6 +18,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
@@ -185,7 +187,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public String getConfigPath() {
-        return configPath;
+        return StringUtils.isNotBlank(configPath) ? configPath : null;
     }
 
     @Nonnull
@@ -290,7 +292,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
         if (!reportBuildPolicy.isNeedToBuildReport(run)) {
-            listener.getLogger().println(String.format("allure report generation reject by policy [%s]",
+            listener.getLogger().println(String.format("Allure report generation reject by policy [%s]",
                     reportBuildPolicy.getTitle()));
             return;
         }
@@ -301,16 +303,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
 
         final FilePath reportPath = workspace.child(getReport());
-        FilePath configPath = null;
-
-        try {
-            configPath = workspace.child(getConfigPath());
-        } catch (NullPointerException e) {
-            configPath = null;
+        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline);
+        if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
+            final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
+            listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
+            builder.setConfigFilePath(configFilePath);
         }
-
-        final int exitCode = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline)
-                .build(resultsPaths, reportPath, configPath);
+        final int exitCode = builder.build(resultsPaths, reportPath);
         if (exitCode != 0) {
             throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
         }

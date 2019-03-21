@@ -32,6 +32,8 @@ public class ReportBuilder {
 
     private final AllureCommandlineInstallation commandline;
 
+    private FilePath configFilePath;
+
     public ReportBuilder(@Nonnull Launcher launcher, @Nonnull TaskListener listener, @Nonnull FilePath workspace,
                          @Nonnull EnvVars envVars, @Nonnull AllureCommandlineInstallation commandline) {
         this.workspace = workspace;
@@ -41,28 +43,28 @@ public class ReportBuilder {
         this.commandline = commandline;
     }
 
-    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath,
-                     FilePath configPath) //NOSONAR
+    public void setConfigFilePath(final FilePath configFilePath) {
+        this.configFilePath = configFilePath;
+    }
+
+    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final String version = commandline.getMajorVersion(launcher);
-        final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath, configPath);
-
-
+        final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
 
         return launcher.launch().cmds(arguments)
                 .envs(envVars).stdout(listener).pwd(workspace).join();
     }
 
     private ArgumentListBuilder getArguments(String version, @Nonnull List<FilePath> resultsPaths,
-                                             @Nonnull FilePath reportPath, FilePath configPath)
+                                             @Nonnull FilePath reportPath)
             throws IOException, InterruptedException {
-        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath, configPath)
+        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath)
                 : getAllure1Arguments(resultsPaths, reportPath);
     }
 
     private ArgumentListBuilder getAllure2Arguments(@Nonnull List<FilePath> resultsPaths,
-                                                    @Nonnull FilePath reportPath,
-                                                    FilePath configPath) //NOSONAR
+                                                    @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));
@@ -73,9 +75,9 @@ public class ReportBuilder {
         arguments.add(CLEAN_OPTION);
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.add(reportPath.getRemote());
-        if (configPath != null) {
+        if (configFilePath != null) {
             arguments.add(CONFIG_OPTION);
-            arguments.add(configPath.getRemote());
+            arguments.add(configFilePath.getRemote());
         }
         return arguments;
     }
