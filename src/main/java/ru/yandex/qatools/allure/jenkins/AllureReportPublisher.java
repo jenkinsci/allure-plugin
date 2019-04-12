@@ -416,12 +416,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void addHistory(@Nonnull List<FilePath> resultsPaths, @Nonnull Run<?, ?> run,
                             @Nonnull FilePath workspace, @Nonnull TaskListener listener)
             throws IOException, InterruptedException {
-        final String reportPath = workspace.child(getReport()).getName();
-        final FilePath previousReport = FilePathUtils.getPreviousReportWithHistory(run, reportPath);
-        if (previousReport == null) {
-            return;
-        }
         try {
+            final String reportPath = workspace.child(getReport()).getName();
+            final FilePath previousReport = FilePathUtils.getPreviousReportWithHistory(run, reportPath);
+            if (previousReport == null) {
+                return;
+            }
             copyHistoryToResultsPaths(resultsPaths, previousReport, workspace);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
