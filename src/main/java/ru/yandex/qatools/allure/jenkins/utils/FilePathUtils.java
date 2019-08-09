@@ -62,11 +62,12 @@ public final class FilePathUtils {
         }
     }
 
-    public static FilePath getPreviousReport(Run<?, ?> run) throws IOException, InterruptedException {
+    public static FilePath getPreviousReportWithHistory(Run<?, ?> run, String reportPath)
+            throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
-            if (previousReport.exists()) {
+            if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
             current = current.getPreviousCompletedBuild();
@@ -74,20 +75,33 @@ public final class FilePathUtils {
         return null;
     }
 
+    private static boolean isHistoryNotEmpty(FilePath previousReport, String reportPath) throws IOException {
+        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
+            List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
+            if (entries.size() == 1) {
+                ZipEntry historyEntry = entries.get(0);
+                try (InputStream is = archive.getInputStream(historyEntry)) {
+                    final ObjectMapper mapper = new ObjectMapper();
+                    final JsonNode historyJson = mapper.readTree(is);
+                    return historyJson.elements().hasNext();
+                }
+            }
+        }
+        return false;
+    }
+
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath report = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        final FilePath report = new FilePath(run.getArtifactsDir()).child("allure-report.zip");
         try {
             if (!report.exists()) {
                 return null;
             }
             try (ZipFile archive = new ZipFile(report.getRemote())) {
-                List<ZipEntry> entries = listEntries(archive, reportPath + "/export");
-                Optional<ZipEntry> summary = Iterables.tryFind(entries, new Predicate<ZipEntry>() {
-                    @Override
-                    public boolean apply(@Nullable ZipEntry input) {
-                        return input != null && input.getName().equals(reportPath + "/export/summary.json");
-                    }
-                });
+
+                Optional<ZipEntry> summary = getSummary(archive, reportPath, "export");
+                if (!summary.isPresent()) {
+                    summary = getSummary(archive, reportPath, "widgets");
+                }
                 if (summary.isPresent()) {
                     try (InputStream is = archive.getInputStream(summary.get())) {
                         final ObjectMapper mapper = new ObjectMapper();
@@ -104,5 +118,19 @@ public final class FilePathUtils {
         } catch (IOException | InterruptedException ignore) {
         }
         return null;
+    }
+
+    private static Optional<ZipEntry> getSummary(final ZipFile archive,
+                                                 final String reportPath,
+                                                 final String location) {
+        List<ZipEntry> entries = listEntries(archive, reportPath.concat("/").concat(location));
+        Optional<ZipEntry> summary = Iterables.tryFind(entries, new Predicate<ZipEntry>() {
+            @Override
+            public boolean apply(@Nullable ZipEntry input) {
+                return input != null
+                        && input.getName().equals(reportPath.concat("/").concat(location).concat("/summary.json"));
+            }
+        });
+        return summary;
     }
 }
