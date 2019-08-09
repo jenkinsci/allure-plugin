@@ -35,6 +35,8 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties = Boolean.TRUE;
 
+    private String configPath = "";
+
     @DataBoundConstructor
     public AllureReportConfig(List<ResultsConfig> results) {
         this.results = results == null ? Collections.<ResultsConfig>emptyList() : results;
@@ -91,25 +93,30 @@ public class AllureReportConfig implements Serializable {
         this.includeProperties = includeProperties;
     }
 
+    @DataBoundSetter
+    public void setConfigPath(String configPath) {
+        this.configPath = configPath;
+    }
+
     public boolean getIncludeProperties() {
         return includeProperties;
     }
 
     public static AllureReportConfig newInstance(List<String> results) {
-
-        return newInstance(null, null, results.toArray(new String[]{}));
+        return newInstance(null, null, null, results.toArray(new String[]{}));
     }
 
-    public static AllureReportConfig newInstance(String jdk, String commandline, String... paths) {
-        return newInstance(jdk, commandline, Arrays.asList(paths));
+    public static AllureReportConfig newInstance(String jdk, String commandline, String configPath, String... paths) {
+        return newInstance(jdk, commandline, configPath, Arrays.asList(paths));
     }
 
-    private static AllureReportConfig newInstance(String jdk, String commandline, List<String> paths) {
+    private static AllureReportConfig newInstance(String jdk, String commandline, String configPath, List<String> paths) {
         final List<ResultsConfig> results = convertPaths(paths);
         final AllureReportConfig config = new AllureReportConfig(results);
         config.setJdk(jdk);
         config.setCommandline(commandline);
         config.setIncludeProperties(true);
+        config.setConfigPath(configPath);
         return config;
     }
 

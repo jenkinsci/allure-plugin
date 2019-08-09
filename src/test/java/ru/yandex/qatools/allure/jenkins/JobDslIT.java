@@ -53,6 +53,8 @@ public class JobDslIT {
                 .containsExactly(new PropertyConfig("key", "value"));
 
         assertThat(allureReportPublisher.getIncludeProperties()).isEqualTo(Boolean.TRUE);
+
+        assertThat(allureReportPublisher.getConfigPath()).isEqualTo(null);
     }
 
     private FreeStyleProject buildJob(String script) throws Exception {

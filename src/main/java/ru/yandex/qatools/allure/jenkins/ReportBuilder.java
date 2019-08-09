@@ -20,6 +20,8 @@ public class ReportBuilder {
     private static final String GENERATE_COMMAND = "generate";
     private static final String OUTPUT_DIR_OPTION = "-o";
     private static final String CLEAN_OPTION = "-c";
+    private static final String CONFIG_OPTION = "--config";
+
     private final FilePath workspace;
 
     private final Launcher launcher;
@@ -30,6 +32,8 @@ public class ReportBuilder {
 
     private final AllureCommandlineInstallation commandline;
 
+    private FilePath configFilePath;
+
     public ReportBuilder(@Nonnull Launcher launcher, @Nonnull TaskListener listener, @Nonnull FilePath workspace,
                          @Nonnull EnvVars envVars, @Nonnull AllureCommandlineInstallation commandline) {
         this.workspace = workspace;
@@ -37,6 +41,10 @@ public class ReportBuilder {
         this.listener = listener;
         this.envVars = envVars;
         this.commandline = commandline;
+    }
+
+    public void setConfigFilePath(final FilePath configFilePath) {
+        this.configFilePath = configFilePath;
     }
 
     public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
@@ -67,6 +75,10 @@ public class ReportBuilder {
         arguments.add(CLEAN_OPTION);
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.add(reportPath.getRemote());
+        if (configFilePath != null) {
+            arguments.add(CONFIG_OPTION);
+            arguments.add(configFilePath.getRemote());
+        }
         return arguments;
     }
 

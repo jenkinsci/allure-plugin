@@ -2,85 +2,90 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
-        <f:entry title="${%Disabled}" field="disabled">
-            <f:checkbox checked="${instance.isDisabled()}"/>
-        </f:entry>
-        <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
-            <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
-                <table width="90%">
-                    <f:entry title="Path" field="path">
-                        <f:textbox value="${results.path}" default="allure-results" clazz="required"
-                                   checkMessage="Path can't be empty!"/>
-                    </f:entry>
-                </table>
-                <div align="right">
-                    <f:repeatableDeleteButton/>
-                </div>
-            </f:repeatable>
-        </f:entry>
-        <f:entry title="${%Properties}" field="properties">
-            <f:repeatable var="properties" items="${instance.getProperties()}">
-                <table width="100%">
-                    <f:entry title="Key" field="key">
-                        <f:textbox width="50%" value="${properties.key}" clazz="required"
-                                   checkMessage="Property key can't be empty!" autoCompleteField="propertyKey"/>
-                    </f:entry>
-                    <f:entry title="Value" field="value">
-                        <f:textbox width="50%" value="${properties.value}"/>
-                    </f:entry>
-                </table>
-                <div align="right">
-                    <f:repeatableDeleteButton/>
-                </div>
-            </f:repeatable>
-        </f:entry>
-        <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
-        <f:entry>
-            <j:if test="${empty(installations)}">
-                <div class="error">
-                    ${%CommandlineMissingError(rootURL)}
-                </div>
-            </j:if>
-        </f:entry>
-        <f:advanced>
-            <j:if test="${installations.size() > 1}">
-                <f:entry title="${%Commandline}:">
-                    <select class="setting-input" style="width: 90%" name="commandline">
-                        <j:forEach var="inst" items="${installations}">
-                            <f:option selected="${inst.name==instance.getCommandline()}"
-                                      value="${inst.name}">
-                                ${inst.name}
-                            </f:option>
-                        </j:forEach>
-                    </select>
+    <f:entry title="${%Disabled}" field="disabled">
+        <f:checkbox checked="${instance.isDisabled()}"/>
+    </f:entry>
+    <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
+        <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
+            <table width="90%">
+                <f:entry title="Path" field="path">
+                    <f:textbox value="${results.path}" default="allure-results" clazz="required"
+                               checkMessage="Path can't be empty!"/>
                 </f:entry>
-            </j:if>
-            <j:set var="jdks" value="${app.JDKs}"/>
-            <f:entry title="JDK" description="${%JDKDescription}">
-                <select class="setting-input" style="width: 90%" name="jdk">
-                    <option value="">${%InheritFromJob}</option>
-                    <j:forEach var="inst" items="${jdks}">
-                        <f:option selected="${inst.name==instance.getJdk()}" value="${inst.name}">
+            </table>
+            <div align="right">
+                <f:repeatableDeleteButton/>
+            </div>
+        </f:repeatable>
+    </f:entry>
+    <f:entry title="${%Properties}" field="properties">
+        <f:repeatable var="properties" items="${instance.getProperties()}">
+            <table width="100%">
+                <f:entry title="Key" field="key">
+                    <f:textbox width="50%" value="${properties.key}" clazz="required"
+                               checkMessage="Property key can't be empty!"
+                               autoCompleteField="propertyKey"/>
+                </f:entry>
+                <f:entry title="Value" field="value">
+                    <f:textbox width="50%" value="${properties.value}"/>
+                </f:entry>
+            </table>
+            <div align="right">
+                <f:repeatableDeleteButton/>
+            </div>
+        </f:repeatable>
+    </f:entry>
+    <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
+    <f:entry>
+        <j:if test="${empty(installations)}">
+            <div class="error">
+                ${%CommandlineMissingError(rootURL)}
+            </div>
+        </j:if>
+    </f:entry>
+    <f:advanced>
+        <j:if test="${installations.size() > 1}">
+            <f:entry title="${%Commandline}:">
+                <select class="setting-input" style="width: 90%" name="commandline">
+                    <j:forEach var="inst" items="${installations}">
+                        <f:option selected="${inst.name==instance.getCommandline()}"
+                                  value="${inst.name}">
                             ${inst.name}
                         </f:option>
                     </j:forEach>
                 </select>
             </f:entry>
-            <f:entry title="${%Generate}:">
-                <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}' varStatus="status">
-                    <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
-                             value="${reportBuildPolicy.getValue()}"
-                             checked="${instance.getReportBuildPolicy() == null and status.first or
-                                instance.getReportBuildPolicy().equals(reportBuildPolicy)}"/>
-                    <br/>
+        </j:if>
+        <j:set var="jdks" value="${app.JDKs}"/>
+        <f:entry title="JDK" description="${%JDKDescription}">
+            <select class="setting-input" style="width: 90%" name="jdk">
+                <option value="">${%InheritFromJob}</option>
+                <j:forEach var="inst" items="${jdks}">
+                    <f:option selected="${inst.name==instance.getJdk()}" value="${inst.name}">
+                        ${inst.name}
+                    </f:option>
                 </j:forEach>
-            </f:entry>
-            <f:entry title="${%IncludeEnvironment}" field="includeProperties">
-                <f:checkbox checked="${instance.getIncludeProperties()}"/>
-            </f:entry>
-            <f:entry title="${%Report}:" field="report" description="${%ReportDescription}">
-                <f:textbox value="${instance.getReport()}" default="allure-report" clazz="required"
-                           checkMessage="Path can't be empty!"/>
-            </f:entry>
-        </f:advanced>
+            </select>
+        </f:entry>
+        <f:entry title="${%Generate}:">
+            <j:forEach var='reportBuildPolicy' items='${descriptor.getReportBuildPolicies()}'
+                       varStatus="status">
+                <f:radio title="${reportBuildPolicy.getTitle()}" name="reportBuildPolicy"
+                         value="${reportBuildPolicy.getValue()}"
+                         checked="${instance.getReportBuildPolicy() == null and status.first or
+                                instance.getReportBuildPolicy().equals(reportBuildPolicy)}"/>
+                <br/>
+            </j:forEach>
+        </f:entry>
+        <f:entry title="${%IncludeEnvironment}" field="includeProperties">
+            <f:checkbox checked="${instance.getIncludeProperties()}"/>
+        </f:entry>
+        <f:entry title="${%Report}:" field="report" description="${%ReportDescription}">
+            <f:textbox value="${instance.getReport()}" default="allure-report" clazz="required"
+                       checkMessage="Path can't be empty!"/>
+        </f:entry>
+        <f:entry title="${%Config}:" field="configPath" description="${%ConfigDescription}">
+            <f:textbox value="${instance.getConfigPath()}" default=""/>
+        </f:entry>
+    </f:advanced>
 </j:jelly>
