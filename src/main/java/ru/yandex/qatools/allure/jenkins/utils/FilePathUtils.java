@@ -41,7 +41,7 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
-    private static final String ARCHIVE_ALLURE_REPORT_PATH = "archive/allure-report.zip";
+    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final List<String> BUILD_STATISTICS_KEYS = Arrays.asList(
             "passed",
             "failed",
@@ -85,7 +85,7 @@ public final class FilePathUtils {
             throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
-            final FilePath previousReport = new FilePath(current.getRootDir()).child(ARCHIVE_ALLURE_REPORT_PATH);
+            final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
@@ -112,7 +112,7 @@ public final class FilePathUtils {
 
     @SuppressWarnings("PMD.EmptyCatchBlock")
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath report = new FilePath(run.getRootDir()).child(ARCHIVE_ALLURE_REPORT_PATH);
+        final FilePath report = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
         try {
             if (!report.exists()) {
                 return null;
