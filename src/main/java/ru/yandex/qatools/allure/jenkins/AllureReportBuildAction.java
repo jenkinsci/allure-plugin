@@ -1,5 +1,7 @@
 package ru.yandex.qatools.allure.jenkins;
 
+import static ru.yandex.qatools.allure.jenkins.utils.ConfigurationUtils.*;
+
 import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Action;
@@ -20,6 +22,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
 import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
+import ru.yandex.qatools.allure.jenkins.utils.ConfigurationUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
@@ -196,7 +199,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     @SuppressWarnings("unused")
     public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
-        final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        final FilePath archive = new FilePath(run.getRootDir()).child("archive/" + getFileName());
         ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
         archiveReportBrowser.setReportPath(this.getReportPath());
         return archiveReportBrowser;
