@@ -41,38 +41,48 @@ public class AllureCommandlineInstallation extends ToolInstallation
 
     @SuppressWarnings("TrailingComment")
     public String getExecutable(@Nonnull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
-        return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
-            @Override
-            public String call() throws IOException {
-                final Path executable = getExecutablePath();
-                if (executable == null || Files.notExists(executable)) {
-                    throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, executable));
-                }
-                return executable.toAbsolutePath().toString();
+        return launcher.getChannel().call(new GetExecutable(getHome()));
+    }
+    private static final class GetExecutable extends MasterToSlaveCallable<String, IOException> {
+        private final String rawHome;
+        GetExecutable(String rawHome) {
+            this.rawHome = rawHome;
+        }
+        @Override
+        public String call() throws IOException {
+            final Path executable = getExecutablePath(rawHome);
+            if (executable == null || Files.notExists(executable)) {
+                throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, executable));
             }
-        });
+            return executable.toAbsolutePath().toString();
+        }
     }
 
     public String getMajorVersion(@Nonnull Launcher launcher) throws InterruptedException, IOException {
-        return launcher.getChannel().call(new MasterToSlaveCallable<String, IOException>() {
-            @Override
-            public String call() throws IOException {
-                final Path home = getHomePath();
-                if (home == null || Files.notExists(home)) {
-                    throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, home));
-                }
-                return Files.exists(home.resolve("app/allure-bundle.jar")) ? "1" : "2";
+        return launcher.getChannel().call(new GetExecutable(getHome()));
+    }
+    private static final class GetMajorVersion extends MasterToSlaveCallable<String, IOException> {
+        private final String rawHome;
+        GetMajorVersion(String rawHome) {
+            this.rawHome = rawHome;
+        }
+        @Override
+        public String call() throws IOException {
+            final Path home = getHomePath(rawHome);
+            if (home == null || Files.notExists(home)) {
+                throw new IOException(String.format(CAN_FIND_ALLURE_MESSAGE, home));
             }
-        });
+            return Files.exists(home.resolve("app/allure-bundle.jar")) ? "1" : "2";
+        }
     }
 
-    private Path getHomePath() {
-        final String home = Util.replaceMacro(getHome(), EnvVars.masterEnvVars);
+    private static Path getHomePath(String rawHome) {
+        final String home = Util.replaceMacro(rawHome, EnvVars.masterEnvVars);
         return home == null ? null : Paths.get(home);
     }
 
-    private Path getExecutablePath() {
-        final Path home = getHomePath();
+    private static Path getExecutablePath(String rawHome) {
+        final Path home = getHomePath(rawHome);
         return home == null ? null : home.resolve(Functions.isWindows() ? "bin/allure.bat" : "bin/allure");
     }
 
@@ -89,7 +99,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
 
     @Override
     public void buildEnvVars(EnvVars env) {
-        final Path home = this.getHomePath();
+        final Path home = getHomePath(getHome());
         if (home != null) {
             env.put("ALLURE_HOME", home.toAbsolutePath().toString());
         }
