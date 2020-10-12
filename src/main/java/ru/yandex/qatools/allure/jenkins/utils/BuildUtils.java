@@ -10,6 +10,7 @@ import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolInstallation;
 import jenkins.model.Jenkins;
+import jenkins.security.MasterToSlaveCallable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,13 +33,27 @@ public final class BuildUtils {
             return null;
         }
 
+        tool.buildEnvVars(env);
         final Computer computer = getComputer(launcher);
         if (computer != null && computer.getNode() != null) {
             tool = tool.forNode(computer.getNode(), listener).forEnvironment(env);
+            setEnvVarsForNode(tool, env, launcher);
         }
 
-        tool.buildEnvVars(env);
         return tool;
+    }
+
+    private static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> void setEnvVarsForNode(
+            final T tool, final EnvVars envVars, final Launcher launcher) throws IOException, InterruptedException {
+        launcher.getChannel().call(new MasterToSlaveCallable<Void, RuntimeException>() {
+            @Override
+            public Void call() {
+                if (tool != null) {
+                    tool.buildEnvVars(envVars);
+                }
+                return null;
+            }
+        });
     }
 
     public static Computer getComputer(Launcher launcher) {

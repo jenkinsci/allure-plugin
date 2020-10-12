@@ -19,6 +19,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.Messages;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,7 +79,27 @@ public class AllureCommandlineInstallation extends ToolInstallation
 
     private static Path getHomePath(String rawHome) {
         final String home = Util.replaceMacro(rawHome, EnvVars.masterEnvVars);
-        return home == null ? null : Paths.get(home);
+        if (home == null) {
+            return null;
+        }
+
+        if (Files.exists(Paths.get(home).resolve("bin").resolve("allure"))) {
+            return Paths.get(home);
+        }
+
+        final File[] listOfFiles = Paths.get(home).toFile().listFiles();
+        if (listOfFiles == null || listOfFiles.length == 0) {
+            return null;
+        }
+
+        File allureDir = null;
+        for (File file : listOfFiles) {
+            if (file.isDirectory() && file.getName().startsWith("allure")) {
+                allureDir = file;
+            }
+        }
+
+        return allureDir == null ? null : allureDir.toPath();
     }
 
     private static Path getExecutablePath(String rawHome) {

@@ -2,6 +2,7 @@ package ru.yandex.qatools.allure.jenkins.config;
 
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 import javax.annotation.Nonnull;
 import java.io.Serializable;
@@ -26,41 +27,37 @@ public class AllureReportConfig implements Serializable {
     @Deprecated
     private String resultsPattern;
 
-    private List<PropertyConfig> properties;
+    private List<PropertyConfig> properties = new ArrayList<>();
 
     private List<ResultsConfig> results;
 
-    private ReportBuildPolicy reportBuildPolicy;
+    private ReportBuildPolicy reportBuildPolicy = ReportBuildPolicy.ALWAYS;
 
-    private Boolean includeProperties;
+    private Boolean includeProperties = Boolean.TRUE;
+
+    private String configPath = "";
 
     @DataBoundConstructor
-    public AllureReportConfig(String jdk, String commandline, List<PropertyConfig> properties,
-                              ReportBuildPolicy reportBuildPolicy, Boolean includeProperties,
-                              List<ResultsConfig> results) {
-        this.jdk = jdk;
-        this.commandline = commandline;
-
+    public AllureReportConfig(List<ResultsConfig> results) {
         this.results = results == null ? Collections.<ResultsConfig>emptyList() : results;
-        this.properties = properties == null ? Collections.<PropertyConfig>emptyList() : properties;
-        this.includeProperties = includeProperties == null ? Boolean.FALSE : includeProperties;
-        this.reportBuildPolicy = reportBuildPolicy == null ? ReportBuildPolicy.ALWAYS : reportBuildPolicy;
+    }
+
+    @DataBoundSetter
+    public void setJdk(final String jdk) {
+        this.jdk = jdk;
     }
 
     public String getJdk() {
         return jdk;
     }
 
-    public void setJdk(String jdk) {
-        this.jdk = jdk;
+    @DataBoundSetter
+    public void setCommandline(String commandline) {
+        this.commandline = commandline;
     }
 
     public String getCommandline() {
         return commandline;
-    }
-
-    public void setCommandline(String commandline) {
-        this.commandline = commandline;
     }
 
     @Nonnull
@@ -74,41 +71,53 @@ public class AllureReportConfig implements Serializable {
     }
 
     public List<PropertyConfig> getProperties() {
-        return properties;
+        return this.properties;
     }
 
+    @DataBoundSetter
     public void setProperties(List<PropertyConfig> properties) {
         this.properties = properties;
     }
 
     public ReportBuildPolicy getReportBuildPolicy() {
-        return reportBuildPolicy;
+        return this.reportBuildPolicy;
     }
 
+    @DataBoundSetter
     public void setReportBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
         this.reportBuildPolicy = reportBuildPolicy;
     }
 
-    public boolean getIncludeProperties() {
-        return includeProperties == null || includeProperties;
-    }
-
+    @DataBoundSetter
     public void setIncludeProperties(Boolean includeProperties) {
         this.includeProperties = includeProperties;
     }
 
-    public static AllureReportConfig newInstance(List<String> paths) {
-        return newInstance(null, null, paths.toArray(new String[]{}));
+    @DataBoundSetter
+    public void setConfigPath(String configPath) {
+        this.configPath = configPath;
     }
 
-    public static AllureReportConfig newInstance(String jdk, String commandline, String... paths) {
-        return newInstance(jdk, commandline, Arrays.asList(paths));
+    public boolean getIncludeProperties() {
+        return includeProperties;
     }
 
-    private static AllureReportConfig newInstance(String jdk, String commandline, List<String> paths) {
+    public static AllureReportConfig newInstance(List<String> results) {
+        return newInstance(null, null, null, results.toArray(new String[]{}));
+    }
+
+    public static AllureReportConfig newInstance(String jdk, String commandline, String configPath, String... paths) {
+        return newInstance(jdk, commandline, configPath, Arrays.asList(paths));
+    }
+
+    private static AllureReportConfig newInstance(String jdk, String commandline, String configPath, List<String> paths) {
         final List<ResultsConfig> results = convertPaths(paths);
-        return new AllureReportConfig(jdk, commandline, new ArrayList<PropertyConfig>(),
-                ReportBuildPolicy.ALWAYS, true, results);
+        final AllureReportConfig config = new AllureReportConfig(results);
+        config.setJdk(jdk);
+        config.setCommandline(commandline);
+        config.setIncludeProperties(true);
+        config.setConfigPath(configPath);
+        return config;
     }
 
     private static List<ResultsConfig> convertPaths(String paths) {

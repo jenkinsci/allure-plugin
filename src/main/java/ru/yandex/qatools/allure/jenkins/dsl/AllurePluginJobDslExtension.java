@@ -5,7 +5,7 @@ import javaposse.jobdsl.dsl.helpers.publisher.PublisherContext;
 import javaposse.jobdsl.plugin.ContextExtensionPoint;
 import javaposse.jobdsl.plugin.DslExtensionMethod;
 import ru.yandex.qatools.allure.jenkins.AllureReportPublisher;
-import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
+import ru.yandex.qatools.allure.jenkins.config.ResultsConfig;
 
 import java.util.List;
 
@@ -17,16 +17,16 @@ public class AllurePluginJobDslExtension extends ContextExtensionPoint {
 
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths) {
-        return new AllureReportPublisher(AllureReportConfig.newInstance(paths));
+        return new AllureReportPublisher(ResultsConfig.convertPaths(paths));
     }
 
     @DslExtensionMethod(context = PublisherContext.class)
     public Object allure(List<String> paths, Runnable closure) {
 
         final AllureReportPublisherContext context = new AllureReportPublisherContext(
-                AllureReportConfig.newInstance(paths));
+                new AllureReportPublisher(ResultsConfig.convertPaths(paths)));
         executeInContext(closure, context);
 
-        return new AllureReportPublisher(context.getConfig());
+        return context.getPublisher();
     }
 }

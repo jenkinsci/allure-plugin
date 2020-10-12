@@ -51,7 +51,7 @@ public class CommandlineIT {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-testsuite.xml")) {
             results.child("sample-testsuite.xml").copyFrom(is);
         }
-        FilePath report = new FilePath(folder.newFolder("some folder with (x22) spaces"));
+        FilePath report = new FilePath(folder.getRoot()).child("some folder with (x22) spaces");
         int exitCode = builder.build(Collections.singletonList(results), report);
         assertThat(exitCode).as("Should exit with code 0").isEqualTo(0);
     }

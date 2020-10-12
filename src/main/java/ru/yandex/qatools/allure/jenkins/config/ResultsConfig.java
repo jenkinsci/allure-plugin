@@ -5,6 +5,8 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * eroshenkoam.
@@ -36,6 +38,14 @@ public class ResultsConfig implements Serializable {
         } else {
             return false;
         }
+    }
+
+    public static List<ResultsConfig> convertPaths(List<String> paths) {
+        final List<ResultsConfig> results = new ArrayList<>();
+        for (String path : paths) {
+            results.add(new ResultsConfig(path));
+        }
+        return results;
     }
 
 }
