@@ -60,7 +60,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     public String getMajorVersion(@Nonnull Launcher launcher) throws InterruptedException, IOException {
-        return launcher.getChannel().call(new GetExecutable(getHome()));
+        return launcher.getChannel().call(new GetMajorVersion(getHome()));
     }
     private static final class GetMajorVersion extends MasterToSlaveCallable<String, IOException> {
         private final String rawHome;
