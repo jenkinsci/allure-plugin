@@ -133,6 +133,23 @@ public class ReportGenerateIT {
     }
 
     @Test
+    public void shouldGenerateReportForMatrixItem() throws Exception {
+        MatrixProject project = jRule.createProject(MatrixProject.class);
+        project.getAxes().add(new Axis("items", "first", "second"));
+        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher("allure-results"));
+
+        MatrixBuild build = jRule.buildAndAssertSuccess(project);
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+        assertThat(build.getRuns()).hasSize(2);
+        for (MatrixRun run : build.getRuns()) {
+            jRule.assertBuildStatus(Result.SUCCESS, run);
+            assertThat(run.getActions(AllureReportBuildAction.class)).hasSize(1);
+        }
+    }
+
+    @Test
     public void shouldGenerateReportOnSlave() throws Exception {
         FreeStyleProject project = jRule.createFreeStyleProject();
 
