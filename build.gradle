@@ -5,7 +5,7 @@ buildscript {
         maven { url('https://repo.jenkins-ci.org/public/') }
     }
     dependencies {
-        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.39.0'
+        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.28.1'
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
         classpath 'net.researchgate:gradle-release:2.6.0'
