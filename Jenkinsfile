@@ -19,7 +19,7 @@ pipeline {
         stage('Release') {
             when { expression { return params.RELEASE } }
             steps {
-                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '/root/.jenkins-ci.org')]) {
+                configFileProvider([configFile(fileId: '.jenkins-ci.org', targetLocation: '/home/jenkins/.jenkins-ci.org')]) {
                     sshagent(['qameta-ci_ssh']) {
                         sh 'git checkout master && git pull origin master'
                         sh "./gradlew release -Prelease.useAutomaticVersion=true " +
