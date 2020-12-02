@@ -66,7 +66,7 @@ public final class FilePathUtils {
             throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
-            final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
+            final FilePath previousReport = new FilePath(current.getArtifactsDir()).child("allure-report.zip");
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
@@ -91,7 +91,7 @@ public final class FilePathUtils {
     }
 
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath report = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        final FilePath report = new FilePath(run.getArtifactsDir()).child("allure-report.zip");
         try {
             if (!report.exists()) {
                 return null;
