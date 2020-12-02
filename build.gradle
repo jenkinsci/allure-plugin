@@ -5,8 +5,8 @@ buildscript {
         maven { url('https://repo.jenkins-ci.org/public/') }
     }
     dependencies {
+        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.28.1'
         classpath 'org.jvnet.localizer:maven-localizer-plugin:1.23'
-        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.22.0'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
         classpath 'net.researchgate:gradle-release:2.6.0'
     }
@@ -19,10 +19,6 @@ apply from: "${rootProject.projectDir}/gradle/release.gradle"
 
 description = 'Allure Jenkins Plugin'
 group = 'ru.yandex.qatools.allure'
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.3'
-}
 
 compileJava {
     sourceCompatibility = 1.7
@@ -41,7 +37,7 @@ tasks.withType(Javadoc) {
 }
 
 task downloadAllure(type: Download) {
-    src "http://central.maven.org/maven2/io/qameta/allure/allure-commandline/${allureVersion}/allure-commandline-${allureVersion}.zip"
+    src "https://repo1.maven.org/maven2/io/qameta/allure/allure-commandline/${allureVersion}/allure-commandline-${allureVersion}.zip"
     dest "$buildDir/resources/test/allure-commandline.zip"
 }
 
@@ -86,5 +82,4 @@ dependencies {
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.1@jar'
     jenkinsTest 'org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.4@jar'
     jenkinsTest "org.jenkins-ci.ui:jquery-detached:1.2.1:core-assets@jar"
-
 }
