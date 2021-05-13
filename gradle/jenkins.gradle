@@ -4,7 +4,7 @@ jenkinsPlugin {
     coreVersion = '1.642.4'
     shortName = 'allure-jenkins-plugin'
     displayName = 'Allure Jenkins Plugin'
-    url = 'http://wiki.jenkins-ci.org/display/JENKINS/Allure+Plugin'
+    url = 'https://github.com/jenkinsci/allure-plugin'
     gitHubUrl = 'https://github.com/jenkinsci/allure-plugin'
 
     repoUrl = 'https://repo.jenkins-ci.org/releases'
