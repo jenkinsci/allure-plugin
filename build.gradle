@@ -56,7 +56,9 @@ dependencies {
     compile 'org.jenkins-ci:symbol-annotation:1.5'
     compile 'de.schlichtherle.truezip:truezip-file:7.7.10'
     compile 'de.schlichtherle.truezip:truezip-driver-zip:7.7.10'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.0'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.13.1'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.70'
+    compile 'org.apache.commons:commons-compress:1.21'
 
     jenkinsPlugins 'org.jenkins-ci.plugins:script-security:1.25@jar'
     jenkinsPlugins 'org.jenkins-ci.plugins:matrix-project:1.11@jar'

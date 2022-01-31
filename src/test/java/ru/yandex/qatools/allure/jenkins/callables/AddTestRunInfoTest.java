@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class AddTestRunInfoTest {
 
-    private static final TypeReference TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
+    private static final TypeReference<Map<String, Object>> TYPE_REFERENCE = new TypeReference<Map<String, Object>>() {
     };
 
     @Rule
