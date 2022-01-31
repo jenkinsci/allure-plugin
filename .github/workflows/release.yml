@@ -17,5 +17,5 @@ jobs:
       run: ./gradlew build -Pversion=${GITHUB_REF:10}
     - name: "Gradle Publish"
       run: |
-        printf "userName=${{ secrets.JENKINS_USERNAME }}\npassword=${{ secrets.JENKINS_PASSWORD }}" > ~/.jenkins-ci.org 
+        printf "userName=${{ secrets.JENKINS_USERNAME }}\npassword=${{ secrets.JENKINS_PASSWORD }}\n" > ~/.jenkins-ci.org 
         ./gradlew publish -Pversion=${GITHUB_REF:10}
