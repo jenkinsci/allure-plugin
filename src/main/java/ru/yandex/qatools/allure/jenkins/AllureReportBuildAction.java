@@ -40,7 +40,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     private Run<?, ?> run;
 
-    private WeakReference<BuildSummary> buildSummary;
+    private transient WeakReference<BuildSummary> buildSummary;
 
     private String reportPath;
 
