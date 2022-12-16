@@ -51,4 +51,8 @@ class AllureReportPublisherContext implements Context {
     public void configPath(String configPath) {
         getPublisher().setConfigPath(configPath);
     }
+
+    public void updateBuildResult(boolean updateBuildResult) {
+        getPublisher().setUpdateBuildResult(updateBuildResult);
+    }
 }

@@ -86,6 +86,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private String report;
 
+    private Boolean updateBuildResult;
+
     @DataBoundConstructor
     public AllureReportPublisher(@Nonnull List<ResultsConfig> results) {
         this.results = results;
@@ -188,6 +190,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     public String getConfigPath() {
         return StringUtils.isNotBlank(configPath) ? configPath : null;
+    }
+
+    public Boolean getUpdateBuildResult() {
+        return this.updateBuildResult == null ? Boolean.TRUE : this.updateBuildResult;
+    }
+
+    @DataBoundSetter
+    public void setUpdateBuildResult(Boolean updateBuildResult) {
+        this.updateBuildResult = updateBuildResult;
     }
 
     @Nonnull
@@ -318,7 +329,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         AllureReportBuildAction buildAction = new AllureReportBuildAction(FilePathUtils.extractSummary(run, reportPath.getName()));
         buildAction.setReportPath(reportPath);
         run.addAction(buildAction);
-        run.setResult(buildAction.getBuildSummary().getResult());
+        if (Boolean.TRUE.equals(getUpdateBuildResult())) {
+            run.setResult(buildAction.getBuildSummary().getResult());
+        }
     }
 
     private void saveAllureArtifact(final Run<?, ?> run, final FilePath workspace, final TaskListener listener)

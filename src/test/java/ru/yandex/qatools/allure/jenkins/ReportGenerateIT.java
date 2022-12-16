@@ -124,6 +124,18 @@ public class ReportGenerateIT {
     }
 
     @Test
+    public void shouldGenerateReportWithSuccessfulResult() throws Exception {
+        FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm("sample-testsuite-with-failed.xml", ALLURE_RESULTS));
+        AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, "allure-results");
+        publisher.setUpdateBuildResult(Boolean.FALSE);
+        project.getPublishersList().add(publisher);
+        FreeStyleBuild build = jRule.assertBuildStatus(Result.SUCCESS, project.scheduleBuild2(0));
+
+        assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
+    }
+
+    @Test
     public void shouldGenerateReportForGlob() throws Exception {
         FreeStyleProject project = jRule.createFreeStyleProject();
         project.setScm(getSimpleFileScm("sample-testsuite.xml", "target/".concat(ALLURE_RESULTS)));
