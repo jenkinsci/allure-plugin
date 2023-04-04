@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins.callables;
 
 import hudson.FilePath;
@@ -19,7 +34,8 @@ import java.nio.file.Paths;
 public abstract class AbstractAddInfo extends MasterToSlaveFileCallable<FilePath> {
 
     @Override
-    public FilePath invoke(File file, VirtualChannel channel) throws IOException, InterruptedException {
+    public FilePath invoke(final File file,
+                           final VirtualChannel channel) throws IOException {
         final Path outputDirectory = Paths.get(file.toURI()).toRealPath();
         Files.createDirectories(outputDirectory);
         final Path testRun = outputDirectory.resolve(getFileName());

@@ -12,10 +12,10 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v1
       with:
-        java-version: 1.8
-    - name: "Gradle Build"
-      run: ./gradlew build -Pversion=${GITHUB_REF:10}
-    - name: "Gradle Publish"
+        java-version: '11'
+    - name: "Maven Build"
+      run: ./mvnw package -Pversion=${GITHUB_REF:10}
+    - name: "Maven Publish"
       run: |
         printf "userName=${{ secrets.JENKINS_USERNAME }}\npassword=${{ secrets.JENKINS_PASSWORD }}\n" > ~/.jenkins-ci.org 
-        ./gradlew publish -Pversion=${GITHUB_REF:10}
+        ./mvnw publish -Pversion=${GITHUB_REF:10}

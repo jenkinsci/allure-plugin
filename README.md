@@ -1,6 +1,6 @@
 # Allure Jenkins Plugin
 
-[![release](http://github-release-version.herokuapp.com/github/jenkinsci/allure-plugin/release.svg?style=flat)](https://github.com/jenkinsci/allure-plugin/releases/latest) 
+[![release](http://github-release-version.herokuapp.com/github/jenkinsci/allure-plugin/release.svg?style=flat)](https://github.com/jenkinsci/allure-plugin/releases/latest)
 [![Build Status](https://ci.qameta.io/buildStatus/icon?job=allure-plugin/master)](https://ci.qameta.io/job/allure-plugin/job/master/)
 
 ## Getting Started

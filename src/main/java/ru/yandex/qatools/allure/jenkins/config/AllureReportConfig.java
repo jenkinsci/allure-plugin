@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins.config;
 
 import org.apache.commons.lang.StringUtils;
@@ -10,11 +25,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * eroshenkoam.
  * 30/07/14
  */
+@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class AllureReportConfig implements Serializable {
 
     private String jdk;
@@ -35,10 +52,11 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties = Boolean.TRUE;
 
+    @SuppressWarnings({"unused", "PMD.SingularField"})
     private String configPath = "";
 
     @DataBoundConstructor
-    public AllureReportConfig(List<ResultsConfig> results) {
+    public AllureReportConfig(final List<ResultsConfig> results) {
         this.results = results == null ? Collections.<ResultsConfig>emptyList() : results;
     }
 
@@ -52,7 +70,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     @DataBoundSetter
-    public void setCommandline(String commandline) {
+    public void setCommandline(final String commandline) {
         this.commandline = commandline;
     }
 
@@ -75,7 +93,7 @@ public class AllureReportConfig implements Serializable {
     }
 
     @DataBoundSetter
-    public void setProperties(List<PropertyConfig> properties) {
+    public void setProperties(final List<PropertyConfig> properties) {
         this.properties = properties;
     }
 
@@ -84,33 +102,39 @@ public class AllureReportConfig implements Serializable {
     }
 
     @DataBoundSetter
-    public void setReportBuildPolicy(ReportBuildPolicy reportBuildPolicy) {
+    public void setReportBuildPolicy(final ReportBuildPolicy reportBuildPolicy) {
         this.reportBuildPolicy = reportBuildPolicy;
     }
 
     @DataBoundSetter
-    public void setIncludeProperties(Boolean includeProperties) {
+    public void setIncludeProperties(final Boolean includeProperties) {
         this.includeProperties = includeProperties;
     }
 
     @DataBoundSetter
-    public void setConfigPath(String configPath) {
+    public void setConfigPath(final String configPath) {
         this.configPath = configPath;
     }
 
-    public boolean getIncludeProperties() {
+    public Boolean getIncludeProperties() {
         return includeProperties;
     }
 
-    public static AllureReportConfig newInstance(List<String> results) {
+    public static AllureReportConfig newInstance(final List<String> results) {
         return newInstance(null, null, null, results.toArray(new String[]{}));
     }
 
-    public static AllureReportConfig newInstance(String jdk, String commandline, String configPath, String... paths) {
+    public static AllureReportConfig newInstance(final String jdk,
+                                                 final String commandline,
+                                                 final String configPath,
+                                                 final String... paths) {
         return newInstance(jdk, commandline, configPath, Arrays.asList(paths));
     }
 
-    private static AllureReportConfig newInstance(String jdk, String commandline, String configPath, List<String> paths) {
+    private static AllureReportConfig newInstance(final String jdk,
+                                                  final String commandline,
+                                                  final String configPath,
+                                                  final List<String> paths) {
         final List<ResultsConfig> results = convertPaths(paths);
         final AllureReportConfig config = new AllureReportConfig(results);
         config.setJdk(jdk);
@@ -120,15 +144,13 @@ public class AllureReportConfig implements Serializable {
         return config;
     }
 
-    private static List<ResultsConfig> convertPaths(String paths) {
+    private static List<ResultsConfig> convertPaths(final String paths) {
         return convertPaths(Arrays.asList(paths.split("\\n")));
     }
 
-    private static List<ResultsConfig> convertPaths(List<String> paths) {
-        final List<ResultsConfig> results = new ArrayList<>();
-        for (String path : paths) {
-            results.add(new ResultsConfig(path));
-        }
-        return results;
+    private static List<ResultsConfig> convertPaths(final List<String> paths) {
+        return paths.stream()
+                .map(ResultsConfig::new)
+                .collect(Collectors.toList());
     }
 }

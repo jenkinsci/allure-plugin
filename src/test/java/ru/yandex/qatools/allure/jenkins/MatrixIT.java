@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.matrix.Axis;
@@ -18,7 +33,7 @@ import static ru.yandex.qatools.allure.jenkins.testdata.TestUtils.createAllurePu
 import static ru.yandex.qatools.allure.jenkins.testdata.TestUtils.getSimpleFileScm;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 01.11.17
  */
 public class MatrixIT {
@@ -46,12 +61,12 @@ public class MatrixIT {
 
     @Test
     public void shouldGenerateReportForMatrixItem() throws Exception {
-        MatrixProject project = jRule.createProject(MatrixProject.class);
+        final MatrixProject project = jRule.createProject(MatrixProject.class);
         project.getAxes().add(new Axis("items", "first", "second"));
         project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
         project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
 
-        MatrixBuild build = jRule.buildAndAssertSuccess(project);
+        final MatrixBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
         assertThat(build.getRuns()).hasSize(2);

@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
@@ -31,6 +46,8 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static java.lang.String.format;
+
 /**
  * {@link Action} that serves allure report from archive directory on master of a given build.
  *
@@ -38,6 +55,9 @@ import java.util.zip.ZipFile;
  */
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
+    private static final String ALLURE_REPORT = "allure-report";
+    private static final String CACHE_CONTROL = "Cache-Control";
+    private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
@@ -46,14 +66,14 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     AllureReportBuildAction(final BuildSummary buildSummary) {
         this.buildSummary = new WeakReference<>(buildSummary);
-        this.reportPath = "allure-report";
+        this.reportPath = ALLURE_REPORT;
     }
 
     private String getReportPath() {
-        return this.reportPath == null ? "allure-report" : this.reportPath;
+        return this.reportPath == null ? ALLURE_REPORT : this.reportPath;
     }
 
-    public void setReportPath(FilePath reportPath) {
+    public void setReportPath(final FilePath reportPath) {
         this.reportPath = reportPath.getName();
     }
 
@@ -61,6 +81,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         final CategoryDataset data = buildDataSet();
 
         new Graph(-1, 600, 300) {
+            @Override
             protected JFreeChart createGraph() {
                 return ChartUtils.createChart(req, data);
             }
@@ -71,6 +92,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         final CategoryDataset data = buildDataSet();
 
         new Graph(-1, 600, 300) {
+            @Override
             protected JFreeChart createGraph() {
                 return ChartUtils.createChart(req, data);
             }
@@ -138,25 +160,30 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     //copied from junit-plugin
+    @SuppressWarnings("PMD.CognitiveComplexity")
     private AllureReportBuildAction getPreviousResult(final boolean eager) {
         Run<?, ?> b = run;
-        Set<Integer> loadedBuilds;
+        final Set<Integer> loadedBuilds;
         if (!eager && run.getParent() instanceof LazyBuildMixIn.LazyLoadingJob) {
-            loadedBuilds = ((LazyBuildMixIn.LazyLoadingJob<?, ?>) run.getParent()).getLazyBuildMixIn()._getRuns().getLoadedBuilds().keySet();
+            loadedBuilds = ((LazyBuildMixIn.LazyLoadingJob<?, ?>)
+                    run.getParent()).getLazyBuildMixIn()._getRuns().getLoadedBuilds().keySet();
         } else {
             loadedBuilds = null;
         }
         while (true) {
-            b = loadedBuilds == null || loadedBuilds.contains(b.number - /* assuming there are no gaps */1) ? b.getPreviousBuild() : null;
-            if (b == null)
+            b = loadedBuilds == null
+                    || loadedBuilds.contains(b.number - /* assuming there are no gaps */1)
+                    ? b.getPreviousBuild() : null;
+            if (b == null) {
                 return null;
-            AllureReportBuildAction r = b.getAction(AllureReportBuildAction.class);
+            }
+            final AllureReportBuildAction r = b.getAction(AllureReportBuildAction.class);
             if (r != null) {
-                if (r == this) {
-                    throw new IllegalStateException(this + " was attached to both " + b + " and " + run);
+                if (r.equals(this)) {
+                    throw new IllegalStateException(format(WAS_ATTACHED_TO_BOTH, this, b, run));
                 }
                 if (r.run.number != b.number) {
-                    throw new IllegalStateException(r + " was attached to both " + b + " and " + r.run);
+                    throw new IllegalStateException(format(WAS_ATTACHED_TO_BOTH, r, b, r.run));
                 }
                 return r;
             }
@@ -166,16 +193,18 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     //copied from junit-plugin
     @Override
     public Collection<? extends Action> getProjectActions() {
-        Job<?,?> job = run.getParent();
-        if (/* getAction(Class) produces a StackOverflowError */!Util.filter(job.getActions(), AllureReportProjectAction.class).isEmpty()) {
+        final Job<?, ?> job = run.getParent();
+        if (/* getAction(Class) and getAllActions() produces a StackOverflowError */
+                !Util.filter(job.getActions(), AllureReportProjectAction.class).isEmpty()) {
             // JENKINS-26077: someone like XUnitPublisher already added one
             return Collections.emptySet();
         }
         return Collections.singleton(new AllureReportProjectAction(job));
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private CategoryDataset buildDataSet() {
-        DataSetBuilder<String, ChartUtil.NumberOnlyBuildLabel> dsb = new DataSetBuilder<>();
+        final DataSetBuilder<String, ChartUtil.NumberOnlyBuildLabel> dsb = new DataSetBuilder<>();
 
         for (AllureReportBuildAction a = this; a != null; a = a.getPreviousResult()) {
             final ChartUtil.NumberOnlyBuildLabel columnKey = new ChartUtil.NumberOnlyBuildLabel(a.run);
@@ -194,21 +223,22 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     @SuppressWarnings("unused")
-    public ArchiveReportBrowser doDynamic(StaplerRequest req, StaplerResponse rsp)
+    public ArchiveReportBrowser doDynamic(final StaplerRequest req,
+                                          final StaplerResponse rsp)
             throws IOException, ServletException, InterruptedException {
         final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
-        ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
+        final ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
         archiveReportBrowser.setReportPath(this.getReportPath());
         return archiveReportBrowser;
     }
 
     @Override
-    public void onAttached(Run<?, ?> r) {
+    public void onAttached(final Run<?, ?> r) {
         run = r;
     }
 
     @Override
-    public void onLoad(Run<?, ?> r) {
+    public void onLoad(final Run<?, ?> r) {
         run = r;
     }
 
@@ -221,20 +251,23 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         private String reportPath;
 
-        ArchiveReportBrowser(FilePath archive) {
+        ArchiveReportBrowser(final FilePath archive) {
             this.archive = archive;
-            this.reportPath = "allure-report";
+            this.reportPath = ALLURE_REPORT;
         }
 
-        private void setReportPath(String reportPath) {
+        @SuppressWarnings("PMD.UnusedPrivateMethod")
+        private void setReportPath(final String reportPath) {
             this.reportPath = reportPath;
         }
 
         @Override
-        public void generateResponse(final StaplerRequest req, final StaplerResponse rsp, final Object node)
+        public void generateResponse(final StaplerRequest req,
+                                     final StaplerResponse rsp,
+                                     final Object node)
                 throws IOException, ServletException {
-            rsp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-            rsp.addHeader("Cache-Control", "post-check=0, pre-check=0");
+            rsp.setHeader(CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+            rsp.addHeader(CACHE_CONTROL, "post-check=0, pre-check=0");
             rsp.setHeader("Pragma", "no-cache");
             rsp.setDateHeader("Expires", 0);
 

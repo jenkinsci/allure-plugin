@@ -1,15 +1,26 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -17,6 +28,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -28,20 +41,23 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
-
+    private static final String ARCHIVE_ALLURE_REPORT_PATH = "archive/allure-report.zip";
     private static final List<String> BUILD_STATISTICS_KEYS = Arrays.asList(
             "passed",
             "failed",
             "broken",
             "skipped",
             "unknown");
+    public static final String SEPORATOR = "/";
 
     private FilePathUtils() {
     }
 
     @SuppressWarnings("TrailingComment")
-    public static void copyRecursiveTo(FilePath from, FilePath to, AbstractBuild build, PrintStream logger)
-            throws IOException, InterruptedException { //NOSONAR
+    public static void copyRecursiveTo(final FilePath from,
+                                       final FilePath to,
+                                       final AbstractBuild build,
+                                       final PrintStream logger) throws IOException, InterruptedException { //NOSONAR
         if (from.isRemote() && to.isRemote()) {
             final FilePath tmpMasterFilePath = new FilePath(build.getRootDir()).createTempDir(ALLURE_PREFIX, null);
             from.copyRecursiveTo(tmpMasterFilePath);
@@ -53,20 +69,23 @@ public final class FilePathUtils {
     }
 
     @SuppressWarnings("TrailingComment")
-    public static void deleteRecursive(FilePath filePath, PrintStream logger) {
+    public static void deleteRecursive(final FilePath filePath,
+                                       final PrintStream logger) {
         try {
             filePath.deleteContents();
             filePath.deleteRecursive();
         } catch (IOException | InterruptedException e) { //NOSONAR
-            logger.println(String.format("Can't delete directory [%s]", filePath));
+            logger.printf("Can't delete directory [%s]%n", filePath);
         }
     }
 
-    public static FilePath getPreviousReportWithHistory(Run<?, ?> run, String reportPath)
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
+                                                        final String reportPath)
             throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
-            final FilePath previousReport = new FilePath(current.getRootDir()).child("archive/allure-report.zip");
+            final FilePath previousReport = new FilePath(current.getRootDir()).child(ARCHIVE_ALLURE_REPORT_PATH);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
@@ -75,11 +94,12 @@ public final class FilePathUtils {
         return null;
     }
 
-    private static boolean isHistoryNotEmpty(FilePath previousReport, String reportPath) throws IOException {
+    private static boolean isHistoryNotEmpty(final FilePath previousReport,
+                                             final String reportPath) throws IOException {
         try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
-            if (entries.size() == 1) {
-                ZipEntry historyEntry = entries.get(0);
+            final List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
+            if (Integer.valueOf(entries.size()).equals(1)) {
+                final ZipEntry historyEntry = entries.get(0);
                 try (InputStream is = archive.getInputStream(historyEntry)) {
                     final ObjectMapper mapper = new ObjectMapper();
                     final JsonNode historyJson = mapper.readTree(is);
@@ -90,8 +110,9 @@ public final class FilePathUtils {
         return false;
     }
 
+    @SuppressWarnings("PMD.EmptyCatchBlock")
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath report = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
+        final FilePath report = new FilePath(run.getRootDir()).child(ARCHIVE_ALLURE_REPORT_PATH);
         try {
             if (!report.exists()) {
                 return null;
@@ -116,6 +137,7 @@ public final class FilePathUtils {
                 }
             }
         } catch (IOException | InterruptedException ignore) {
+            // nothing to do
         }
         return null;
     }
@@ -123,14 +145,11 @@ public final class FilePathUtils {
     private static Optional<ZipEntry> getSummary(final ZipFile archive,
                                                  final String reportPath,
                                                  final String location) {
-        List<ZipEntry> entries = listEntries(archive, reportPath.concat("/").concat(location));
-        Optional<ZipEntry> summary = Iterables.tryFind(entries, new Predicate<ZipEntry>() {
-            @Override
-            public boolean apply(@Nullable ZipEntry input) {
-                return input != null
-                        && input.getName().equals(reportPath.concat("/").concat(location).concat("/summary.json"));
-            }
-        });
-        return summary;
+        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPORATOR).concat(location));
+        final String toSearch = reportPath.concat(SEPORATOR).concat(location).concat("/summary.json");
+        return entries.stream()
+                .filter(Objects::nonNull)
+                .filter(input -> input.getName().equals(toSearch))
+                .findFirst();
     }
 }

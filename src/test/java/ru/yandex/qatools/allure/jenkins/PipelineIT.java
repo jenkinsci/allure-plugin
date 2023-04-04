@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.FilePath;
@@ -25,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class PipelineIT {
 
+    private static final String ALLURE_RESULTS = "allure-results";
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
 
@@ -34,9 +50,9 @@ public class PipelineIT {
     @ClassRule
     public static TemporaryFolder folder = new TemporaryFolder();
 
-    public static String commandline;
+    private static String commandline;
 
-    public static String jdk;
+    private static String jdk;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -44,25 +60,42 @@ public class PipelineIT {
         commandline = TestUtils.getAllureCommandline(jRule, folder).getName();
     }
 
+    public static String getCommandline() {
+        return commandline;
+    }
+
+    public static void setCommandline(final String commandline) {
+        PipelineIT.commandline = commandline;
+    }
+
+    public static String getJdk() {
+        return jdk;
+    }
+
+    public static void setJdk(String jdk) {
+        PipelineIT.jdk = jdk;
+    }
+
     @Test
     public void shouldSupportPipeline() throws Exception {
-        WorkflowJob project = jRule.createProject(WorkflowJob.class);
+        final WorkflowJob project = jRule.createProject(WorkflowJob.class);
         prepareWorkspace(project);
 
-        FlowDefinition definition = new CpsFlowDefinition("node { allure(results: [[path: paths]]) }", true);
+        final FlowDefinition definition =
+                new CpsFlowDefinition("node { allure(results: [[path: 'allure-results']]) }", true);
         project.setDefinition(definition);
         project.addProperty(new ParametersDefinitionProperty(
-                new StringParameterDefinition("paths", "allure-results")
+                new StringParameterDefinition("paths", ALLURE_RESULTS)
         ));
-        WorkflowRun build = jRule.buildAndAssertSuccess(project);
+        final WorkflowRun build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
-    private void prepareWorkspace(WorkflowJob project) throws IOException, InterruptedException {
-        FilePath workspace = jRule.jenkins.getWorkspaceFor(project);
-        String testSuiteFileName = "sample-testsuite.xml";
-        FilePath allureReportsDir = workspace.child("allure-results").child(testSuiteFileName);
+    private void prepareWorkspace(final WorkflowJob project) throws IOException, InterruptedException {
+        final FilePath workspace = jRule.jenkins.getWorkspaceFor(project);
+        final String testSuiteFileName = "sample-testsuite.xml";
+        final FilePath allureReportsDir = workspace.child(ALLURE_RESULTS).child(testSuiteFileName);
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(testSuiteFileName)) {
             allureReportsDir.copyFrom(is);
         }

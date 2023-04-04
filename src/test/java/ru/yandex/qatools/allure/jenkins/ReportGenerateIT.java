@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -33,6 +48,8 @@ import static ru.yandex.qatools.allure.jenkins.testdata.TestUtils.getSimpleFileS
 public class ReportGenerateIT {
 
     public static final String ALLURE_RESULTS = "allure-results/sample-testsuite.xml";
+    private static final String SAMPLE_TESTSUITE_FILE_NAME = "sample-testsuite.xml";
+    private static final String ALLURE_RESULTS1 = "allure-results";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -55,20 +72,20 @@ public class ReportGenerateIT {
 
     @Test
     public void shouldGenerateReport() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldCreateArtifact() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getArtifacts())
                 .as("An artifact for allure report should be created in the artifacts dir for the build")
@@ -77,106 +94,106 @@ public class ReportGenerateIT {
 
     @Test
     public void shouldGenerateReportForParameters() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleProject project = jRule.createFreeStyleProject();
         project.addProperty(new ParametersDefinitionProperty(
-                new StringParameterDefinition("RESULTS", "allure-results")));
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+                new StringParameterDefinition("RESULTS", ALLURE_RESULTS1)));
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
         project.getPublishersList().add(createAllurePublisher(jdk, commandline, "${RESULTS}"));
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldGenerateReportForWrappedParameters() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, "allure-results");
-        List<PropertyConfig> properties = new ArrayList<>();
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, ALLURE_RESULTS1);
+        final List<PropertyConfig> properties = new ArrayList<>();
         properties.add(new PropertyConfig("allure.tests.management.pattern", "http://tms.test?a=f&s=123"));
         publisher.setProperties(properties);
         project.getPublishersList().add(publisher);
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldGenerateReportInCustomReportPath() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, "allure-results");
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, ALLURE_RESULTS1);
         publisher.setReport("target/report");
         project.getPublishersList().add(publisher);
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldGenerateReportWithUnstableResult() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleProject project = jRule.createFreeStyleProject();
         project.setScm(getSimpleFileScm("sample-testsuite-with-failed.xml", ALLURE_RESULTS));
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
-        FreeStyleBuild build = jRule.assertBuildStatus(Result.UNSTABLE, project.scheduleBuild2(0));
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.UNSTABLE, project.scheduleBuild2(0));
 
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldGenerateReportForGlob() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", "target/".concat(ALLURE_RESULTS)));
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, "target/".concat(ALLURE_RESULTS)));
         project.getPublishersList().add(createAllurePublisher(jdk, commandline, "**/allure-results"));
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldGenerateReportOnSlave() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleProject project = jRule.createFreeStyleProject();
 
-        Label label = new LabelAtom(UUID.randomUUID().toString());
+        final Label label = new LabelAtom(UUID.randomUUID().toString());
         jRule.createOnlineSlave(label);
 
         project.setAssignedLabel(label);
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
 
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     @Ignore("doesn't work properly on windows since allure.bat returns wrong exit code")
     public void shouldFailBuildIfNoResultsFound() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
 
-        FreeStyleBuild build = project.scheduleBuild2(0).get();
+        final FreeStyleBuild build = project.scheduleBuild2(0).get();
         jRule.assertBuildStatus(Result.FAILURE, build);
     }
 
     @Test
     public void shouldUseDefaultCommandlineIfNotSpecified() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
         project.getPublishersList().add(
-                createAllurePublisherWithoutCommandline(jdk, "allure-results")
+                createAllurePublisherWithoutCommandline(jdk, ALLURE_RESULTS1)
         );
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         assertThat(build.getActions(AllureReportBuildAction.class)).hasSize(1);
     }
 
     @Test
     public void shouldServeBuildPageWithoutErrors() throws Exception {
-        FreeStyleProject project = jRule.createFreeStyleProject();
-        project.setScm(getSimpleFileScm("sample-testsuite.xml", ALLURE_RESULTS));
-        project.getPublishersList().add(createAllurePublisher(jdk, commandline, "allure-results"));
-        FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, ALLURE_RESULTS1));
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
-        JenkinsRule.WebClient webClient = jRule.createWebClient();
-        HtmlPage page = webClient.getPage(build);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient();
+        final HtmlPage page = webClient.getPage(build);
         jRule.assertGoodStatus(page);
     }
 }

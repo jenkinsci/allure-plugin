@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.EnvVars;
@@ -24,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class CommandlineIT {
 
+    public static final String SAMPLE_TESTSUITE_FILE_NAME = "sample-testsuite.xml";
     @ClassRule
     public static JenkinsRule jRule = new JenkinsRule();
 
@@ -34,25 +50,25 @@ public class CommandlineIT {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        EnvVars envVars = new EnvVars();
-        JDK jdk = TestUtils.getJdk(jRule);
+        final EnvVars envVars = new EnvVars();
+        final JDK jdk = TestUtils.getJdk(jRule);
         jdk.buildEnvVars(envVars);
-        AllureCommandlineInstallation allure = TestUtils.getAllureCommandline(jRule, folder);
-        StreamTaskListener listener = new StreamTaskListener(System.out, StandardCharsets.UTF_8);
-        Launcher launcher = new Launcher.LocalLauncher(listener);
-        FilePath workspace = new FilePath(folder.newFolder());
+        final AllureCommandlineInstallation allure = TestUtils.getAllureCommandline(jRule, folder);
+        final StreamTaskListener listener = new StreamTaskListener(System.out, StandardCharsets.UTF_8);
+        final Launcher launcher = new Launcher.LocalLauncher(listener);
+        final FilePath workspace = new FilePath(folder.newFolder());
         workspace.mkdirs();
         builder = new ReportBuilder(launcher, listener, workspace, envVars, allure);
     }
 
     @Test
     public void shouldGenerateReport() throws Exception {
-        FilePath results = new FilePath(folder.newFolder("some with spaces in path (and even more x8)"));
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream("sample-testsuite.xml")) {
-            results.child("sample-testsuite.xml").copyFrom(is);
+        final FilePath results = new FilePath(folder.newFolder("some with spaces in path (and even more x8)"));
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(SAMPLE_TESTSUITE_FILE_NAME)) {
+            results.child(SAMPLE_TESTSUITE_FILE_NAME).copyFrom(is);
         }
-        FilePath report = new FilePath(folder.getRoot()).child("some folder with (x22) spaces");
-        int exitCode = builder.build(Collections.singletonList(results), report);
+        final FilePath report = new FilePath(folder.getRoot()).child("some folder with (x22) spaces");
+        final int exitCode = builder.build(Collections.singletonList(results), report);
         assertThat(exitCode).as("Should exit with code 0").isEqualTo(0);
     }
 }

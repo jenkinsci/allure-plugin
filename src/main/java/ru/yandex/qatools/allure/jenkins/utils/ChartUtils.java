@@ -1,7 +1,21 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins.utils;
 
 import hudson.util.ChartUtil;
-import hudson.util.ColorPalette;
 import hudson.util.ShiftedCategoryAxis;
 import hudson.util.StackedAreaRenderer2;
 import org.jfree.chart.ChartFactory;
@@ -18,14 +32,19 @@ import org.kohsuke.stapler.StaplerRequest;
 import ru.yandex.qatools.allure.jenkins.AllureReportBuildAction;
 import ru.yandex.qatools.allure.jenkins.Messages;
 
-import java.awt.*;
+import java.awt.Color;
 
 /**
  * @author Egor Borisov ehborisov@gmail.com
  */
-public class ChartUtils {
+public final class ChartUtils {
 
-    public static JFreeChart createChart(StaplerRequest req, CategoryDataset dataset) {
+    private ChartUtils() {
+    }
+
+    @SuppressWarnings({"AnonInnerLength", "PMD.NcssCount"})
+    public static JFreeChart createChart(final StaplerRequest req,
+                                         final CategoryDataset dataset) {
 
         final String relPath = getRelPath(req);
 
@@ -50,7 +69,7 @@ public class ChartUtils {
         plot.setRangeGridlinesVisible(true);
         plot.setRangeGridlinePaint(Color.black);
 
-        CategoryAxis domainAxis = new ShiftedCategoryAxis(null);
+        final CategoryAxis domainAxis = new ShiftedCategoryAxis(null);
         plot.setDomainAxis(domainAxis);
         domainAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_90);
         domainAxis.setLowerMargin(0.0);
@@ -60,17 +79,23 @@ public class ChartUtils {
         final NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
         rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
-        StackedAreaRenderer ar = new StackedAreaRenderer2() {
+        final StackedAreaRenderer ar = new StackedAreaRenderer2() {
             @Override
-            public String generateURL(CategoryDataset dataset, int row, int column) {
-                ChartUtil.NumberOnlyBuildLabel label = (ChartUtil.NumberOnlyBuildLabel) dataset.getColumnKey(column);
+            public String generateURL(final CategoryDataset dataset,
+                                      final int row,
+                                      final int column) {
+                final ChartUtil.NumberOnlyBuildLabel label = (ChartUtil.NumberOnlyBuildLabel)
+                        dataset.getColumnKey(column);
                 return relPath + label.getRun().getNumber() + "/allure/";
             }
 
             @Override
-            public String generateToolTip(CategoryDataset dataset, int row, int column) {
-                ChartUtil.NumberOnlyBuildLabel label = (ChartUtil.NumberOnlyBuildLabel) dataset.getColumnKey(column);
-                AllureReportBuildAction buildAction = label.getRun().getAction(AllureReportBuildAction.class);
+            public String generateToolTip(final CategoryDataset dataset,
+                                          final int row,
+                                          final int column) {
+                final ChartUtil.NumberOnlyBuildLabel label = (ChartUtil.NumberOnlyBuildLabel)
+                        dataset.getColumnKey(column);
+                final AllureReportBuildAction buildAction = label.getRun().getAction(AllureReportBuildAction.class);
                 final String displayName = label.getRun().getDisplayName();
                 switch (row) {
                     case 0:
@@ -107,9 +132,11 @@ public class ChartUtils {
         return chart;
     }
 
-    private static String getRelPath(StaplerRequest req) {
-        String relPath = req.getParameter("rel");
-        if (relPath == null) return "";
+    private static String getRelPath(final StaplerRequest req) {
+        final String relPath = req.getParameter("rel");
+        if (relPath == null) {
+            return "";
+        }
         return relPath;
     }
 }

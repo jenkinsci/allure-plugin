@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins;
 
 import hudson.EnvVars;
@@ -34,8 +49,11 @@ public class ReportBuilder {
 
     private FilePath configFilePath;
 
-    public ReportBuilder(@Nonnull Launcher launcher, @Nonnull TaskListener listener, @Nonnull FilePath workspace,
-                         @Nonnull EnvVars envVars, @Nonnull AllureCommandlineInstallation commandline) {
+    public ReportBuilder(final @Nonnull Launcher launcher,
+                         final @Nonnull TaskListener listener,
+                         final @Nonnull FilePath workspace,
+                         final @Nonnull EnvVars envVars,
+                         final @Nonnull AllureCommandlineInstallation commandline) {
         this.workspace = workspace;
         this.launcher = launcher;
         this.listener = listener;
@@ -47,7 +65,8 @@ public class ReportBuilder {
         this.configFilePath = configFilePath;
     }
 
-    public int build(@Nonnull List<FilePath> resultsPaths, @Nonnull FilePath reportPath) //NOSONAR
+    public int build(final @Nonnull List<FilePath> resultsPaths,
+                     final @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final String version = commandline.getMajorVersion(launcher);
         final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
@@ -56,15 +75,16 @@ public class ReportBuilder {
                 .envs(envVars).stdout(listener).pwd(workspace).join();
     }
 
-    private ArgumentListBuilder getArguments(String version, @Nonnull List<FilePath> resultsPaths,
-                                             @Nonnull FilePath reportPath)
+    private ArgumentListBuilder getArguments(final String version,
+                                             final @Nonnull List<FilePath> resultsPaths,
+                                             final @Nonnull FilePath reportPath)
             throws IOException, InterruptedException {
         return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath)
                 : getAllure1Arguments(resultsPaths, reportPath);
     }
 
-    private ArgumentListBuilder getAllure2Arguments(@Nonnull List<FilePath> resultsPaths,
-                                                    @Nonnull FilePath reportPath) //NOSONAR
+    private ArgumentListBuilder getAllure2Arguments(final @Nonnull List<FilePath> resultsPaths,
+                                                    final @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));
@@ -82,8 +102,8 @@ public class ReportBuilder {
         return arguments;
     }
 
-    private ArgumentListBuilder getAllure1Arguments(@Nonnull List<FilePath> resultsPaths,
-                                                    @Nonnull FilePath reportPath) //NOSONAR
+    private ArgumentListBuilder getAllure1Arguments(final @Nonnull List<FilePath> resultsPaths,
+                                                    final @Nonnull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
         arguments.add(commandline.getExecutable(launcher));

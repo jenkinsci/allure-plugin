@@ -1,3 +1,18 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package ru.yandex.qatools.allure.jenkins.callables;
 
 import hudson.FilePath;
@@ -11,29 +26,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * eroshenkoam
+ * eroshenkoam.
  * 26.06.17
  */
 public class FindByGlob extends MasterToSlaveFileCallable<List<FilePath>> {
 
     private final String includes;
 
-    public FindByGlob(String includes) {
+    public FindByGlob(final String includes) {
         this.includes = includes;
     }
 
     @Override
-    public List<FilePath> invoke(File file, VirtualChannel channel) throws IOException, InterruptedException {
-        FilePath root = new FilePath(file);
+    public List<FilePath> invoke(final File file,
+                                 final VirtualChannel channel) throws IOException, InterruptedException {
+        final FilePath root = new FilePath(file);
 
-        DirectoryScanner scanner = new DirectoryScanner();
+        final DirectoryScanner scanner = new DirectoryScanner();
         scanner.setBasedir(file);
         scanner.setIncludes(new String[]{includes});
         scanner.setCaseSensitive(false);
         scanner.scan();
 
-        String[] paths = scanner.getIncludedDirectories();
-        List<FilePath> files = new ArrayList<>();
+        final String[] paths = scanner.getIncludedDirectories();
+        final List<FilePath> files = new ArrayList<>();
         for (String path : paths) {
             files.add(root.child(path));
         }
