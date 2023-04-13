@@ -5,27 +5,25 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.50</version>
+        <version>4.59</version>
+        <relativePath />
     </parent>
 
     <groupId>ru.yandex.qatools.allure</groupId>
     <artifactId>allure-jenkins-plugin</artifactId>
-    <version>2.31.0.11-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
 
     <name>Allure Jenkins Plugin</name>
     <url>https://github.com/jenkinsci/allure-plugin</url>
 
     <properties>
-        <spotless.version>2.35.0</spotless.version>
-        <allureCommandline.version>2.21.0</allureCommandline.version>
+        <revision>2.31.0.11</revision>
+        <changelist>-SNAPSHOT</changelist>
+        <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
         <jenkins.version>2.387.1</jenkins.version>
+        <allureCommandline.version>2.21.0</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
-        <java.level>8</java.level>
-        <sourceVersion>1.8</sourceVersion>
-        <targetVersion>1.8</targetVersion>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <developers>
@@ -64,16 +62,16 @@
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
 
     <scm>
-        <connection>scm:git:https://github.com/jenkinsci/allure-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/allure-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/allure-plugin</url>
-        <tag>HEAD</tag>
+        <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+        <url>https://github.com/${gitHubRepo}</url>
+        <tag>${scmTag}</tag>
     </scm>
 
     <issueManagement>
@@ -86,7 +84,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
+                <version>${spotless-maven-plugin.version}</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                     <!-- optional: limit format enforcement to just the files changed by this feature branch -->
@@ -213,7 +211,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.7.3.3</version>
+                <version>${spotbugs-maven-plugin.version}</version>
                 <configuration>
                     <excludeFilterFile>.mvn/quality-configs/spotbugs/exclude.xml</excludeFilterFile>
                     <failOnError>false</failOnError>
@@ -260,7 +258,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>${maven-surefire-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -283,7 +281,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.387.x</artifactId>
-                <version>1968.vb_14a_29e76128</version>
+                <version>1981.v17df70e84a_a_1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -301,6 +299,18 @@
             <groupId>de.schlichtherle.truezip</groupId>
             <artifactId>truezip-driver-zip</artifactId>
             <version>${truezip.version}</version>
+            <exclusions>
+                <!-- Provided by Jenkins core --> 
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-compress</artifactId>
+                </exclusion>
+                <!-- Provided by bouncycastle-api plugin -->
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>de.schlichtherle.truezip</groupId>
@@ -308,48 +318,31 @@
             <version>${truezip.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.14.2</version>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>jackson2-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci</groupId>
-            <artifactId>symbol-annotation</artifactId>
-            <version>1.10</version>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>bouncycastle-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.70</version>
+            <groupId>org.jenkins-ci.modules</groupId>
+            <artifactId>instance-identity</artifactId>
+            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-            <version>1.23.0</version>
-        </dependency>
-
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1229.v4880b_b_e905a_6</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-project</artifactId>
-            <version>785.v06b_7f47b_c631</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>639.v6eca_cd8c04a_a_</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>job-dsl-core</artifactId>
-            <version>1.83</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -361,7 +354,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>324.va_f5d6774f3a_d</version>
             <optional>true</optional>
         </dependency>
 
@@ -370,7 +362,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -394,54 +385,36 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>cloudbees-folder</artifactId>
-            <version>6.815.v0dd5a_cb_40e0e</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
-            <version>1189.v1b_e593637fa_e</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>3653.v07ea_433c90b_4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.15</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-durable-task-step</artifactId>
-            <version>2.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-basic-steps</artifactId>
-            <version>2.6</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <profiles>
-        <profile>
-            <id>doclint-java8-disable</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <properties>
-                <additionalparam>-Xdoclint:none</additionalparam>
-            </properties>
-        </profile>
-    </profiles>
 
     <repositories>
         <repository>
