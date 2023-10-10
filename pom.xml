@@ -18,7 +18,7 @@
 
     <properties>
         <spotless.version>2.35.0</spotless.version>
-        <allureCommandline.version>2.21.0</allureCommandline.version>
+        <allureCommandline.version>2.24.0</allureCommandline.version>
         <jenkins.version>2.387.1</jenkins.version>
         <truezip.version>7.7.10</truezip.version>
         <java.level>8</java.level>
