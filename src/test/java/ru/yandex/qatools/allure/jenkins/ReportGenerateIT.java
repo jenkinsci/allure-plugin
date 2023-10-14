@@ -15,7 +15,7 @@
  */
 package ru.yandex.qatools.allure.jenkins;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.html.HtmlPage;
 import hudson.matrix.Axis;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
