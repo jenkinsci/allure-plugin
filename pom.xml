@@ -21,7 +21,7 @@
         <revision>2.31.0.11</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
-        <jenkins.version>2.387.1</jenkins.version>
+        <jenkins.version>2.387.3</jenkins.version>
         <allureCommandline.version>2.21.0</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
     </properties>
@@ -281,7 +281,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.387.x</artifactId>
-                <version>1981.v17df70e84a_a_1</version>
+                <version>2496.vddfca_753db_80</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
