@@ -300,7 +300,7 @@
             <artifactId>truezip-driver-zip</artifactId>
             <version>${truezip.version}</version>
             <exclusions>
-                <!-- Provided by Jenkins core --> 
+                <!-- Provided by Jenkins core -->
                 <exclusion>
                     <groupId>org.apache.commons</groupId>
                     <artifactId>commons-compress</artifactId>
