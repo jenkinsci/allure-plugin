@@ -71,7 +71,6 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 /**
  * User: eroshenkoam.
  * Date: 10/8/13, 6:20 PM
- * <p/>
  * {@link AllureReportPublisherDescriptor}
  */
 @SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass"})
