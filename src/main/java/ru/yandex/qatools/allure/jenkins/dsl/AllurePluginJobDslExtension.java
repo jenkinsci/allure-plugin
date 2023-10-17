@@ -25,7 +25,7 @@ import javaposse.jobdsl.plugin.ContextExtensionPoint;
 import javaposse.jobdsl.plugin.DslExtensionMethod;
 
 /**
- * @author Marat Mavlutov <{@literal mavlyutov@yandex-team.ru}>
+ * @author Marat Mavlutov
  */
 @Extension(optional = true)
 public class AllurePluginJobDslExtension extends ContextExtensionPoint {
