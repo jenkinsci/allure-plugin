@@ -1,21 +1,19 @@
-name: Release
+# Note: additional setup is required, see https://www.jenkins.io/redirect/continuous-delivery-of-plugins
 
+name: cd
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+  check_run:
+    types:
+      - completed
+
+permissions:
+  checks: read
+  contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up JDK
-      uses: actions/setup-java@v1
-      with:
-        java-version: '11'
-    - name: "Maven Build"
-      run: ./mvnw package -Pversion=${GITHUB_REF:10}
-    - name: "Maven Publish"
-      run: |
-        printf "userName=${{ secrets.JENKINS_USERNAME }}\npassword=${{ secrets.JENKINS_PASSWORD }}\n" > ~/.jenkins-ci.org 
-        ./mvnw release:prepare release:perform -Pversion=${GITHUB_REF:10}
+    uses: jenkins-infra/github-reusable-workflows/.github/workflows/maven-cd.yml@v1
+    secrets:
+      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
