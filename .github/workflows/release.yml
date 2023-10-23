@@ -18,5 +18,5 @@ jobs:
           server-username: ${{ secrets.JENKINS_USERNAME }}
           server-password: ${{ secrets.JENKINS_TOKEN }}
       - run: |
-          ./mvnw versions:set -DnewVersion=${{ env.VERSION }}
-          ./mvnw publish
+          ./mvnw versions:set -DnewVersion=${GITHUB_REF:10}
+          ./mvnw deploy
