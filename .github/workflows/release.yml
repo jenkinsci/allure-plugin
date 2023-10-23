@@ -15,8 +15,11 @@ jobs:
           java-version: '11'
           cache: 'maven'
           server-id: maven.jenkins-ci.org
-          server-username: ${{ secrets.JENKINS_USERNAME }}
-          server-password: ${{ secrets.JENKINS_TOKEN }}
+          server-username: JENKINS_USERNAME
+          server-password: JENKINS_TOKEN
       - run: |
           ./mvnw versions:set -DnewVersion=${GITHUB_REF:10}
           ./mvnw deploy
+        env:
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
