@@ -17,5 +17,6 @@ jobs:
       with:
         distribution: temurin
         java-version: 11
+        cache: 'maven'
     - name: "Build"
       run: ./mvnw package

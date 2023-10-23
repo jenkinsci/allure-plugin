@@ -19,6 +19,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
+          cache: 'maven'
           server-id: maven.jenkins-ci.org
           server-username: ${{ secrets.JENKINS_USERNAME }}
           server-password: ${{ secrets.JENKINS_TOKEN }}
