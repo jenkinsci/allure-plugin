@@ -1,19 +1,27 @@
-# Note: additional setup is required, see https://www.jenkins.io/redirect/continuous-delivery-of-plugins
+name: Release
 
-name: cd
 on:
   workflow_dispatch:
-  check_run:
-    types:
-      - completed
-
-permissions:
-  checks: read
-  contents: write
+    inputs:
+      releaseVersion:
+        description: "The release version in <MAJOR>.<MINOR>.<PATCH> format"
+        required: true
+      nextVersion:
+        description: "The next version in <MAJOR>.<MINOR> format WITHOUT SNAPSHOT SUFFIX"
+        required: true
 
 jobs:
-  build:
-    uses: jenkins-infra/github-reusable-workflows/.github/workflows/maven-cd.yml@v1
-    secrets:
-      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-      MAVEN_TOKEN: ${{ secrets.MAVEN_TOKEN }}
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          server-id: maven.jenkins-ci.org
+          server-username: ${{ secrets.JENKINS_USERNAME }}
+          server-password: ${{ secrets.JENKINS_TOKEN }}
+      - run: |
+          ./mvnw versions:set -DnewVersion=${{ env.VERSION }}
+          ./mvnw publish
