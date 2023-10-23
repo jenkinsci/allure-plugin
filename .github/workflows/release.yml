@@ -1,14 +1,8 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      releaseVersion:
-        description: "The release version in <MAJOR>.<MINOR>.<PATCH> format"
-        required: true
-      nextVersion:
-        description: "The next version in <MAJOR>.<MINOR> format WITHOUT SNAPSHOT SUFFIX"
-        required: true
+  release:
+    types: [ published ]
 
 jobs:
   triage:
