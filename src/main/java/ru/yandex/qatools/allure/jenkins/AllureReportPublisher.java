@@ -363,7 +363,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
                 FilePathUtils.extractSummary(run, reportPath.getName()));
         buildAction.setReportPath(reportPath);
-        run.addAction(buildAction);
+        // run.addAction(buildAction);
+        // change to below. Calling allure multiple times would produce many allure icons
+        run.addOrReplaceAction(buildAction);
         run.setResult(buildAction.getBuildSummary().getResult());
     }
 
@@ -383,7 +385,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             Objects.requireNonNull(reportPath.getParent())
                     .archive(TrueZipArchiver.FACTORY, os, reportPath.getName() + "/**");
         }
-
+        if (archive.exists() && !archive.delete()) {
+            listener.getLogger().println("Artifact already exists but unable to be deleted");
+            return;
+        }
         Files.move(tempArchive.toPath(), archive.toPath());
         listener.getLogger().println("Artifact was added to the build.");
     }
