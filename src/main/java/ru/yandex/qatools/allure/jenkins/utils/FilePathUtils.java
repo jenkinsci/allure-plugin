@@ -83,7 +83,7 @@ public final class FilePathUtils {
     public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
                                                         final String reportPath)
             throws IOException, InterruptedException {
-        Run<?, ?> current = run;
+        Run<?, ?> current = run.getPreviousCompletedBuild();
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
