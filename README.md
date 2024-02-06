@@ -7,6 +7,7 @@
 
 * [Issues](https://github.com/jenkinsci/allure-plugin/issues?labels=&milestone=&page=1&state=open)
 * [Releases](https://github.com/jenkinsci/allure-plugin/releases)
+* [Documentation](https://allurereport.org/docs/integrations-jenkins/)
 
 ## Contact us
 * Mailing list: [allure@qameta.io](mailto:allure@qameta.io)
