@@ -26,6 +26,6 @@ To learn more, please visit [the official documentation](https://allurereport.or
 * [Releases](https://github.com/jenkinsci/allure-plugin/releases)
 
 ## Contact us
+
 * Mailing list: [allure@qameta.io](mailto:allure@qameta.io)
-* Gitter chat room: [https://gitter.im/allure-framework/allure-core](https://gitter.im/allure-framework/allure-core)
 * StackOverflow tag: [Allure](http://stackoverflow.com/questions/tagged/allure)
