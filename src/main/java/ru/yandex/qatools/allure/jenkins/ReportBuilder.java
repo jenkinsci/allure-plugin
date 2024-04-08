@@ -35,6 +35,7 @@ public class ReportBuilder {
     private static final String GENERATE_COMMAND = "generate";
     private static final String OUTPUT_DIR_OPTION = "-o";
     private static final String CLEAN_OPTION = "-c";
+    private static final String SINGLE_FILE_OPTION = "--single-file"
     private static final String CONFIG_OPTION = "--config";
 
     private final FilePath workspace;
@@ -95,6 +96,9 @@ public class ReportBuilder {
         arguments.add(CLEAN_OPTION);
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.add(reportPath.getRemote());
+        if (SINGLE_FILE_OPTION != null){
+            arguments.add(SINGLE_FILE_OPTION)
+        }
         if (configFilePath != null) {
             arguments.add(CONFIG_OPTION);
             arguments.add(configFilePath.getRemote());
