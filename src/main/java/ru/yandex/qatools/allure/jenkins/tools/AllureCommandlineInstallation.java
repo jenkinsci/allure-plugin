@@ -15,6 +15,7 @@
  */
 package ru.yandex.qatools.allure.jenkins.tools;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Functions;
@@ -33,7 +34,6 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.Messages;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,11 +59,11 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @SuppressWarnings("TrailingComment")
-    public String getExecutable(final @Nonnull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
+    public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new GetExecutable(getHome()));
     }
 
-    public String getMajorVersion(final @Nonnull Launcher launcher) throws InterruptedException, IOException {
+    public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
         return launcher.getChannel().call(new GetMajorVersion(getHome()));
     }
 
@@ -100,12 +100,12 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @Override
-    public AllureCommandlineInstallation forEnvironment(final @Nonnull EnvVars environment) {
+    public AllureCommandlineInstallation forEnvironment(final @NonNull EnvVars environment) {
         return new AllureCommandlineInstallation(getName(), environment.expand(getHome()), getProperties().toList());
     }
 
     @Override
-    public AllureCommandlineInstallation forNode(final @Nonnull Node node,
+    public AllureCommandlineInstallation forNode(final @NonNull Node node,
                                                  final TaskListener log)
             throws IOException, InterruptedException {
         return new AllureCommandlineInstallation(getName(), translateFor(node, log), getProperties().toList());
@@ -161,7 +161,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
         }
 
         @Override
-        @Nonnull
+        @NonNull
         public String getDisplayName() {
             return Messages.AllureCommandlineInstallation_DisplayName();
         }

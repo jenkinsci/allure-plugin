@@ -18,6 +18,7 @@ package ru.yandex.qatools.allure.jenkins;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.AutoCompletionCandidates;
@@ -33,7 +34,6 @@ import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
     @Override
-    @Nonnull
+    @NonNull
     public String getDisplayName() {
         return Messages.AllureReportPublisher_DisplayName();
     }
@@ -85,7 +85,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
     @SuppressWarnings("unused")
-    @Nonnull
+    @NonNull
     public AutoCompletionCandidates doAutoCompletePropertyKey() {
         final AutoCompletionCandidates candidates = new AutoCompletionCandidates();
         candidates.add("allure.issues.tracker.pattern");
@@ -113,7 +113,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         return true;
     }
 
-    @Nonnull
+    @NonNull
     public List<AllureCommandlineInstallation> getCommandlineInstallations() {
         return Optional.of(Jenkins.get())
                 .map(j -> j.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class))

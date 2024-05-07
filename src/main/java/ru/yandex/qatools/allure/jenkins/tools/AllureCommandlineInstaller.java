@@ -15,13 +15,12 @@
  */
 package ru.yandex.qatools.allure.jenkins.tools;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.tools.DownloadFromUrlInstaller;
 import hudson.tools.ToolInstallation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import ru.yandex.qatools.allure.jenkins.Messages;
-
-import javax.annotation.Nonnull;
 
 /**
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
@@ -42,7 +41,7 @@ public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
             .DescriptorImpl<AllureCommandlineInstaller> { //NOSONAR
 
         @Override
-        @Nonnull
+        @NonNull
         public String getDisplayName() {
             return Messages.AllureCommandlineInstaller_DisplayName();
         }
