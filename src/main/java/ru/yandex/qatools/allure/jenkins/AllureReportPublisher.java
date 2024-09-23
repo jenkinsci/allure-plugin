@@ -245,10 +245,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     @Override
-    public void perform(final @NonNull Run<?, ?> run,
-                        final @NonNull FilePath workspace,
-                        final @NonNull Launcher launcher,
-                        final @NonNull TaskListener listener) throws InterruptedException, IOException {
+    public void perform(final @Nonnull Run<?, ?> run,
+                        final @Nonnull FilePath workspace,
+                        final @Nonnull EnvVars env,
+                        final @Nonnull Launcher launcher,
+                        final @Nonnull TaskListener listener) throws InterruptedException, IOException {
         if (isDisabled()) {
             listener.getLogger().println("Allure report is disabled.");
             return;
@@ -260,13 +261,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                     + " Check your job's configuration.");
         }
         final List<FilePath> results = new ArrayList<>();
-        final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
+
         for (final ResultsConfig resultsConfig : resultsConfigs) {
-            final String expandedPath = buildEnvVars.expand(resultsConfig.getPath());
+            final String expandedPath = env.expand(resultsConfig.getPath());
             results.addAll(workspace.act(new FindByGlob(expandedPath)));
         }
         prepareResults(results, run, workspace, listener);
-        generateReport(results, run, workspace, launcher, listener);
+        generateReport(results, run, workspace, env, launcher, listener);
         copyResultsToParentIfNeeded(results, run, listener);
     }
 
@@ -318,7 +319,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                         resultsPaths.add(directory);
                     }
                 }
-                generateReport(resultsPaths, build, workspace, launcher, listener);
+
+                final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(build, listener);
+                generateReport(resultsPaths, build, workspace, buildEnvVars, launcher, listener);
                 for (FilePath resultsPath : resultsPaths) {
                     FilePathUtils.deleteRecursive(resultsPath, listener.getLogger());
                 }
@@ -328,11 +331,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @SuppressWarnings("TrailingComment")
-    private void generateReport(final @NonNull List<FilePath> resultsPaths,
-                                final @NonNull Run<?, ?> run,
-                                final @NonNull FilePath workspace,
-                                final @NonNull Launcher launcher,
-                                final @NonNull TaskListener listener
+    private void generateReport(final @Nonnull List<FilePath> resultsPaths,
+                                final @Nonnull Run<?, ?> run,
+                                final @Nonnull FilePath workspace,
+                                final @Nonnull EnvVars env,
+                                final @Nonnull Launcher launcher,
+                                final @Nonnull TaskListener listener
     ) throws IOException, InterruptedException { //NOSONAR
 
         final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
@@ -342,13 +346,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
-        final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(run, listener);
-        setAllureProperties(buildEnvVars);
-        configureJdk(launcher, listener, buildEnvVars);
-        final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, buildEnvVars);
+
+        setAllureProperties(env);
+        configureJdk(launcher, listener, env);
+        final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, env);
 
         final FilePath reportPath = workspace.child(getReport());
-        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, buildEnvVars, commandline);
+        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
