@@ -208,11 +208,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         for (AllureReportBuildAction a = this; a != null; a = a.getPreviousResult()) {
             final ChartUtil.NumberOnlyBuildLabel columnKey = new ChartUtil.NumberOnlyBuildLabel(a.run);
-            dsb.add(a.getFailedCount(), "failed", columnKey);
-            dsb.add(a.getBrokenCount(), "broken", columnKey);
-            dsb.add(a.getPassedCount(), "passed", columnKey);
-            dsb.add(a.getSkipCount(), "skipped", columnKey);
-            dsb.add(a.getUnknownCount(), "unknown", columnKey);
+            dsb.add(a.getFailedCount(), "a_failed", columnKey);
+            dsb.add(a.getBrokenCount(), "b_broken", columnKey);
+            dsb.add(a.getPassedCount(), "c_passed", columnKey);
+            dsb.add(a.getSkipCount(), "d_skipped", columnKey);
+            dsb.add(a.getUnknownCount(), "e_unknown", columnKey);
         }
         return dsb.build();
     }
