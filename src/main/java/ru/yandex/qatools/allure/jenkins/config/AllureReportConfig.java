@@ -15,11 +15,11 @@
  */
 package ru.yandex.qatools.allure.jenkins.config;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,7 +78,7 @@ public class AllureReportConfig implements Serializable {
         return commandline;
     }
 
-    @Nonnull
+    @NonNull
     @SuppressWarnings("deprecation")
     public List<ResultsConfig> getResults() {
         if (StringUtils.isNotBlank(this.resultsPattern)) {

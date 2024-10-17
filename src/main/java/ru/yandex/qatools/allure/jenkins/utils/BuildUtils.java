@@ -15,6 +15,7 @@
  */
 package ru.yandex.qatools.allure.jenkins.utils;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -27,8 +28,7 @@ import hudson.tools.ToolInstallation;
 import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -43,9 +43,9 @@ public final class BuildUtils {
     @SuppressWarnings({"ParameterAssignment", "PMD.AvoidReassigningParameters"})
     public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T setUpTool(
             @Nullable T tool,
-            final @Nonnull Launcher launcher,
-            final @Nonnull TaskListener listener,
-            final @Nonnull EnvVars env)
+            final @NonNull Launcher launcher,
+            final @NonNull TaskListener listener,
+            final @NonNull EnvVars env)
             throws IOException, InterruptedException {
 
         if (tool == null) {
