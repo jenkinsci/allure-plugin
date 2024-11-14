@@ -245,11 +245,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     @Override
-    public void perform(final @Nonnull Run<?, ?> run,
-                        final @Nonnull FilePath workspace,
-                        final @Nonnull EnvVars env,
-                        final @Nonnull Launcher launcher,
-                        final @Nonnull TaskListener listener) throws InterruptedException, IOException {
+    public void perform(final @NonNull Run<?, ?> run,
+                        final @NonNull FilePath workspace,
+                        final @NonNull EnvVars env,
+                        final @NonNull Launcher launcher,
+                        final @NonNull TaskListener listener) throws InterruptedException, IOException {
         if (isDisabled()) {
             listener.getLogger().println("Allure report is disabled.");
             return;
@@ -331,12 +331,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @SuppressWarnings("TrailingComment")
-    private void generateReport(final @Nonnull List<FilePath> resultsPaths,
-                                final @Nonnull Run<?, ?> run,
-                                final @Nonnull FilePath workspace,
-                                final @Nonnull EnvVars env,
-                                final @Nonnull Launcher launcher,
-                                final @Nonnull TaskListener listener
+    private void generateReport(final @NonNull List<FilePath> resultsPaths,
+                                final @NonNull Run<?, ?> run,
+                                final @NonNull FilePath workspace,
+                                final @NonNull EnvVars env,
+                                final @NonNull Launcher launcher,
+                                final @NonNull TaskListener listener
     ) throws IOException, InterruptedException { //NOSONAR
 
         final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
