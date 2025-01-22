@@ -13,9 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.net.*;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
+import java.net.URL;
 import java.io.*;
-import java.nio.channels.*;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Properties;
 
 public class MavenWrapperDownloader {
