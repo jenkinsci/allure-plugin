@@ -31,6 +31,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
+import hudson.util.io.ArchiverFactory;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import org.apache.commons.lang.StringUtils;
@@ -47,7 +48,6 @@ import ru.yandex.qatools.allure.jenkins.exception.AllurePluginException;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.BuildUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
-import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.File;
@@ -385,7 +385,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         try (OutputStream os = Files.newOutputStream(tempArchive.toPath())) {
             Objects.requireNonNull(reportPath.getParent())
-                    .archive(TrueZipArchiver.FACTORY, os, reportPath.getName() + "/**");
+                    .archive(ArchiverFactory.ZIP, os, reportPath.getName() + "/**");
         }
 
         Files.move(tempArchive.toPath(), archive.toPath());

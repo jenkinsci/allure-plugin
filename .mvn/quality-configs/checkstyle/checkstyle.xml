@@ -9,9 +9,7 @@
     <!-- Filters (http://checkstyle.sourceforge.net/config_filters.html) -->
     <module name="SuppressWarningsFilter"/>
 
-    <module name="NewlineAtEndOfFile">
-        <property name="lineSeparator" value="lf"/>
-    </module>
+    <module name="NewlineAtEndOfFile"/>
     <!-- disabled in favour of PMD ExcessiveClassLength check, which correctly checks class length not file length -->
     <!--<module name="FileLength">-->
     <!--<property name="max" value="500"/>-->

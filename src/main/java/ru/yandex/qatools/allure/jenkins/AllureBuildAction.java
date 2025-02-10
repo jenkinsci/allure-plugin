@@ -21,10 +21,10 @@ import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.DirectoryBrowserSupport;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 
 /**
@@ -63,8 +63,8 @@ public class AllureBuildAction implements BuildBadgeAction {
     }
 
     @SuppressWarnings({"unused", "TrailingComment"})
-    public DirectoryBrowserSupport doDynamic(final StaplerRequest req,
-                                             final StaplerResponse rsp) //NOSONAR
+    public DirectoryBrowserSupport doDynamic(final StaplerRequest2 req,
+                                             final StaplerResponse2 rsp) //NOSONAR
             throws IOException, ServletException, InterruptedException {
         final AbstractProject<?, ?> project = build.getProject();
         final FilePath systemDirectory = new FilePath(AllureReportPlugin.getReportBuildDirectory(build));

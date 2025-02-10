@@ -28,7 +28,7 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.StackedAreaRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.ui.RectangleInsets;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import ru.yandex.qatools.allure.jenkins.AllureReportBuildAction;
 import ru.yandex.qatools.allure.jenkins.Messages;
 
@@ -43,7 +43,7 @@ public final class ChartUtils {
     }
 
     @SuppressWarnings({"AnonInnerLength", "PMD.NcssCount"})
-    public static JFreeChart createChart(final StaplerRequest req,
+    public static JFreeChart createChart(final StaplerRequest2 req,
                                          final CategoryDataset dataset) {
 
         final String relPath = getRelPath(req);
@@ -132,7 +132,7 @@ public final class ChartUtils {
         return chart;
     }
 
-    private static String getRelPath(final StaplerRequest req) {
+    private static String getRelPath(final StaplerRequest2 req) {
         final String relPath = req.getParameter("rel");
         if (relPath == null) {
             return "";
