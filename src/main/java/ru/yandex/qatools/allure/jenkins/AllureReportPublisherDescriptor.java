@@ -29,7 +29,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
@@ -94,7 +94,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     }
 
     @Override
-    public boolean configure(final StaplerRequest req,
+    public boolean configure(final StaplerRequest2 req,
                              final JSONObject json) throws FormException {
         try {
             if (json.has(PROPERTIES)) {

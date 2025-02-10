@@ -31,13 +31,13 @@ import jenkins.tasks.SimpleBuildStep;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
 import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -77,7 +77,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         this.reportPath = reportPath.getName();
     }
 
-    public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
+    public void doGraph(final StaplerRequest2 req, final StaplerResponse2 rsp) throws IOException {
         final CategoryDataset data = buildDataSet();
 
         new Graph(-1, 600, 300) {
@@ -88,7 +88,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         }.doPng(req, rsp);
     }
 
-    public void doGraphMap(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
+    public void doGraphMap(final StaplerRequest2 req, final StaplerResponse2 rsp) throws IOException {
         final CategoryDataset data = buildDataSet();
 
         new Graph(-1, 600, 300) {
@@ -223,8 +223,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     @SuppressWarnings("unused")
-    public ArchiveReportBrowser doDynamic(final StaplerRequest req,
-                                          final StaplerResponse rsp)
+    public ArchiveReportBrowser doDynamic(final StaplerRequest2 req,
+                                          final StaplerResponse2 rsp)
             throws IOException, ServletException, InterruptedException {
         final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
         final ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
@@ -262,8 +262,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         }
 
         @Override
-        public void generateResponse(final StaplerRequest req,
-                                     final StaplerResponse rsp,
+        public void generateResponse(final StaplerRequest2 req,
+                                     final StaplerResponse2 rsp,
                                      final Object node)
                 throws IOException, ServletException {
             rsp.setHeader(CACHE_CONTROL, "no-cache, no-store, must-revalidate");

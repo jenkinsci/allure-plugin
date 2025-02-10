@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.74</version>
+        <version>5.7</version>
         <relativePath />
     </parent>
 
@@ -21,9 +21,10 @@
         <revision>2.31.0.11</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
-        <jenkins.version>2.387.3</jenkins.version>
+        <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+        <jenkins.baseline>2.479</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
         <allureCommandline.version>2.21.0</allureCommandline.version>
-        <truezip.version>7.7.10</truezip.version>
     </properties>
 
     <developers>
@@ -162,7 +163,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.6.0</version>
                 <configuration>
                     <configLocation>.mvn/quality-configs/checkstyle/checkstyle.xml</configLocation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -239,7 +240,7 @@
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
-                <version>1.6.8</version>
+                <version>1.13.0</version>
                 <executions>
                     <execution>
                         <id>download-commandline</id>
@@ -280,8 +281,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.387.x</artifactId>
-                <version>2496.vddfca_753db_80</version>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
+                <version>3893.v213a_42768d35</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -292,30 +293,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
+            <version>1.18.36</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>de.schlichtherle.truezip</groupId>
-            <artifactId>truezip-driver-zip</artifactId>
-            <version>${truezip.version}</version>
-            <exclusions>
-                <!-- Provided by Jenkins core -->
-                <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-compress</artifactId>
-                </exclusion>
-                <!-- Provided by bouncycastle-api plugin -->
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>de.schlichtherle.truezip</groupId>
-            <artifactId>truezip-file</artifactId>
-            <version>${truezip.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -348,7 +327,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>job-dsl</artifactId>
-            <version>1.83</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -367,13 +345,13 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.24.2</version>
+            <version>3.27.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ru.yandex.qatools.matchers</groupId>
             <artifactId>nio-matchers</artifactId>
-            <version>1.3</version>
+            <version>1.4.1</version>
             <scope>test</scope>
         </dependency>
 
