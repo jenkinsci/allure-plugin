@@ -54,11 +54,11 @@ class AllureReportPublisherContext implements Context {
         this.getPublisher().setDisabled(disabled);
     }
 
-    public void skipBroken(boolean skipBroken) {
+    public void skipBroken(final boolean skipBroken) {
         this.getPublisher().setSkipBroken(skipBroken);
     }
 
-    public void skipFailure(boolean skipFailure) {
+    public void skipFailure(final boolean skipFailure) {
         this.getPublisher().setSkipFailed(skipFailure);
     }
 

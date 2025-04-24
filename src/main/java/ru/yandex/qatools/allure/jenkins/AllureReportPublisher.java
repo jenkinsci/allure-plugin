@@ -73,7 +73,7 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
  * Date: 10/8/13, 6:20 PM
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass"})
+@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -134,7 +134,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @DataBoundSetter
-    public void setSkipBroken(Boolean skipBroken) {
+    public void setSkipBroken(final Boolean skipBroken) {
         this.skipBroken = skipBroken;
     }
 
@@ -146,7 +146,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @DataBoundSetter
-    public void setSkipFailed(Boolean skipFailed) {
+    public void setSkipFailed(final Boolean skipFailed) {
         this.skipFailed = skipFailed;
     }
 
