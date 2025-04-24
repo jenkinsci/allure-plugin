@@ -55,9 +55,31 @@ public class AllureReportConfig implements Serializable {
     @SuppressWarnings({"unused", "PMD.SingularField"})
     private String configPath = "";
 
+    private Boolean skipBroken = Boolean.FALSE;
+
+    private Boolean skipFailed = Boolean.FALSE;
+
     @DataBoundConstructor
     public AllureReportConfig(final List<ResultsConfig> results) {
         this.results = results == null ? Collections.<ResultsConfig>emptyList() : results;
+    }
+
+    @DataBoundSetter
+    public void setSkipBroken(final Boolean skipBroken) {
+        this.skipBroken = skipBroken;
+    }
+
+    public Boolean getSkipBroken() {
+        return skipBroken;
+    }
+
+    @DataBoundSetter
+    public void setSkipFailed(final Boolean skipFailed) {
+        this.skipFailed = skipFailed;
+    }
+
+    public Boolean getSkipFailed() {
+        return skipFailed;
     }
 
     @DataBoundSetter

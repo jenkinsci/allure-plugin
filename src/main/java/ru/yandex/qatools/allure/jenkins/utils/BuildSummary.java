@@ -61,4 +61,8 @@ public class BuildSummary {
         }
         return Result.SUCCESS;
     }
+
+    public Result setSuccessResult() {
+        return Result.SUCCESS;
+    }
 }
