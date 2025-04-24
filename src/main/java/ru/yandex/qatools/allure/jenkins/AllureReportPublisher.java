@@ -100,6 +100,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private String report;
 
+    private Boolean skipBroken;
+
+    private Boolean skipFailed;
+
     @DataBoundConstructor
     public AllureReportPublisher(final @NonNull List<ResultsConfig> results) {
         this.results = results;
@@ -116,9 +120,41 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return this.disabled == null ? Boolean.FALSE : this.disabled;
     }
 
+    public boolean areBrokenSkipped() {
+        return this.skipBroken == null ? Boolean.FALSE : this.skipBroken;
+    }
+
+    public boolean areFailedSkipped() {
+        return this.skipFailed == null ? Boolean.FALSE : this.skipFailed;
+    }
+
     @DataBoundSetter
     public void setDisabled(final boolean disabled) {
         this.disabled = disabled;
+    }
+
+    @DataBoundSetter
+    public void setSkipBroken(Boolean skipBroken) {
+        this.skipBroken = skipBroken;
+    }
+
+    public Boolean getSkipBroken() {
+        if (this.skipBroken == null && this.config != null) {
+            this.skipBroken = this.config.getSkipBroken();
+        }
+        return this.skipBroken == null ? Boolean.TRUE : skipBroken;
+    }
+
+    @DataBoundSetter
+    public void setSkipFailed(Boolean skipFailed) {
+        this.skipFailed = skipFailed;
+    }
+
+    public Boolean getSkipFailed() {
+        if (this.skipFailed == null && this.config != null) {
+            this.skipFailed = this.config.getSkipFailed();
+        }
+        return this.skipFailed == null ? Boolean.TRUE : skipFailed;
     }
 
     @DataBoundSetter
@@ -346,7 +382,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
-
         setAllureProperties(env);
         configureJdk(launcher, listener, env);
         final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, env);
@@ -368,7 +403,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                 FilePathUtils.extractSummary(run, reportPath.getName()));
         buildAction.setReportPath(reportPath);
         run.addAction(buildAction);
-        run.setResult(buildAction.getBuildSummary().getResult());
+        if (areBrokenSkipped() || areFailedSkipped()) {
+            run.setResult(buildAction.getBuildSummary().setSuccessResult());
+        } else {
+            run.setResult(buildAction.getBuildSummary().getResult());
+        }
     }
 
     private void saveAllureArtifact(final Run<?, ?> run,

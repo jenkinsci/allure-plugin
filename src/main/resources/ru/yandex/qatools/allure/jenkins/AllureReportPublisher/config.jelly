@@ -5,6 +5,12 @@
     <f:entry title="${%Disabled}" field="disabled">
         <f:checkbox checked="${instance.isDisabled()}"/>
     </f:entry>
+    <f:entry title="${%SkipBroken}" field="skipBroken">
+        <f:checkbox checked="${instance.areBrokenSkipped()}"/>
+    </f:entry>
+    <f:entry title="${%SkipFailed}" field="skipFailed">
+        <f:checkbox checked="${instance.areFailedSkipped()}"/>
+    </f:entry>
     <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
         <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
             <table width="90%">

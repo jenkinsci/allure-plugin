@@ -54,6 +54,14 @@ class AllureReportPublisherContext implements Context {
         this.getPublisher().setDisabled(disabled);
     }
 
+    public void skipBroken(boolean skipBroken) {
+        this.getPublisher().setSkipBroken(skipBroken);
+    }
+
+    public void skipFailure(boolean skipFailure) {
+        this.getPublisher().setSkipFailed(skipFailure);
+    }
+
     public void commandline(final String commandline) {
         getPublisher().setCommandline(commandline);
     }
