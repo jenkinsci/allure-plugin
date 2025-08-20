@@ -94,7 +94,7 @@ public final class BuildUtils {
             extends MasterToSlaveCallable<Void, RuntimeException> {
         private final T tool;
         private final EnvVars envVars;
-        SetEnvVarsCallable(T tool, EnvVars envVars) {
+        SetEnvVarsCallable(final T tool, final EnvVars envVars) {
             this.tool = tool;
             this.envVars = envVars;
         }
