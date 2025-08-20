@@ -90,7 +90,8 @@ public final class BuildUtils {
         return env;
     }
 
-    private static final class SetEnvVarsCallable<T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> extends MasterToSlaveCallable<Void, RuntimeException> {
+    private static final class SetEnvVarsCallable<T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>>
+            extends MasterToSlaveCallable<Void, RuntimeException> {
         private final T tool;
         private final EnvVars envVars;
         SetEnvVarsCallable(T tool, EnvVars envVars) {
