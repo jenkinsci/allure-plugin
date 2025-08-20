@@ -26,7 +26,6 @@ import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolInstallation;
 import jenkins.model.Jenkins;
-import jenkins.security.MasterToSlaveCallable;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
@@ -56,17 +55,10 @@ public final class BuildUtils {
         final Computer computer = getComputer(launcher);
         if (computer != null && computer.getNode() != null) {
             tool = tool.forNode(computer.getNode(), listener).forEnvironment(env);
-            setEnvVarsForNode(tool, env, launcher);
+            tool.buildEnvVars(env);
         }
 
         return tool;
-    }
-
-    private static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> void setEnvVarsForNode(
-            final T tool,
-            final EnvVars envVars,
-            final Launcher launcher) throws IOException, InterruptedException {
-        launcher.getChannel().call(new SetEnvVarsCallable<T>(tool, envVars));
     }
 
     public static Computer getComputer(final Launcher launcher) {
@@ -88,23 +80,5 @@ public final class BuildUtils {
             env.overrideAll(((AbstractBuild<?, ?>) run).getBuildVariables());
         }
         return env;
-    }
-
-    private static final class SetEnvVarsCallable<T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>>
-            extends MasterToSlaveCallable<Void, RuntimeException> {
-        private final T tool;
-        private final EnvVars envVars;
-        SetEnvVarsCallable(final T tool, final EnvVars envVars) {
-            this.tool = tool;
-            this.envVars = envVars;
-        }
-
-        @Override
-        public Void call() {
-            if (tool != null) {
-                tool.buildEnvVars(envVars);
-            }
-            return null;
-        }
     }
 }
