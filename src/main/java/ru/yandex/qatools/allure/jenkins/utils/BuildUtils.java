@@ -66,15 +66,7 @@ public final class BuildUtils {
             final T tool,
             final EnvVars envVars,
             final Launcher launcher) throws IOException, InterruptedException {
-        launcher.getChannel().call(new MasterToSlaveCallable<Void, RuntimeException>() {
-            @Override
-            public Void call() {
-                if (tool != null) {
-                    tool.buildEnvVars(envVars);
-                }
-                return null;
-            }
-        });
+        launcher.getChannel().call(new SetEnvVarsCallable<T>(tool, envVars));
     }
 
     public static Computer getComputer(final Launcher launcher) {
@@ -98,4 +90,20 @@ public final class BuildUtils {
         return env;
     }
 
+    private static final class SetEnvVarsCallable<T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> extends MasterToSlaveCallable<Void, RuntimeException> {
+        private final T tool;
+        private final EnvVars envVars;
+        SetEnvVarsCallable(T tool, EnvVars envVars) {
+            this.tool = tool;
+            this.envVars = envVars;
+        }
+
+        @Override
+        public Void call() {
+            if (tool != null) {
+                tool.buildEnvVars(envVars);
+            }
+            return null;
+        }
+    }
 }
