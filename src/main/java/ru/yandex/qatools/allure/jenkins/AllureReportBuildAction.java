@@ -38,7 +38,10 @@ import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,11 +56,13 @@ import static java.lang.String.format;
  *
  * @author pupssman
  */
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
     private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
+    private static final String SLASH = "/";
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
@@ -222,24 +227,95 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         return run.getUrl();
     }
 
+    @Override
+    public void onAttached(final Run<?, ?> attachedRun) {
+        this.run = attachedRun;
+    }
+
+    @Override
+    public void onLoad(final Run<?, ?> loadedRun) {
+        this.run = loadedRun;
+    }
+
     @SuppressWarnings("unused")
-    public ArchiveReportBrowser doDynamic(final StaplerRequest req,
-                                          final StaplerResponse rsp)
-            throws IOException, ServletException, InterruptedException {
-        final FilePath archive = new FilePath(run.getRootDir()).child("archive/allure-report.zip");
-        final ArchiveReportBrowser archiveReportBrowser = new ArchiveReportBrowser(archive);
-        archiveReportBrowser.setReportPath(this.getReportPath());
-        return archiveReportBrowser;
+    public Object doDynamic(final StaplerRequest request, final StaplerResponse response)
+        throws IOException, InterruptedException {
+
+        final FilePath runRootDir = new FilePath(run.getRootDir());
+        final String reportDirName = getReportPath();
+
+        final FilePath reportDirectoryUnderBuild = runRootDir.child(reportDirName);
+        if (reportDirectoryUnderBuild.exists()) {
+            return new DirectoryReportBrowser(reportDirectoryUnderBuild);
+        }
+
+        final FilePath archivedZip = runRootDir.child("archive/allure-report.zip");
+        if (archivedZip.exists()) {
+            final ArchiveReportBrowser browser = new ArchiveReportBrowser(archivedZip);
+            browser.setReportPath(reportDirName);
+            return browser;
+        }
+
+        response.sendError(
+            HttpServletResponse.SC_NOT_FOUND,
+            "Allure report not found. Neither directory '" + reportDirectoryUnderBuild.getRemote()
+                + "' nor archive '" + archivedZip.getRemote() + "' exists."
+        );
+        return null;
     }
 
-    @Override
-    public void onAttached(final Run<?, ?> r) {
-        run = r;
-    }
+    private static final class DirectoryReportBrowser implements HttpResponse {
 
-    @Override
-    public void onLoad(final Run<?, ?> r) {
-        run = r;
+        private final FilePath baseDirectory;
+
+        DirectoryReportBrowser(final FilePath baseDirectory) {
+            this.baseDirectory = baseDirectory;
+        }
+
+        @Override
+        public void generateResponse(final StaplerRequest request,
+            final StaplerResponse response,
+            final Object node) throws IOException, ServletException {
+
+            response.setHeader("Content-Security-Policy", "");
+            response.setHeader("X-Content-Type-Options", "nosniff");
+
+            String relativePath = request.getRestOfPath();
+            if (relativePath == null || relativePath.isEmpty() || SLASH.equals(relativePath)) {
+                relativePath = "index.html";
+            } else if (relativePath.startsWith(SLASH)) {
+                relativePath = relativePath.substring(1);
+            }
+
+            if (relativePath.contains("..")) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Illegal path");
+                return;
+            }
+
+            final FilePath fileToServe = baseDirectory.child(relativePath);
+
+            try {
+                if (!fileToServe.exists()) {
+                    response.sendRedirect2(request.getRequestURI().replaceAll("/+$", SLASH));
+                    return;
+                }
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while checking report file existence", interrupted);
+            }
+
+            try (InputStream inputStream = fileToServe.read()) {
+                response.serveFile(
+                    request,
+                    inputStream,
+                    -1L, -1L, -1L,
+                    fileToServe.getName()
+                );
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while reading report file", interrupted);
+            }
+        }
     }
 
     /**
@@ -256,8 +332,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             this.reportPath = ALLURE_REPORT;
         }
 
-        @SuppressWarnings("PMD.UnusedPrivateMethod")
-        private void setReportPath(final String reportPath) {
+        public void setReportPath(final String reportPath) {
             this.reportPath = reportPath;
         }
 

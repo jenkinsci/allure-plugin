@@ -21,7 +21,7 @@
         <revision>2.31.0.11</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
-        <jenkins.version>2.387.3</jenkins.version>
+        <jenkins.version>2.462.1</jenkins.version>
         <allureCommandline.version>2.21.0</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
     </properties>
