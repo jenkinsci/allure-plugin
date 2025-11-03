@@ -380,8 +380,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         listener.getLogger().println("Archiving Allure report via ArtifactManager…");
 
         final String reportDirName = getReport();
-
         final FilePath reportPathWs = workspace.child(reportDirName);
+
         if (!reportPathWs.exists()) {
             listener.error("Allure report directory not found: " + reportPathWs.getRemote());
             return;
