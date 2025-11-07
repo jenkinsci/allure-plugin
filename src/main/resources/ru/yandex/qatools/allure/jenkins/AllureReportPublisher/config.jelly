@@ -77,6 +77,25 @@
                 <br/>
             </j:forEach>
         </f:entry>
+        <f:entry title="Build result policy" field="resultPolicy">
+            <select class="setting-input" style="width: 90%" name="resultPolicy">
+                <j:forEach var="p" items="${descriptor.getResultPolicies()}">
+                    <f:option selected="${p==instance.getResultPolicy()}" value="${p}">${p}</f:option>
+                </j:forEach>
+            </select>
+        </f:entry>
+        <f:entry title="Unstable threshold, %" field="unstableThresholdPercent">
+            <f:number default="" min="0" max="100"/>
+        </f:entry>
+        <f:entry title="Failure threshold, %" field="failureThresholdPercent">
+            <f:number default="" min="0" max="100"/>
+        </f:entry>
+        <f:entry title="Unstable threshold, count" field="unstableThresholdCount">
+            <f:number default="" min="0"/>
+        </f:entry>
+        <f:entry title="Failure threshold, count" field="failureThresholdCount">
+            <f:number default="" min="0"/>
+        </f:entry>
         <f:entry title="${%IncludeEnvironment}" field="includeProperties">
             <f:checkbox checked="${instance.getIncludeProperties()}"/>
         </f:entry>

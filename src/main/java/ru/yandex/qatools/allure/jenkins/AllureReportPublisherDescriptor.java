@@ -32,6 +32,7 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.StaplerRequest;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
+import ru.yandex.qatools.allure.jenkins.config.ResultPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.IOException;
@@ -55,6 +56,10 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
         load();
+    }
+    @SuppressWarnings("unused")
+    public ResultPolicy[] getResultPolicies() {
+        return ResultPolicy.values();
     }
 
     public List<PropertyConfig> getProperties() {

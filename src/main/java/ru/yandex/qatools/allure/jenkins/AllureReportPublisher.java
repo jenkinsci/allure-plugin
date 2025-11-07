@@ -28,6 +28,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.JDK;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
@@ -44,9 +45,11 @@ import ru.yandex.qatools.allure.jenkins.callables.FindByGlob;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
+import ru.yandex.qatools.allure.jenkins.config.ResultPolicy;
 import ru.yandex.qatools.allure.jenkins.config.ResultsConfig;
 import ru.yandex.qatools.allure.jenkins.exception.AllurePluginException;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
+import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
 import ru.yandex.qatools.allure.jenkins.utils.BuildUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
 import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
@@ -72,7 +75,7 @@ import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
  * Date: 10/8/13, 6:20 PM
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass"})
+@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -98,6 +101,61 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private Boolean disabled;
 
     private String report;
+
+    private ResultPolicy resultPolicy;
+
+    @Nullable
+    private Integer unstableThresholdPercent;
+    @Nullable
+    private Integer failureThresholdPercent;
+    @Nullable
+    private Integer unstableThresholdCount;
+    @Nullable
+    private Integer failureThresholdCount;
+
+    @DataBoundSetter
+    public void setResultPolicy(final ResultPolicy resultPolicy) {
+        this.resultPolicy = resultPolicy;
+    }
+
+    public ResultPolicy getResultPolicy() {
+        return this.resultPolicy == null
+            ? ResultPolicy.UNSTABLE_IF_FAILED_OR_BROKEN
+            : this.resultPolicy;
+    }
+
+    @DataBoundSetter
+    public void setUnstableThresholdPercent(final Integer value) {
+        this.unstableThresholdPercent = value;
+    }
+
+    @DataBoundSetter
+    public void setFailureThresholdPercent(final Integer value) {
+        this.failureThresholdPercent = value;
+    }
+
+    @DataBoundSetter
+    public void setUnstableThresholdCount(final Integer value) {
+        this.unstableThresholdCount = value;
+    }
+
+    @DataBoundSetter
+    public void setFailureThresholdCount(final Integer value) {
+        this.failureThresholdCount = value;
+    }
+
+    @Nullable public Integer getUnstableThresholdPercent() {
+        return unstableThresholdPercent;
+    }
+    @Nullable public Integer getFailureThresholdPercent() {
+        return failureThresholdPercent;
+    }
+    @Nullable public Integer getUnstableThresholdCount() {
+        return unstableThresholdCount;
+    }
+    @Nullable public Integer getFailureThresholdCount() {
+        return failureThresholdCount;
+    }
 
     @DataBoundConstructor
     public AllureReportPublisher(final @NonNull List<ResultsConfig> results) {
@@ -329,48 +387,94 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         };
     }
 
-    @SuppressWarnings("TrailingComment")
-    private void generateReport(final @NonNull List<FilePath> resultsPaths,
-                                final @NonNull Run<?, ?> run,
-                                final @NonNull FilePath workspace,
-                                final @NonNull EnvVars env,
-                                final @NonNull Launcher launcher,
-                                final @NonNull TaskListener listener
-    ) throws IOException, InterruptedException { //NOSONAR
+    @SuppressWarnings({"TrailingComment", "PMD.NcssCount"})
+    private void generateReport(
+        final @NonNull List<FilePath> resultsPaths,
+        final @NonNull Run<?, ?> run,
+        final @NonNull FilePath workspace,
+        final @NonNull EnvVars env,
+        final @NonNull Launcher launcher,
+        final @NonNull TaskListener listener) throws IOException, InterruptedException {
 
-        final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
-        if (!reportBuildPolicy.isNeedToBuildReport(run)) {
-            listener.getLogger().printf("Allure report generation reject by policy [%s]%n",
-                    reportBuildPolicy.getTitle());
+        if (!shouldBuildReport(run, listener)) {
             return;
         }
 
+        final AllureCommandlineInstallation commandLineInstallation = ensureCommandLineInstallation(launcher, listener, env);
+        buildReportOrThrow(resultsPaths, workspace, env, launcher, listener, commandLineInstallation);
 
-        setAllureProperties(env);
-        configureJdk(launcher, listener, env);
-        final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, env);
+        final BuildSummary summary = attachReportAndGetSummary(run, workspace, listener, launcher);
+        applyResultStatus(run, summary);
+    }
 
-        final FilePath reportPathWs = workspace.child(getReport());
-        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
+
+    private void maybeSetConfigFilePath(final ReportBuilder builder,
+        final FilePath workspace,
+        final TaskListener listener)
+        throws IOException, InterruptedException {
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
             builder.setConfigFilePath(configFilePath);
         }
+    }
+
+    private boolean shouldBuildReport(final Run<?, ?> run, final TaskListener listener) {
+        final ReportBuildPolicy policy = getReportBuildPolicy();
+        if (!policy.isNeedToBuildReport(run)) {
+            listener.getLogger().printf("Allure report generation reject by policy [%s]%n", policy.getTitle());
+            return false;
+        }
+        return true;
+    }
+
+    private AllureCommandlineInstallation ensureCommandLineInstallation(final Launcher launcher,
+        final TaskListener listener,
+        final EnvVars env) throws IOException, InterruptedException {
+        setAllureProperties(env);
+        configureJdk(launcher, listener, env);
+        return getCommandline(launcher, listener, env);
+    }
+
+    private void buildReportOrThrow(final List<FilePath> resultsPaths,
+        final FilePath workspace,
+        final EnvVars env,
+        final Launcher launcher,
+        final TaskListener listener,
+        final AllureCommandlineInstallation commandline) throws IOException, InterruptedException {
+        final FilePath reportPathWs = workspace.child(getReport());
+        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
+        maybeSetConfigFilePath(builder, workspace, listener);
         final int exitCode = builder.build(resultsPaths, reportPathWs);
         if (exitCode != 0) {
             throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
         }
         listener.getLogger().println("Allure report was successfully generated.");
+    }
 
+    private BuildSummary attachReportAndGetSummary(final Run<?, ?> run,
+        final FilePath workspace,
+        final TaskListener listener,
+        final Launcher launcher) throws IOException, InterruptedException {
         saveAllureArtifact(run, workspace, listener, launcher);
-
         final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(getReport());
-        final AllureReportBuildAction buildAction = new AllureReportBuildAction(
-            FilePathUtils.extractSummary(run, reportUnderBuild.getName()));
+        final AllureReportBuildAction buildAction =
+            new AllureReportBuildAction(FilePathUtils.extractSummary(run, reportUnderBuild.getName()));
         buildAction.setReportPath(reportUnderBuild);
         run.addAction(buildAction);
-        run.setResult(buildAction.getBuildSummary().getResult());
+        return buildAction.getBuildSummary();
+    }
+
+    private void applyResultStatus(final Run<?, ?> run, final BuildSummary summary) {
+        final Result thresholdResult = decideByThresholds(summary);
+        if (thresholdResult != null) {
+            run.setResult(thresholdResult);
+            return;
+        }
+        final Result target = getResultPolicy().decide(summary);
+        if (target != null) {
+            run.setResult(target);
+        }
     }
 
     private void saveAllureArtifact(final Run<?, ?> run,
@@ -521,6 +625,61 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @Nullable
     private JDK getJdkInstallation() {
         return Jenkins.get().getJDK(getJdk());
+    }
+
+    @Nullable
+    private Result decideByThresholds(final @NonNull BuildSummary summary) {
+        if (failureThresholdCount == null
+            && failureThresholdPercent == null
+            && unstableThresholdCount == null
+            && unstableThresholdPercent == null) {
+            return null;
+        }
+
+        final long problems = summary.getFailedCount() + summary.getBrokenCount();
+        final long total = problems + summary.getPassedCount() + summary.getSkipCount() + summary.getUnknownCount();
+        final double ratio = total > 0 ? (problems * 100.0d) / (double) total : 0.0d;
+
+        final Result byCount = evaluateThresholdPair(problems, failureThresholdCount, unstableThresholdCount);
+        final Result byPercent = evaluateThresholdPair(ratio, failureThresholdPercent, unstableThresholdPercent);
+        return worstResult(byCount, byPercent);
+    }
+
+    @Nullable
+    private static Result evaluateThresholdPair(final long actualValue,
+        @Nullable final Integer failureThreshold,
+        @Nullable final Integer unstableThreshold) {
+        if (failureThreshold != null && actualValue >= failureThreshold) {
+            return Result.FAILURE;
+        }
+        if (unstableThreshold != null && actualValue >= unstableThreshold) {
+            return Result.UNSTABLE;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Result evaluateThresholdPair(final double actualPercent,
+        @Nullable final Integer failureThresholdPercentValue,
+        @Nullable final Integer unstableThresholdPercentValue) {
+        if (failureThresholdPercentValue != null && actualPercent >= failureThresholdPercentValue) {
+            return Result.FAILURE;
+        }
+        if (unstableThresholdPercentValue != null && actualPercent >= unstableThresholdPercentValue) {
+            return Result.UNSTABLE;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Result worstResult(@Nullable final Result firstResult, @Nullable final Result secondResult) {
+        if (Result.FAILURE.equals(firstResult) || Result.FAILURE.equals(secondResult)) {
+            return Result.FAILURE;
+        }
+        if (Result.UNSTABLE.equals(firstResult) || Result.UNSTABLE.equals(secondResult)) {
+            return Result.UNSTABLE;
+        }
+        return null;
     }
 
     /**

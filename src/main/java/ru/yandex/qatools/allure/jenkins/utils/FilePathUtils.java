@@ -24,12 +24,13 @@ import hudson.model.Run;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -42,13 +43,19 @@ public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
-    private static final List<String> BUILD_STATISTICS_KEYS = Arrays.asList(
-            "passed",
-            "failed",
-            "broken",
-            "skipped",
-            "unknown");
-    public static final String SEPORATOR = "/";
+    private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
+
+    private static final String KEY_PASSED = "passed";
+    private static final String KEY_BROKEN = "broken";
+    private static final String KEY_SKIPPED = "skipped";
+    private static final String KEY_UNKNOWN = "unknown";
+
+    private static final String DIR_EXPORT = "export";
+    private static final String DIR_WIDGETS = "widgets";
+    private static final String FILE_SUMMARY = "summary.json";
+    private static final String KEY_STATISTIC = "statistic";
+
+    public static final String SEPARATOR = "/";
 
     private FilePathUtils() {
     }
@@ -112,41 +119,70 @@ public final class FilePathUtils {
 
     @SuppressWarnings("PMD.EmptyCatchBlock")
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath report = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-        try {
-            if (!report.exists()) {
-                return null;
-            }
-            try (ZipFile archive = new ZipFile(report.getRemote())) {
+        final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
 
-                Optional<ZipEntry> summary = getSummary(archive, reportPath, "export");
-                if (!summary.isPresent()) {
-                    summary = getSummary(archive, reportPath, "widgets");
-                }
-                if (summary.isPresent()) {
-                    try (InputStream is = archive.getInputStream(summary.get())) {
-                        final ObjectMapper mapper = new ObjectMapper();
-                        final JsonNode summaryJson = mapper.readTree(is);
-                        final JsonNode statisticJson = summaryJson.get("statistic");
-                        final Map<String, Integer> statisticsMap = new HashMap<>();
-                        for (String key : BUILD_STATISTICS_KEYS) {
-                            statisticsMap.put(key, statisticJson.get(key).intValue());
+        try {
+            if (reportZip.exists()) {
+                try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
+                    Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
+                    if (summary.isEmpty()) {
+                        summary = getSummary(archive, reportPath, DIR_WIDGETS);
+                    }
+                    if (summary.isPresent()) {
+                        try (InputStream is = archive.getInputStream(summary.get())) {
+                            return parseSummaryJson(is);
                         }
-                        return new BuildSummary().withStatistics(statisticsMap);
                     }
                 }
             }
-        } catch (IOException | InterruptedException ignore) {
-            // nothing to do
+        } catch (IOException | InterruptedException ex) {
+            LOG.log(Level.FINE, "Unable to read Allure summary from ZIP for {0}: {1}",
+                new Object[]{reportPath, ex.toString()});
         }
-        return null;
+
+        try {
+            final FilePath reportDir = new FilePath(run.getRootDir()).child(reportPath);
+            FilePath json = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+            if (!json.exists()) {
+                json = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
+            }
+            if (json.exists()) {
+                try (InputStream is = json.read()) {
+                    return parseSummaryJson(is);
+                }
+            }
+        } catch (IOException | InterruptedException ex) {
+            LOG.log(Level.FINE, "Unable to read Allure summary from unpacked dir for {0}: {1}",
+                new Object[]{reportPath, ex.toString()});
+        }
+
+        return new BuildSummary().withStatistics(new HashMap<>());
+    }
+
+    private static BuildSummary parseSummaryJson(final InputStream inputStream) throws IOException {
+        final ObjectMapper mapper = new ObjectMapper();
+        final JsonNode root = mapper.readTree(inputStream);
+
+        final JsonNode statisticNode = root.hasNonNull(KEY_STATISTIC) ? root.get(KEY_STATISTIC) : root;
+
+        final Map<String, Integer> statistics = new HashMap<>(5);
+        statistics.put(KEY_PASSED, nodeAsInt(statisticNode.get(KEY_PASSED)));
+        statistics.put(KEY_BROKEN, nodeAsInt(statisticNode.get(KEY_BROKEN)));
+        statistics.put(KEY_SKIPPED, nodeAsInt(statisticNode.get(KEY_SKIPPED)));
+        statistics.put(KEY_UNKNOWN, nodeAsInt(statisticNode.get(KEY_UNKNOWN)));
+
+        return new BuildSummary().withStatistics(statistics);
+    }
+
+    private static int nodeAsInt(final JsonNode node) {
+        return (node == null || node.isNull()) ? 0 : node.asInt(0);
     }
 
     private static Optional<ZipEntry> getSummary(final ZipFile archive,
                                                  final String reportPath,
                                                  final String location) {
-        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPORATOR).concat(location));
-        final String toSearch = reportPath.concat(SEPORATOR).concat(location).concat("/summary.json");
+        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPARATOR).concat(location));
+        final String toSearch = reportPath.concat(SEPARATOR).concat(location).concat(SEPARATOR).concat(FILE_SUMMARY);
         return entries.stream()
                 .filter(Objects::nonNull)
                 .filter(input -> input.getName().equals(toSearch))
