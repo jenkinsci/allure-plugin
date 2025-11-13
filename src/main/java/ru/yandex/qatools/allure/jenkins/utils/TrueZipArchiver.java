@@ -40,31 +40,26 @@ public final class TrueZipArchiver extends Archiver {
     private final byte[] buf = new byte[8192];
     private final ZipOutputStream zip;
 
-    /*package*/ TrueZipArchiver(final OutputStream out) {
-        zip = new ZipOutputStream(out, Charset.defaultCharset());
+    TrueZipArchiver(final OutputStream out) {
+        this(out, Charset.defaultCharset());
+    }
+
+    TrueZipArchiver(final OutputStream out, final Charset cs) {
+        zip = new ZipOutputStream(out, cs == null ? Charset.defaultCharset() : cs);
     }
 
     @Override
-    public void visit(final File f,
-                      final String rawRelativePath) throws IOException {
-        // int mode = IOUtils.mode(f); // TODO
-
-        // On Windows, the elements of relativePath are separated by 
-        // back-slashes (\), but Zip files need to have their path elements separated
-        // by forward-slashes (/)
+    public void visit(final File f, final String rawRelativePath) throws IOException {
         final String relativePath = rawRelativePath.replace('\\', '/');
 
         if (f.isDirectory()) {
             final ZipEntry dirZipEntry = new ZipEntry(relativePath + '/');
-            // Setting this bit explicitly is needed by some unzipping applications (see JENKINS-3294).
             dirZipEntry.setExternalAttributes(BITMASK_IS_DIRECTORY);
-            //if (mode!=-1)   dirZipEntry.setUnixMode(mode); // TODO
             dirZipEntry.setTime(f.lastModified());
             zip.putNextEntry(dirZipEntry);
             zip.closeEntry();
         } else {
             final ZipEntry fileZipEntry = new ZipEntry(relativePath);
-            //if (mode!=-1)   fileZipEntry.setUnixMode(mode); // TODO
             fileZipEntry.setTime(f.lastModified());
             zip.putNextEntry(fileZipEntry);
             try (InputStream in = Files.newInputStream(f.toPath())) {
@@ -91,8 +86,13 @@ public final class TrueZipArchiver extends Archiver {
         private static final long serialVersionUID = 1L;
 
         @Override
-        public Archiver create(final OutputStream out) throws IOException {
+        public Archiver create(final OutputStream out) {
             return new TrueZipArchiver(out);
+        }
+
+        @Override
+        public Archiver create(final OutputStream out, final Charset charset) {
+            return new TrueZipArchiver(out, charset);
         }
     }
 }
