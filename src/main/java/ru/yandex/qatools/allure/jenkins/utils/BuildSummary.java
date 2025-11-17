@@ -31,12 +31,8 @@ public class BuildSummary {
         return this;
     }
 
-    private int getStatistic(final String key) {
-        if (this.statistics == null) {
-            return 0;
-        }
-        final Integer value = this.statistics.get(key);
-        return value != null ? value : 0;
+    private Integer getStatistic(final String key) {
+        return this.statistics != null ? statistics.get(key) : 0;
     }
 
     public long getFailedCount() {
