@@ -32,6 +32,7 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.StaplerRequest;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
+import ru.yandex.qatools.allure.jenkins.config.ResultPolicy;
 import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.IOException;
@@ -55,6 +56,10 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
         load();
+    }
+    @SuppressWarnings("unused")
+    public ResultPolicy[] getResultPolicies() {
+        return ResultPolicy.values();
     }
 
     public List<PropertyConfig> getProperties() {
@@ -95,15 +100,15 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @Override
     public boolean configure(final StaplerRequest req,
-                             final JSONObject json) throws FormException {
+        final JSONObject json) throws FormException {
         try {
             if (json.has(PROPERTIES)) {
                 final String jsonProperties = JSONObject.fromObject(json).get(PROPERTIES).toString();
                 final ObjectMapper mapper = new ObjectMapper()
-                        .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+                    .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
 
                 final List<PropertyConfig> properties = mapper.readValue(jsonProperties,
-                        new TypeReference<List<PropertyConfig>>() { });
+                    new TypeReference<List<PropertyConfig>>() { });
                 setProperties(properties);
                 save();
             }
@@ -116,9 +121,9 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     @NonNull
     public List<AllureCommandlineInstallation> getCommandlineInstallations() {
         return Optional.of(Jenkins.get())
-                .map(j -> j.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class))
-                .map(ToolDescriptor::getInstallations)
-                .map(Arrays::asList).orElse(Collections.emptyList());
+            .map(j -> j.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class))
+            .map(ToolDescriptor::getInstallations)
+            .map(Arrays::asList).orElse(Collections.emptyList());
     }
 
     @SuppressWarnings("ReturnCount")
@@ -130,8 +135,8 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         }
 
         return installations.stream()
-                .filter(installation -> installation.getName().equals(name))
-                // If no installation match then take the first one
-                .findFirst().orElse(installations.get(0));
+            .filter(installation -> installation.getName().equals(name))
+            // If no installation match then take the first one
+            .findFirst().orElse(installations.get(0));
     }
 }

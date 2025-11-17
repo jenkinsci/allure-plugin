@@ -18,6 +18,7 @@ package ru.yandex.qatools.allure.jenkins.dsl;
 import ru.yandex.qatools.allure.jenkins.AllureReportPublisher;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
+import ru.yandex.qatools.allure.jenkins.config.ResultPolicy;
 
 import javaposse.jobdsl.dsl.Context;
 
@@ -41,8 +42,8 @@ class AllureReportPublisherContext implements Context {
 
     public void buildFor(final String buildPolicy) {
         final String policy = FAILURE_POLICY.equals(buildPolicy)
-                ? ReportBuildPolicy.UNSUCCESSFUL.getValue()
-                : buildPolicy;
+            ? ReportBuildPolicy.UNSUCCESSFUL.getValue()
+            : buildPolicy;
         getPublisher().setReportBuildPolicy(ReportBuildPolicy.valueOf(policy));
     }
 
@@ -68,5 +69,21 @@ class AllureReportPublisherContext implements Context {
 
     public void configPath(final String configPath) {
         getPublisher().setConfigPath(configPath);
+    }
+
+    public void resultPolicy(final String policy) {
+        getPublisher().setResultPolicy(ResultPolicy.valueOf(policy));
+    }
+    public void unstableThresholdPercent(final int value) {
+        getPublisher().setUnstableThresholdPercent(value);
+    }
+    public void failureThresholdPercent(final int value) {
+        getPublisher().setFailureThresholdPercent(value);
+    }
+    public void unstableThresholdCount(final int value) {
+        getPublisher().setUnstableThresholdCount(value);
+    }
+    public void failureThresholdCount(final int value) {
+        getPublisher().setFailureThresholdCount(value);
     }
 }
