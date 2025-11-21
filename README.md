@@ -20,6 +20,31 @@ This plugin allows you to create Allure reports as part of your Jenkins builds. 
 
 To learn more, please visit [the official documentation](https://allurereport.org/docs/integrations-jenkins/).
 
+### Advanced Threshold Policies
+
+Overview
+ - The plugin can now assess build stability using:
+ - Percentage-based thresholds
+ - Absolute failure-count thresholds
+ - Aggregated evaluation in matrix builds
+ - Optional preservation of the original Jenkins build result
+
+This functionality is fully backward-compatible. Existing pipelines continue to operate without modification unless new parameters are explicitly provided.
+
+### Parameters
+| Parameter                       | Description                                                             |
+|---------------------------------|-------------------------------------------------------------------------|
+| `unstableThresholdPercent`      | Marks build **UNSTABLE** if % of failed tests ≥ threshold               |
+| `failureThresholdPercent`       | Marks build **FAILURE** if % of failed tests ≥ threshold                |
+| `failureThresholdCount`         | Marks build **FAILURE** if number of failed tests ≥ threshold           |
+| `resultPolicy` (`DEFAULT`, `LEAVE_AS_IS`) | Controls whether Allure modifies the final build result      |
+| `results`                        | Supports glob patterns for multi-axis builds (e.g., `**/allure-results`) |
+
+Compatibility Notes
+ - If no threshold parameters are provided, the plugin uses its original behavior.
+ - Thresholds apply only when Allure results are present and successfully generated.
+ - This feature does not alter the reporting format or Allure commandline behavior.
+
 ## Useful links
 
 * [Issues](https://github.com/jenkinsci/allure-plugin/issues?labels=&milestone=&page=1&state=open)
