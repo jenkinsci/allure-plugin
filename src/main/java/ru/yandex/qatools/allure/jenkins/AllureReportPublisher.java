@@ -102,6 +102,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private String report;
 
+    private String reportName;
+
     private ResultPolicy resultPolicy;
 
     @Nullable
@@ -281,6 +283,20 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     public String getConfigPath() {
         return StringUtils.isNotBlank(configPath) ? configPath : null;
+    }
+
+    @DataBoundSetter
+    public void setReportName(final String reportName) {
+        if (StringUtils.isBlank(reportName)) {
+            this.reportName = null;
+        } else {
+            this.reportName = reportName.trim();
+        }
+    }
+
+    @Nullable
+    public String getReportName() {
+        return this.reportName;
     }
 
     @NonNull
@@ -574,8 +590,19 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final String buildUrl = rootUrl + run.getUrl();
         final String reportUrl = buildUrl + ALLURE_PREFIX;
         final String buildId = run.getId();
-        final AddExecutorInfo callable = new AddExecutorInfo(rootUrl, run.getFullDisplayName(), buildUrl, reportUrl,
-            buildId);
+
+        final String effectiveReportName =
+            StringUtils.isNotBlank(getReportName()) ? getReportName() : "AllureReport";
+
+        final AddExecutorInfo callable = new AddExecutorInfo(
+            rootUrl,
+            run.getFullDisplayName(),
+            buildUrl,
+            reportUrl,
+            buildId,
+            effectiveReportName
+        );
+
         for (FilePath path : resultsPaths) {
             path.act(callable);
         }

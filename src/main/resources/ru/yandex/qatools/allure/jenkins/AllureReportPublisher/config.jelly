@@ -103,6 +103,10 @@
             <f:textbox value="${instance.getReport()}" default="allure-report" clazz="required"
                        checkMessage="Path can't be empty!"/>
         </f:entry>
+        <f:entry title="${%Report Name}" field="reportName"
+                 description="${%ReportNameDescription}">
+            <f:textbox value="${instance.getReportName()}"/>
+        </f:entry>
         <f:entry title="${%Config}:" field="configPath" description="${%ConfigDescription}">
             <f:textbox value="${instance.getConfigPath()}" default=""/>
         </f:entry>
