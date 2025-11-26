@@ -86,4 +86,7 @@ class AllureReportPublisherContext implements Context {
     public void failureThresholdCount(final int value) {
         getPublisher().setFailureThresholdCount(value);
     }
+    public void reportName(final String reportName) {
+        getPublisher().setReportName(reportName);
+    }
 }
