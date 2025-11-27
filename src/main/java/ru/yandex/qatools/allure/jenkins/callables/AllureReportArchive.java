@@ -44,7 +44,8 @@ public class AllureReportArchive extends MasterToSlaveFileCallable<Void> {
     }
 
     @Override
-    public Void invoke(final File workspaceDirectory, final VirtualChannel channel) throws IOException, InterruptedException {
+    public Void invoke(final File workspaceDirectory, final VirtualChannel channel)
+        throws IOException, InterruptedException {
 
         final FilePath workspace = new FilePath(workspaceDirectory);
         final FilePath reportDirectory = workspace.child(reportDirectoryPath);
