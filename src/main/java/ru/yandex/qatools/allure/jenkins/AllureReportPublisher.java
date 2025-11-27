@@ -41,7 +41,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
-import ru.yandex.qatools.allure.jenkins.callables.CreateAllureZipCallable;
+import ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive;
 import ru.yandex.qatools.allure.jenkins.callables.FindByGlob;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
@@ -67,7 +67,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
-import static ru.yandex.qatools.allure.jenkins.callables.CreateAllureZipCallable.REPORT_DIR_NOT_FOUND;
+import static ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 
 /**
  * User: eroshenkoam.
@@ -475,13 +475,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final FilePath reportPathWs = workspace.child(reportDirPath);
 
         if (!reportPathWs.exists()) {
-            listener.error(REPORT_DIR_NOT_FOUND + reportPathWs.getRemote());
+            listener.error(REPORT_DIRECTORY_NOT_FOUND + reportPathWs.getRemote());
             return;
         }
 
         final String reportName = reportPathWs.getName();
 
-        workspace.act(new CreateAllureZipCallable(reportDirPath, REPORT_ARCHIVE_NAME));
+        workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
         final Map<String, String> artifacts =
             Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
