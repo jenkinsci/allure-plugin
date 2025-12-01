@@ -62,6 +62,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
     private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
+    private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
+    private static final String HEADER_X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
+    private static final String HEADER_NOSNIFF = "nosniff";
     private static final String SLASH = "/";
     private Run<?, ?> run;
 
@@ -277,8 +280,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             final StaplerResponse response,
             final Object node) throws IOException, ServletException {
 
-            response.setHeader("Content-Security-Policy", "");
-            response.setHeader("X-Content-Type-Options", "nosniff");
+            response.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
+            response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
 
             String relativePath = request.getRestOfPath();
             if (relativePath == null || relativePath.isEmpty() || SLASH.equals(relativePath)) {
@@ -341,6 +344,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             final StaplerResponse rsp,
             final Object node)
             throws IOException, ServletException {
+            rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
+            rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
             rsp.setHeader(CACHE_CONTROL, "no-cache, no-store, must-revalidate");
             rsp.addHeader(CACHE_CONTROL, "post-check=0, pre-check=0");
             rsp.setHeader("Pragma", "no-cache");
