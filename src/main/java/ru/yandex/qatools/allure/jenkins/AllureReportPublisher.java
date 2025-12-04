@@ -66,8 +66,8 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 import static ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
+import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
  * User: eroshenkoam.

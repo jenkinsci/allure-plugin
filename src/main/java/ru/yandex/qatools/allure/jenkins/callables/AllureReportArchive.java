@@ -18,6 +18,7 @@ package ru.yandex.qatools.allure.jenkins.callables;
 import hudson.FilePath;
 import hudson.remoting.VirtualChannel;
 import jenkins.MasterToSlaveFileCallable;
+
 import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import java.io.File;
