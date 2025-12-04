@@ -41,7 +41,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
-import ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive;
 import ru.yandex.qatools.allure.jenkins.callables.FindByGlob;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
@@ -53,9 +52,11 @@ import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
 import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
 import ru.yandex.qatools.allure.jenkins.utils.BuildUtils;
 import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
+import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,6 +64,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -481,7 +483,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final String reportName = reportPathWs.getName();
 
-        workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
+        final FilePath zipPath = workspace.child(REPORT_ARCHIVE_NAME);
+        if (zipPath.exists()) {
+            zipPath.delete();
+        }
+        try (OutputStream os = zipPath.write()) {
+            Objects.requireNonNull(reportPathWs.getParent())
+                .archive(TrueZipArchiver.FACTORY, os, reportPathWs.getName() + "/**");
+        }
 
         final Map<String, String> artifacts =
             Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
@@ -492,7 +501,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         run.pickArtifactManager().archive(workspace, launcher, buildListener, artifacts);
         listener.getLogger().println("Allure artifact archived via ArtifactManager.");
 
-        final FilePath zipPath = workspace.child(REPORT_ARCHIVE_NAME);
         if (zipPath.exists()) {
             zipPath.delete();
         }
