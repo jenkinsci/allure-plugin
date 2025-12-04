@@ -18,7 +18,6 @@ package ru.yandex.qatools.allure.jenkins.callables;
 import hudson.FilePath;
 import hudson.remoting.VirtualChannel;
 import jenkins.MasterToSlaveFileCallable;
-import jenkins.security.Roles;
 
 import ru.yandex.qatools.allure.jenkins.utils.TrueZipArchiver;
 
@@ -26,8 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Objects;
-
-import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * Creates Allure report archive on the build agent.
