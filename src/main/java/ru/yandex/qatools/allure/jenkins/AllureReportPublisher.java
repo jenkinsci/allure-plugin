@@ -41,8 +41,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import ru.yandex.qatools.allure.jenkins.callables.AddExecutorInfo;
 import ru.yandex.qatools.allure.jenkins.callables.AddTestRunInfo;
+import ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive;
 import ru.yandex.qatools.allure.jenkins.callables.FindByGlob;
-import ru.yandex.qatools.allure.jenkins.callables.ReportArchiver;
 import ru.yandex.qatools.allure.jenkins.config.AllureReportConfig;
 import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
 import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
@@ -67,6 +67,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
+import static ru.yandex.qatools.allure.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 
 /**
  * User: eroshenkoam.
@@ -408,76 +409,48 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull FilePath workspace,
         final @NonNull EnvVars env,
         final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener) throws IOException, InterruptedException {
+        final @NonNull TaskListener listener
+    ) throws IOException, InterruptedException {
+        final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
 
-        if (!shouldBuildReport(run, listener)) {
+        if (!reportBuildPolicy.isNeedToBuildReport(run)) {
+            listener.getLogger().printf("Allure report generation reject by policy [%s]%n",
+                reportBuildPolicy.getTitle());
             return;
         }
 
-        final AllureCommandlineInstallation commandLineInstallation =
-            ensureCommandLineInstallation(launcher, listener, env);
-        buildReportOrThrow(resultsPaths, workspace, env, launcher, listener, commandLineInstallation);
+        setAllureProperties(env);
+        configureJdk(launcher, listener, env);
+        final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, env);
 
-        final BuildSummary summary = attachReportAndGetSummary(run, workspace, listener, launcher);
-        applyResultStatus(run, summary);
-    }
+        final String reportDirPath = getReport();
+        final FilePath reportDirectoryInWorkspace = workspace.child(reportDirPath);
 
-
-    private void maybeSetConfigFilePath(final ReportBuilder builder,
-        final FilePath workspace,
-        final TaskListener listener)
-        throws IOException, InterruptedException {
+        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
             builder.setConfigFilePath(configFilePath);
         }
-    }
 
-    private boolean shouldBuildReport(final Run<?, ?> run, final TaskListener listener) {
-        final ReportBuildPolicy policy = getReportBuildPolicy();
-        if (!policy.isNeedToBuildReport(run)) {
-            listener.getLogger().printf("Allure report generation reject by policy [%s]%n", policy.getTitle());
-            return false;
-        }
-        return true;
-    }
-
-    private AllureCommandlineInstallation ensureCommandLineInstallation(final Launcher launcher,
-        final TaskListener listener,
-        final EnvVars env) throws IOException, InterruptedException {
-        setAllureProperties(env);
-        configureJdk(launcher, listener, env);
-        return getCommandline(launcher, listener, env);
-    }
-
-    private void buildReportOrThrow(final List<FilePath> resultsPaths,
-        final FilePath workspace,
-        final EnvVars env,
-        final Launcher launcher,
-        final TaskListener listener,
-        final AllureCommandlineInstallation commandline) throws IOException, InterruptedException {
-        final FilePath reportPathWs = workspace.child(getReport());
-        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
-        maybeSetConfigFilePath(builder, workspace, listener);
-        final int exitCode = builder.build(resultsPaths, reportPathWs);
+        final int exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
         if (exitCode != 0) {
             throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
         }
         listener.getLogger().println("Allure report was successfully generated.");
-    }
 
-    private BuildSummary attachReportAndGetSummary(final Run<?, ?> run,
-        final FilePath workspace,
-        final TaskListener listener,
-        final Launcher launcher) throws IOException, InterruptedException {
         saveAllureArtifact(run, workspace, listener, launcher);
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(getReport());
-        final AllureReportBuildAction buildAction =
-            new AllureReportBuildAction(FilePathUtils.extractSummary(run, reportUnderBuild.getName()));
+
+        final String reportName = reportDirectoryInWorkspace.getName();
+
+        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
+
+        final AllureReportBuildAction buildAction = new AllureReportBuildAction(
+            FilePathUtils.extractSummary(run, reportName)
+        );
         buildAction.setReportPath(reportUnderBuild);
         run.addAction(buildAction);
-        return buildAction.getBuildSummary();
+        applyResultStatus(run, buildAction.getBuildSummary());
     }
 
     private void applyResultStatus(final Run<?, ?> run, final BuildSummary summary) {
@@ -498,17 +471,20 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final Launcher launcher) throws IOException, InterruptedException {
         listener.getLogger().println("Archiving Allure report via ArtifactManager…");
 
-        final String reportDirName = getReport();
-        final FilePath reportPathWs = workspace.child(reportDirName);
+        final String reportDirPath = getReport();
+        final FilePath reportPathWs = workspace.child(reportDirPath);
 
         if (!reportPathWs.exists()) {
-            listener.error("Allure report directory not found: " + reportPathWs.getRemote());
+            listener.error(REPORT_DIRECTORY_NOT_FOUND + reportPathWs.getRemote());
             return;
         }
 
-        workspace.act(new ReportArchiver(reportDirName, REPORT_ARCHIVE_NAME));
+        final String reportName = reportPathWs.getName();
 
-        final Map<String, String> artifacts = Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
+        workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
+
+        final Map<String, String> artifacts =
+            Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
 
         final BuildListener buildListener =
             (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
@@ -517,9 +493,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         listener.getLogger().println("Allure artifact archived via ArtifactManager.");
 
         final FilePath zipPath = workspace.child(REPORT_ARCHIVE_NAME);
-        zipPath.delete();
+        if (zipPath.exists()) {
+            zipPath.delete();
+        }
 
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportDirName);
+        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
         if (reportUnderBuild.exists()) {
             reportUnderBuild.deleteRecursive();
         }
@@ -530,11 +508,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void setAllureProperties(final EnvVars envVars) {
         final StringBuilder options = new StringBuilder();
         final Map<String, String> properties = new HashMap<>();
-        //global properties
         for (PropertyConfig config : getDescriptor().getProperties()) {
             properties.put(config.getKey(), config.getValue());
         }
-        //job properties
         for (PropertyConfig config : getProperties()) {
             properties.put(config.getKey(), config.getValue());
         }
