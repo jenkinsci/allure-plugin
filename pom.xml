@@ -9,7 +9,7 @@
         <relativePath />
     </parent>
 
-    <groupId>ru.yandex.qatools.allure</groupId>
+    <groupId>io.qameta.allure</groupId>
     <artifactId>allure-jenkins-plugin</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
