@@ -20,7 +20,7 @@ import hudson.Extension;
 import hudson.tools.DownloadFromUrlInstaller;
 import hudson.tools.ToolInstallation;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.Messages;
+import io.qameta.allure.jenkins.Messages;
 
 /**
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}

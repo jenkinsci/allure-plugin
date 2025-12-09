@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static ru.yandex.qatools.allure.jenkins.utils.ZipUtils.listEntries;
+import static io.qameta.allure.jenkins.utils.ZipUtils.listEntries;
 
 /**
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}

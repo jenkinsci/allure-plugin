@@ -33,9 +33,9 @@ import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
-import ru.yandex.qatools.allure.jenkins.utils.ChartUtils;
-import ru.yandex.qatools.allure.jenkins.utils.FilePathUtils;
+import io.qameta.allure.jenkins.utils.BuildSummary;
+import io.qameta.allure.jenkins.utils.ChartUtils;
+import io.qameta.allure.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;

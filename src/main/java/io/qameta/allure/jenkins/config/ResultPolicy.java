@@ -5,7 +5,7 @@
 package io.qameta.allure.jenkins.config;
 
 import hudson.model.Result;
-import ru.yandex.qatools.allure.jenkins.utils.BuildSummary;
+import io.qameta.allure.jenkins.utils.BuildSummary;
 
 public enum ResultPolicy {
     LEAVE_AS_IS,

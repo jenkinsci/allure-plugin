@@ -29,8 +29,8 @@ import org.jfree.chart.renderer.category.StackedAreaRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.ui.RectangleInsets;
 import org.kohsuke.stapler.StaplerRequest;
-import ru.yandex.qatools.allure.jenkins.AllureReportBuildAction;
-import ru.yandex.qatools.allure.jenkins.Messages;
+import io.qameta.allure.jenkins.AllureReportBuildAction;
+import io.qameta.allure.jenkins.Messages;
 
 import java.awt.Color;
 

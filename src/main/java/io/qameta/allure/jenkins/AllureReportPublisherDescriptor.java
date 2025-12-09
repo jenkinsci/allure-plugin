@@ -30,10 +30,10 @@ import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.StaplerRequest;
-import ru.yandex.qatools.allure.jenkins.config.PropertyConfig;
-import ru.yandex.qatools.allure.jenkins.config.ReportBuildPolicy;
-import ru.yandex.qatools.allure.jenkins.config.ResultPolicy;
-import ru.yandex.qatools.allure.jenkins.tools.AllureCommandlineInstallation;
+import io.qameta.allure.jenkins.config.PropertyConfig;
+import io.qameta.allure.jenkins.config.ReportBuildPolicy;
+import io.qameta.allure.jenkins.config.ResultPolicy;
+import io.qameta.allure.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.IOException;
 import java.util.ArrayList;

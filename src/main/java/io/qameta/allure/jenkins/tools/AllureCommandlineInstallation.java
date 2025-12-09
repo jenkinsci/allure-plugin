@@ -32,7 +32,7 @@ import hudson.tools.ToolProperty;
 import jenkins.security.MasterToSlaveCallable;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-import ru.yandex.qatools.allure.jenkins.Messages;
+import io.qameta.allure.jenkins.Messages;
 
 import java.io.File;
 import java.io.IOException;
