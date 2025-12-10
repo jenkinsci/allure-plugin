@@ -33,29 +33,9 @@
             <email>baev@qameta.io</email>
         </developer>
         <developer>
-            <id>dchr</id>
-            <name>Denis Chernilevsky</name>
-            <email>dchr@yandex-team.ru</email>
-        </developer>
-        <developer>
             <id>eroshenkoam</id>
             <name>Artem Eroshenko</name>
             <email>eroshenkoam@qameta.io</email>
-        </developer>
-        <developer>
-            <id>mavlyutov</id>
-            <name>Marat Mavlyutov</name>
-            <email>mavlyutov@yandex-team.ru</email>
-        </developer>
-        <developer>
-            <id>pupssman</id>
-            <name>Ivan Kalinin</name>
-            <email>pupssman@yandex-team.ru</email>
-        </developer>
-        <developer>
-            <id>vania-pooh</id>
-            <name>Ivan Krutov</name>
-            <email>vania-pooh@yandex-team.ru</email>
         </developer>
     </developers>
 
