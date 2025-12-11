@@ -21,8 +21,8 @@
         <revision>2.31.0.11</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
-        <jenkins.version>2.387.3</jenkins.version>
-        <allureCommandline.version>2.21.0</allureCommandline.version>
+        <jenkins.version>2.462.1</jenkins.version>
+        <allureCommandline.version>2.35.1</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
     </properties>
 
@@ -114,7 +114,7 @@
                         <includes>
                             <include>src/**/*.java</include>
                         </includes>
-<!--                        <removeUnusedImports/> Some bug exists with it-->
+                        <!--                        <removeUnusedImports/> Some bug exists with it-->
                         <importOrder>  <!-- or a custom ordering -->
                             <order> ,jakarta,javax,java,\#</order>
                         </importOrder>
