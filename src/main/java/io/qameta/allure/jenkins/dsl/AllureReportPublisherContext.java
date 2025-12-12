@@ -25,7 +25,7 @@ import javaposse.jobdsl.dsl.Context;
 /**
  * @author Marat Mavlutov <{@literal mavlyutov@yandex-team.ru}>
  */
-class AllureReportPublisherContext implements Context {
+public class AllureReportPublisherContext implements Context {
 
     private static final String FAILURE_POLICY = "FAILURE";
 
