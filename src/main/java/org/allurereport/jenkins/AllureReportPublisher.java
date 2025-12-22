@@ -483,6 +483,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
+        final FilePath existingArchivedZip = new FilePath(run.getRootDir())
+            .child("archive")
+            .child(REPORT_ARCHIVE_NAME);
+
+        if (existingArchivedZip.exists()) {
+            listener.getLogger().println("Removing existing archived artifact: " + existingArchivedZip.getRemote());
+            existingArchivedZip.delete();
+        }
+
         final Map<String, String> artifacts =
             Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
 
