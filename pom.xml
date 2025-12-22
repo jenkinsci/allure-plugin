@@ -24,6 +24,7 @@
         <jenkins.version>2.462.1</jenkins.version>
         <allureCommandline.version>2.35.1</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
+        <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     </properties>
 
     <developers>
@@ -239,7 +240,7 @@
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
-                <version>1.6.8</version>
+                <version>1.10.0</version>
                 <executions>
                     <execution>
                         <id>download-commandline</id>
@@ -250,7 +251,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <url>https://github.com/allure-framework/allure2/releases/download/${allureCommandline.version}/allure-${allureCommandline.version}.zip</url>
+                    <url>https://repo1.maven.org/maven2/io/qameta/allure/allure-commandline/${allureCommandline.version}/allure-commandline-${allureCommandline.version}.zip</url>
                     <outputFileName>allure-commandline.zip</outputFileName>
                     <outputDirectory>${project.build.directory}/resources/test</outputDirectory>
                 </configuration>
@@ -368,6 +369,12 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>3.24.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ru.yandex.qatools.matchers</groupId>
+            <artifactId>nio-matchers</artifactId>
+            <version>1.3</version>
             <scope>test</scope>
         </dependency>
 
