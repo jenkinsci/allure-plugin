@@ -54,14 +54,18 @@ import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -74,12 +78,32 @@ import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
  * Date: 10/8/13, 6:20 PM
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
+@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods",
+    "PMD.NcssCount"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+
+    private static final String NEW_LINE = "\n";
+    private static final String PATH_SEPARATOR = "/";
+
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_PLUGIN_DIR = "plugin/pw-trace-fallback";
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_RESOURCE_DIR = "/org/allurereport/jenkins/pw-trace-fallback/";
+ 
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_JS_FILE = "index.js";
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_CSS_FILE = "styles.css";
+ 
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_JS_PATH =
+        PLAYWRIGHT_TRACE_FALLBACK_PLUGIN_DIR + PATH_SEPARATOR + PLAYWRIGHT_TRACE_FALLBACK_JS_FILE;
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_CSS_PATH =
+        PLAYWRIGHT_TRACE_FALLBACK_PLUGIN_DIR + PATH_SEPARATOR + PLAYWRIGHT_TRACE_FALLBACK_CSS_FILE;
+ 
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_JS_RESOURCE =
+        PLAYWRIGHT_TRACE_FALLBACK_RESOURCE_DIR + PLAYWRIGHT_TRACE_FALLBACK_JS_FILE;
+    private static final String PLAYWRIGHT_TRACE_FALLBACK_CSS_RESOURCE =
+        PLAYWRIGHT_TRACE_FALLBACK_RESOURCE_DIR + PLAYWRIGHT_TRACE_FALLBACK_CSS_FILE;
 
     private AllureReportConfig config;
 
@@ -439,6 +463,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
         listener.getLogger().println("Allure report was successfully generated.");
 
+        injectPlaywrightTraceFallback(reportDirectoryInWorkspace, listener);
+
         saveAllureArtifact(run, workspace, listener, launcher);
 
         final String reportName = reportDirectoryInWorkspace.getName();
@@ -512,6 +538,150 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
         reportPathWs.copyRecursiveTo(reportUnderBuild);
         listener.getLogger().println("Allure report copied to: " + reportUnderBuild.getRemote());
+    }
+
+    private void injectPlaywrightTraceFallback(final @NonNull FilePath reportDirectoryInWorkspace,
+        final @NonNull TaskListener listener) {
+        try {
+            final FilePath reportIndexHtmlFile = reportDirectoryInWorkspace.child("index.html");
+            if (!reportIndexHtmlFile.exists()) {
+                listener.getLogger().println("WARNING: Playwright trace fallback: index.html not found");
+                return;
+            }
+
+            final FilePath fallbackPluginDirectory =
+                reportDirectoryInWorkspace.child(PLAYWRIGHT_TRACE_FALLBACK_PLUGIN_DIR);
+            fallbackPluginDirectory.mkdirs();
+
+            final String fallbackJavaScriptContent = readBundledResource(PLAYWRIGHT_TRACE_FALLBACK_JS_RESOURCE);
+            final String fallbackCssContent = readBundledResource(PLAYWRIGHT_TRACE_FALLBACK_CSS_RESOURCE);
+            if (fallbackJavaScriptContent == null || fallbackCssContent == null) {
+                listener.getLogger().println("WARNING: Playwright trace fallback: bundled resources not found");
+                return;
+            }
+
+            writeStringToFile(
+                fallbackPluginDirectory.child(PLAYWRIGHT_TRACE_FALLBACK_JS_FILE),
+                fallbackJavaScriptContent
+            );
+            writeStringToFile(
+                fallbackPluginDirectory.child(PLAYWRIGHT_TRACE_FALLBACK_CSS_FILE),
+                fallbackCssContent
+            );
+
+            String reportIndexHtmlContent = readFileToString(reportIndexHtmlFile);
+            if (reportIndexHtmlContent == null) {
+                reportIndexHtmlContent = "";
+            }
+
+            final boolean hasFallbackJavaScriptReference =
+                reportIndexHtmlContent.contains(PLAYWRIGHT_TRACE_FALLBACK_JS_PATH);
+            final boolean hasFallbackCssReference =
+                reportIndexHtmlContent.contains(PLAYWRIGHT_TRACE_FALLBACK_CSS_PATH);
+
+            if (hasFallbackJavaScriptReference || hasFallbackCssReference) {
+                listener.getLogger().println("Playwright trace fallback: already present");
+                return;
+            }
+
+            final String fallbackCssLinkTag =
+                "<link rel=\"stylesheet\" href=\"" + PLAYWRIGHT_TRACE_FALLBACK_CSS_PATH + "\">";
+            final String fallbackJavaScriptScriptTag =
+                "<script src=\"" + PLAYWRIGHT_TRACE_FALLBACK_JS_PATH + "\"></script>";
+
+            reportIndexHtmlContent = injectBeforeClosingTagOrAppend(
+                reportIndexHtmlContent,
+                "</head>",
+                fallbackCssLinkTag
+            );
+            reportIndexHtmlContent = injectBeforeClosingTagOrAppend(
+                reportIndexHtmlContent,
+                "</body>",
+                fallbackJavaScriptScriptTag
+            );
+
+            writeStringToFile(reportIndexHtmlFile, reportIndexHtmlContent);
+            listener.getLogger().println("Playwright trace fallback: injected into index.html");
+        } catch (Exception exception) { // NOSONAR (best-effort post-processing)
+            listener.getLogger().println("WARNING: Playwright trace fallback: failed: " + exception);
+        }
+    }
+
+    private static String injectBeforeClosingTagOrAppend(final @NonNull String html,
+        final @NonNull String closingTag,
+        final @NonNull String injection) {
+        final String htmlLower = html.toLowerCase(Locale.ROOT);
+        final String closingLower = closingTag.toLowerCase(Locale.ROOT);
+
+        final int idx = htmlLower.indexOf(closingLower);
+        final String snippet = injection + NEW_LINE;
+        if (idx >= 0) {
+            return html.substring(0, idx) + snippet + html.substring(idx);
+        }
+        return html + NEW_LINE + injection + NEW_LINE;
+    }
+
+    @Nullable
+    private static String readBundledResource(final @NonNull String resourcePath) {
+        final String effectiveResourcePath;
+        if (resourcePath.startsWith(PATH_SEPARATOR)) {
+            effectiveResourcePath = resourcePath;
+        } else {
+            effectiveResourcePath = PATH_SEPARATOR + resourcePath;
+        }
+
+        try (InputStream resourceInputStream =
+            AllureReportPublisher.class.getResourceAsStream(effectiveResourcePath)) {
+
+            if (resourceInputStream == null) {
+                return null;
+            }
+
+            final ByteArrayOutputStream resourceBytesOutputStream = new ByteArrayOutputStream();
+            final byte[] readBuffer = new byte[8192];
+
+            while (true) {
+                final int bytesRead = resourceInputStream.read(readBuffer);
+                if (bytesRead < 0) {
+                    break;
+                }
+                resourceBytesOutputStream.write(readBuffer, 0, bytesRead);
+            }
+
+            return resourceBytesOutputStream.toString(StandardCharsets.UTF_8.name());
+        } catch (Exception exception) { // NOSONAR (best-effort resource loading)
+            return null;
+        }
+    }
+
+    private static String readFileToString(final @NonNull FilePath filePath)
+        throws IOException, InterruptedException {
+
+        try (InputStream fileInputStream = filePath.read();
+            ByteArrayOutputStream fileBytesOutputStream = new ByteArrayOutputStream()) {
+
+            final byte[] readBuffer = new byte[8192];
+
+            while (true) {
+                final int bytesRead = fileInputStream.read(readBuffer);
+                if (bytesRead < 0) {
+                    break;
+                }
+                fileBytesOutputStream.write(readBuffer, 0, bytesRead);
+            }
+
+            return fileBytesOutputStream.toString(StandardCharsets.UTF_8);
+        }
+    }
+
+    private static void writeStringToFile(final @NonNull FilePath filePath,
+        final @NonNull String content)
+        throws IOException, InterruptedException {
+
+        try (OutputStream fileOutputStream = filePath.write()) {
+            final byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
+            fileOutputStream.write(contentBytes);
+        }
     }
 
     private void setAllureProperties(final EnvVars envVars) {
@@ -619,7 +789,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         throws IOException, InterruptedException {
         final FilePath reportPath = workspace.child(getReport());
         for (final ZipEntry historyEntry : listEntries(archive, reportPath.getName() + "/history")) {
-            final String historyFile = historyEntry.getName().replace(reportPath.getName() + "/", "");
+            final String historyFile = historyEntry.getName().replace(reportPath.getName() + PATH_SEPARATOR, "");
             try (InputStream entryStream = archive.getInputStream(historyEntry)) {
                 final FilePath historyCopy = resultsPath.child(historyFile);
                 historyCopy.copyFrom(entryStream);

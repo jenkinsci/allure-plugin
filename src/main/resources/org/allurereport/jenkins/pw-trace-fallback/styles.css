@@ -1,0 +1,63 @@
+#pw-trace-fallback-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: 280px;
+
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #111111;
+
+  z-index: 2147483647;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__row {
+  margin: 6px 0;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__download {
+  color: #0b5bd3;
+  text-decoration: underline;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__button {
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__hint {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__close {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+#pw-trace-fallback-panel .pw-trace-fallback__close:hover {
+    color: rgba(0, 0, 0, 0.9);
+}

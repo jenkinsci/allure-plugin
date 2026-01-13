@@ -25,6 +25,7 @@
         <allureCommandline.version>2.35.1</allureCommandline.version>
         <truezip.version>7.7.10</truezip.version>
         <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
+        <spotbugs.skip>false</spotbugs.skip>
     </properties>
 
     <developers>
@@ -216,6 +217,7 @@
                 <configuration>
                     <excludeFilterFile>.mvn/quality-configs/spotbugs/exclude.xml</excludeFilterFile>
                     <failOnError>false</failOnError>
+                    <skip>${spotbugs.skip}</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -416,6 +418,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>skip-spotbugs-on-new-jdk</id>
+            <activation>
+                <jdk>[22,)</jdk>
+            </activation>
+            <properties>
+                <spotbugs.skip>true</spotbugs.skip>
+            </properties>
+        </profile>
+    </profiles>
 
     <repositories>
         <repository>
