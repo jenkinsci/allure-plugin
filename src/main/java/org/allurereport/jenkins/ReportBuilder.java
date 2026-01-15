@@ -36,6 +36,7 @@ public class ReportBuilder {
     private static final String OUTPUT_DIR_OPTION = "-o";
     private static final String CLEAN_OPTION = "-c";
     private static final String CONFIG_OPTION = "--config";
+    private static final String SINGLE_FILE_OPTION = "--single-file";
 
     private final FilePath workspace;
 
@@ -48,6 +49,8 @@ public class ReportBuilder {
     private final AllureCommandlineInstallation commandline;
 
     private FilePath configFilePath;
+
+    private boolean singleFile;
 
     public ReportBuilder(final @NonNull Launcher launcher,
                          final @NonNull TaskListener listener,
@@ -63,6 +66,10 @@ public class ReportBuilder {
 
     public void setConfigFilePath(final FilePath configFilePath) {
         this.configFilePath = configFilePath;
+    }
+
+    public void setSingleFile(final boolean singleFile) {
+        this.singleFile = singleFile;
     }
 
     public int build(final @NonNull List<FilePath> resultsPaths,
@@ -98,6 +105,9 @@ public class ReportBuilder {
         if (configFilePath != null) {
             arguments.add(CONFIG_OPTION);
             arguments.add(configFilePath.getRemote());
+        }
+        if (singleFile) {
+            arguments.add(SINGLE_FILE_OPTION);
         }
         return arguments;
     }

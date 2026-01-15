@@ -96,6 +96,9 @@
         <f:entry title="Failure threshold, count" field="failureThresholdCount">
             <f:number default="" min="0"/>
         </f:entry>
+        <f:entry title="${%SingleFile}" field="singleFile">
+                <f:checkbox checked="${instance.isSingleFile()}"/>
+        </f:entry>
         <f:entry title="${%IncludeEnvironment}" field="includeProperties">
             <f:checkbox checked="${instance.getIncludeProperties()}"/>
         </f:entry>

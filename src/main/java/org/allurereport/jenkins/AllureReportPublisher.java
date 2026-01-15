@@ -106,6 +106,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private ResultPolicy resultPolicy;
 
     @Nullable
+    private Boolean singleFile;
+
+    @Nullable
     private Integer unstableThresholdPercent;
     @Nullable
     private Integer failureThresholdPercent;
@@ -143,6 +146,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @DataBoundSetter
     public void setFailureThresholdCount(final Integer value) {
         this.failureThresholdCount = value;
+    }
+
+    @DataBoundSetter
+    public void setSingleFile(final Boolean singleFile) {
+        this.singleFile = singleFile;
+    }
+
+    public boolean isSingleFile() {
+        return Boolean.TRUE.equals(this.singleFile);
     }
 
     @Nullable public Integer getUnstableThresholdPercent() {
@@ -432,6 +444,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
             builder.setConfigFilePath(configFilePath);
         }
+
+        builder.setSingleFile(isSingleFile());
 
         final int exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
         if (exitCode != 0) {
