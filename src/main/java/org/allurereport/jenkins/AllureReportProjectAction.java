@@ -56,6 +56,11 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
     }
 
     public boolean isCanBuildGraph() {
+        // Check if trend graph is disabled in publisher configuration
+        if (isDisableTrendGraphConfigured()) {
+            return false;
+        }
+
         int dataPointsCount = 0;
         AllureReportBuildAction allureBuildAction = getLastAllureBuildAction();
         while (dataPointsCount < 2) {
@@ -68,6 +73,17 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
             allureBuildAction = allureBuildAction.getPreviousResult();
         }
         return true;
+    }
+
+    private boolean isDisableTrendGraphConfigured() {
+        if (job instanceof hudson.model.AbstractProject) {
+            final hudson.model.AbstractProject<?, ?> project = (hudson.model.AbstractProject<?, ?>) job;
+            final AllureReportPublisher publisher = project.getPublishersList().get(AllureReportPublisher.class);
+            if (publisher != null) {
+                return publisher.isDisableTrendGraph();
+            }
+        }
+        return false;
     }
 
     //copied from junit-plugin

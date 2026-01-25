@@ -99,6 +99,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private Boolean disabled;
 
+    private Boolean disableTrendGraph;
+
     private String report;
 
     private String reportName;
@@ -177,6 +179,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @DataBoundSetter
     public void setDisabled(final boolean disabled) {
         this.disabled = disabled;
+    }
+
+    public boolean isDisableTrendGraph() {
+        return this.disableTrendGraph == null ? Boolean.FALSE : this.disableTrendGraph;
+    }
+
+    @DataBoundSetter
+    public void setDisableTrendGraph(final boolean disableTrendGraph) {
+        this.disableTrendGraph = disableTrendGraph;
     }
 
     @DataBoundSetter
