@@ -79,4 +79,20 @@ public final class TestUtils {
         publisher.setJdk(jdk);
         return publisher;
     }
+
+    /**
+     * Create an Allure 3 publisher for testing.
+     * Note: Allure 3 tests require 'allure' to be installed and available in PATH.
+     *
+     * @param resultsPaths the paths to the results directories
+     * @return the configured publisher
+     * @throws Exception if an error occurs
+     */
+    public static AllureReportPublisher createAllure3Publisher(final String... resultsPaths)
+            throws Exception {
+        final List<ResultsConfig> results = ResultsConfig.convertPaths(Arrays.asList(resultsPaths));
+        final AllureReportPublisher publisher = new AllureReportPublisher(results);
+        publisher.setAllureVersion("3");
+        return publisher;
+    }
 }

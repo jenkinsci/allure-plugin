@@ -33,6 +33,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.allurereport.jenkins.config.PropertyConfig;
 import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ResultPolicy;
+import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.IOException;
@@ -138,5 +139,30 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
             .filter(installation -> installation.getName().equals(name))
             // If no installation match then take the first one
             .findFirst().orElse(installations.get(0));
+    }
+
+    /**
+     * Get the Allure 3 installation.
+     * For Allure 3, we use a single installation that expects 'allure' to be in PATH.
+     *
+     * @return the Allure 3 installation, or null if not configured
+     */
+    public Allure3Installation getAllure3Installation() {
+        return Optional.of(Jenkins.get())
+            .map(j -> j.getDescriptorByType(Allure3Installation.DescriptorImpl.class))
+            .map(descriptor -> descriptor.getInstallations())
+            .filter(installations -> !installations.isEmpty())
+            .map(installations -> installations.get(0))
+            .orElse(new Allure3Installation("Allure 3", "", Collections.emptyList()));
+    }
+
+    /**
+     * Get available Allure versions for the UI dropdown.
+     *
+     * @return array of version strings
+     */
+    @SuppressWarnings("unused")
+    public String[] getAllureVersions() {
+        return new String[]{"2", "3"};
     }
 }

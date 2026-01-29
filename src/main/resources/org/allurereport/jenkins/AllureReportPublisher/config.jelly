@@ -5,6 +5,16 @@
     <f:entry title="${%Disabled}" field="disabled">
         <f:checkbox checked="${instance.isDisabled()}"/>
     </f:entry>
+    <f:entry title="${%AllureVersion}" field="allureVersion" description="${%AllureVersionDescription}">
+        <select class="setting-input" style="width: 90%" name="allureVersion" id="allureVersionSelect">
+            <f:option selected="${instance.getAllureVersion() == '2'}" value="2">
+                ${%Allure2Option}
+            </f:option>
+            <f:option selected="${instance.getAllureVersion() == '3'}" value="3">
+                ${%Allure3Option}
+            </f:option>
+        </select>
+    </f:entry>
     <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
         <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
             <table width="90%">
@@ -38,14 +48,14 @@
     <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
     <f:entry>
         <j:if test="${empty(installations)}">
-            <div class="error">
+            <div class="warning" id="allure2Warning">
                 ${%CommandlineMissingError(rootURL)}
             </div>
         </j:if>
     </f:entry>
     <f:advanced>
         <j:if test="${installations.size() > 1}">
-            <f:entry title="${%Commandline}:">
+            <f:entry title="${%Commandline}:" description="${%CommandlineDescription}">
                 <select class="setting-input" style="width: 90%" name="commandline">
                     <j:forEach var="inst" items="${installations}">
                         <f:option selected="${inst.name==instance.getCommandline()}"

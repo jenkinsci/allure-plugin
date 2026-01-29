@@ -53,6 +53,7 @@ public final class FilePathUtils {
 
     private static final String DIR_EXPORT = "export";
     private static final String DIR_WIDGETS = "widgets";
+    private static final String DIR_AWESOME = "awesome";
     private static final String FILE_SUMMARY = "summary.json";
     private static final String KEY_STATISTIC = "statistic";
 
@@ -118,14 +119,47 @@ public final class FilePathUtils {
         return false;
     }
 
+    /**
+     * Extract build summary from the Allure report.
+     *
+     * @param run the build run
+     * @param reportPath the path to the report
+     * @return the build summary
+     */
     @SuppressWarnings("PMD.EmptyCatchBlock")
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
+        return extractSummary(run, reportPath, false);
+    }
+
+    /**
+     * Extract build summary from the Allure report.
+     *
+     * @param run the build run
+     * @param reportPath the path to the report
+     * @param isAllure3 whether this is an Allure 3 report
+     * @return the build summary
+     */
+    @SuppressWarnings("PMD.EmptyCatchBlock")
+    public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
         final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
 
         try {
             if (reportZip.exists()) {
                 try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
-                    Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
+                    Optional<ZipEntry> summary = Optional.empty();
+
+                    // For Allure 3, also check the awesome subdirectory
+                    if (isAllure3) {
+                        summary = getSummary(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT);
+                        if (summary.isEmpty()) {
+                            summary = getSummary(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS);
+                        }
+                    }
+
+                    // Standard Allure 2 locations (also fallback for Allure 3)
+                    if (summary.isEmpty()) {
+                        summary = getSummary(archive, reportPath, DIR_EXPORT);
+                    }
                     if (summary.isEmpty()) {
                         summary = getSummary(archive, reportPath, DIR_WIDGETS);
                     }
@@ -143,7 +177,23 @@ public final class FilePathUtils {
 
         try {
             final FilePath reportDir = new FilePath(run.getRootDir()).child(reportPath);
-            FilePath json = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+            FilePath json = null;
+
+            // For Allure 3, also check the awesome subdirectory
+            if (isAllure3) {
+                final FilePath awesomeDir = reportDir.child(DIR_AWESOME);
+                if (awesomeDir.exists()) {
+                    json = awesomeDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+                    if (!json.exists()) {
+                        json = awesomeDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
+                    }
+                }
+            }
+
+            // Standard Allure 2 locations (also fallback for Allure 3)
+            if (json == null || !json.exists()) {
+                json = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+            }
             if (!json.exists()) {
                 json = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
             }

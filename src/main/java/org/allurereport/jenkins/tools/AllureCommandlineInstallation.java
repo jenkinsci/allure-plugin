@@ -46,7 +46,8 @@ import java.util.List;
  * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
  */
 public class AllureCommandlineInstallation extends ToolInstallation
-        implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation> {
+        implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation>,
+        AllureInstallation {
 
     private static final String CAN_FIND_ALLURE_MESSAGE = "Can't find allure commandline <%s>";
     private static final String ALLURE = "allure";

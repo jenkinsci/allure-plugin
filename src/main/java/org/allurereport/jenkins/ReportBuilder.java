@@ -21,7 +21,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
-import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.allurereport.jenkins.tools.AllureInstallation;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,7 +45,7 @@ public class ReportBuilder {
 
     private final EnvVars envVars;
 
-    private final AllureCommandlineInstallation commandline;
+    private final AllureInstallation commandline;
 
     private FilePath configFilePath;
 
@@ -53,7 +53,7 @@ public class ReportBuilder {
                          final @NonNull TaskListener listener,
                          final @NonNull FilePath workspace,
                          final @NonNull EnvVars envVars,
-                         final @NonNull AllureCommandlineInstallation commandline) {
+                         final @NonNull AllureInstallation commandline) {
         this.workspace = workspace;
         this.launcher = launcher;
         this.listener = listener;
@@ -79,8 +79,31 @@ public class ReportBuilder {
                                              final @NonNull List<FilePath> resultsPaths,
                                              final @NonNull FilePath reportPath)
             throws IOException, InterruptedException {
-        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath)
-                : getAllure1Arguments(resultsPaths, reportPath);
+        if (version.startsWith("3")) {
+            return getAllure3Arguments(resultsPaths, reportPath);
+        } else if (version.startsWith("2")) {
+            return getAllure2Arguments(resultsPaths, reportPath);
+        } else {
+            return getAllure1Arguments(resultsPaths, reportPath);
+        }
+    }
+
+    private ArgumentListBuilder getAllure3Arguments(final @NonNull List<FilePath> resultsPaths,
+                                                    final @NonNull FilePath reportPath) //NOSONAR
+            throws IOException, InterruptedException {
+        final ArgumentListBuilder arguments = new ArgumentListBuilder();
+        arguments.add(commandline.getExecutable(launcher));
+        arguments.add(GENERATE_COMMAND);
+        for (FilePath resultsPath : resultsPaths) {
+            arguments.add(resultsPath.getRemote());
+        }
+        arguments.add(OUTPUT_DIR_OPTION);
+        arguments.add(reportPath.getRemote());
+        if (configFilePath != null) {
+            arguments.add(CONFIG_OPTION);
+            arguments.add(configFilePath.getRemote());
+        }
+        return arguments;
     }
 
     private ArgumentListBuilder getAllure2Arguments(final @NonNull List<FilePath> resultsPaths,
