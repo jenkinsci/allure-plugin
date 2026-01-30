@@ -28,6 +28,8 @@ import hudson.util.Graph;
 import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
+import lombok.Getter;
+import lombok.Setter;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
@@ -56,7 +58,11 @@ import static java.lang.String.format;
  *
  * @author pupssman
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling"})
+@SuppressWarnings({
+        "ClassDataAbstractionCoupling",
+        "PMD.GodClass",
+        "PMD.TooManyMethods"
+})
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private static final String ALLURE_REPORT = "allure-report";
@@ -65,14 +71,23 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
     private static final String HEADER_X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
     private static final String HEADER_NOSNIFF = "nosniff";
+    private static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
+    private static final String INDEX_HTML = "index.html";
+    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final String SLASH = "/";
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
+    private final BuildSummary persistedSummary;
 
     private String reportPath;
 
+    @Getter
+    @Setter
+    private boolean singleFile;
+
     AllureReportBuildAction(final BuildSummary buildSummary) {
+        this.persistedSummary = buildSummary;
         this.buildSummary = new WeakReference<>(buildSummary);
         this.reportPath = ALLURE_REPORT;
     }
@@ -112,6 +127,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     public BuildSummary getBuildSummary() {
+        if (this.persistedSummary != null) {
+            return this.persistedSummary;
+        }
         if (this.buildSummary == null || this.buildSummary.get() == null) {
             this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath()));
         }
@@ -267,6 +285,48 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         return null;
     }
 
+    @SuppressWarnings("unused")
+    public void doDownloadIndex(final StaplerRequest request, final StaplerResponse response)
+            throws IOException, InterruptedException, ServletException {
+
+        response.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
+        response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
+        response.setHeader(HEADER_CONTENT_DISPOSITION, "attachment; filename=\"" + INDEX_HTML + "\"");
+
+        final FilePath runRootDir = new FilePath(run.getRootDir());
+        final String reportDirName = getReportPath();
+
+        final FilePath reportDirectoryUnderBuild = runRootDir.child(reportDirName);
+        if (reportDirectoryUnderBuild.exists()) {
+            final FilePath index = reportDirectoryUnderBuild.child(INDEX_HTML);
+            if (index.exists()) {
+                try (InputStream inputStream = index.read()) {
+                    response.serveFile(request, inputStream, -1L, -1L, -1L, INDEX_HTML);
+                }
+                return;
+            }
+        }
+
+        final FilePath archivedZip = runRootDir.child("archive").child(ALLURE_REPORT_ZIP);
+        if (archivedZip.exists()) {
+            try (ZipFile allureReport = new ZipFile(archivedZip.getRemote())) {
+                final String entryName = reportDirName + SLASH + INDEX_HTML;
+                final ZipEntry entry = allureReport.getEntry(entryName);
+                if (entry != null) {
+                    response.serveFile(
+                            request,
+                            allureReport.getInputStream(entry),
+                            -1L, -1L, -1L,
+                            INDEX_HTML
+                    );
+                    return;
+                }
+            }
+        }
+
+        response.sendError(HttpServletResponse.SC_NOT_FOUND, "Allure index.html not found");
+    }
+
     private static final class DirectoryReportBrowser implements HttpResponse {
 
         private final FilePath baseDirectory;
@@ -285,7 +345,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
             String relativePath = request.getRestOfPath();
             if (relativePath == null || relativePath.isEmpty() || SLASH.equals(relativePath)) {
-                relativePath = "index.html";
+                relativePath = INDEX_HTML;
             } else if (relativePath.startsWith(SLASH)) {
                 relativePath = relativePath.substring(1);
             }

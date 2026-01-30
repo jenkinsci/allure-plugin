@@ -15,6 +15,9 @@
  */
 package org.allurereport.jenkins;
 
+import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
+import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.EnvVars;
@@ -33,12 +36,21 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
 import org.allurereport.jenkins.callables.AllureReportArchive;
@@ -53,33 +65,27 @@ import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * User: eroshenkoam.
  * Date: 10/8/13, 6:20 PM
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
+@SuppressWarnings({
+        "ClassDataAbstractionCoupling",
+        "ClassFanOutComplexity",
+        "PMD.GodClass",
+        "PMD.TooManyMethods",
+        "PMD.NcssCount"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+    private static final String SLASH = "/";
 
     private AllureReportConfig config;
 
@@ -104,6 +110,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private String reportName;
 
     private ResultPolicy resultPolicy;
+
+    @Nullable
+    private Boolean singleFile;
 
     @Nullable
     private Integer unstableThresholdPercent;
@@ -143,6 +152,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @DataBoundSetter
     public void setFailureThresholdCount(final Integer value) {
         this.failureThresholdCount = value;
+    }
+
+    @DataBoundSetter
+    public void setSingleFile(final Boolean singleFile) {
+        this.singleFile = singleFile;
+    }
+
+    public boolean isSingleFile() {
+        return Boolean.TRUE.equals(this.singleFile);
     }
 
     @Nullable public Integer getUnstableThresholdPercent() {
@@ -433,11 +451,26 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             builder.setConfigFilePath(configFilePath);
         }
 
-        final int exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
-        if (exitCode != 0) {
-            throw new AllurePluginException("Can not generate Allure Report, exit code: " + exitCode);
+        final boolean singleFileRequested = isSingleFile();
+        builder.setSingleFile(singleFileRequested);
+
+        final BuildOutcome outcome = buildWithFallback(
+                builder,
+                singleFileRequested,
+                resultsPaths,
+                reportDirectoryInWorkspace,
+                listener
+        );
+
+        if (outcome.exitCode != 0) {
+            throw new AllurePluginException("Can not generate Allure Report, exit code: " + outcome.getExitCode());
         }
         listener.getLogger().println("Allure report was successfully generated.");
+
+        if (outcome.isSingleFileGenerated()) {
+            FilePathUtils.materializeSummaryForSingleFileReport(
+                    resultsPaths, reportDirectoryInWorkspace, listener.getLogger());
+        }
 
         saveAllureArtifact(run, workspace, listener, launcher);
 
@@ -449,6 +482,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             FilePathUtils.extractSummary(run, reportName)
         );
         buildAction.setReportPath(reportUnderBuild);
+        buildAction.setSingleFile(outcome.isSingleFileGenerated());
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
     }
@@ -563,9 +597,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull Run<?, ?> run)
         throws IOException, InterruptedException {
 
-        final String rootUrl = Jenkins.get().getRootUrl();
-        final String buildUrl = rootUrl + run.getUrl();
-        final String reportUrl = buildUrl + ALLURE_PREFIX;
+        final String rootUrl = StringUtils.trimToNull(Jenkins.get().getRootUrl());
+
+        final String buildUrl = DisplayURLProvider.get().getRunURL(run);
+        final String reportUrl = buildUrl.endsWith(SLASH) ? (buildUrl + ALLURE_PREFIX)
+                : (buildUrl + SLASH + ALLURE_PREFIX);
+
         final String buildId = run.getId();
 
         final String effectiveReportName =
@@ -619,7 +656,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         throws IOException, InterruptedException {
         final FilePath reportPath = workspace.child(getReport());
         for (final ZipEntry historyEntry : listEntries(archive, reportPath.getName() + "/history")) {
-            final String historyFile = historyEntry.getName().replace(reportPath.getName() + "/", "");
+            final String historyFile = historyEntry.getName().replace(reportPath.getName() + SLASH, "");
             try (InputStream entryStream = archive.getInputStream(historyEntry)) {
                 final FilePath historyCopy = resultsPath.child(historyFile);
                 historyCopy.copyFrom(entryStream);
@@ -696,6 +733,43 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final JDK jdk = BuildUtils.setUpTool(getJdkInstallation(), launcher, listener, env);
         if (jdk != null) {
             jdk.buildEnvVars(env);
+        }
+    }
+
+    private BuildOutcome buildWithFallback(final ReportBuilder builder,
+                                           final boolean singleFileRequested,
+                                           final @NonNull List<FilePath> resultsPaths,
+                                           final @NonNull FilePath reportDirectoryInWorkspace,
+                                           final @NonNull TaskListener listener)
+            throws IOException, InterruptedException {
+        int exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
+        boolean singleFileGenerated = singleFileRequested;
+
+        if (exitCode != 0 && singleFileRequested) {
+            listener.getLogger().println("Allure single-file generation failed. Retrying without --single-file...");
+            builder.setSingleFile(false);
+            singleFileGenerated = false;
+            exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
+        }
+
+        return new BuildOutcome(exitCode, singleFileGenerated);
+    }
+
+    private static final class BuildOutcome {
+        private final int exitCode;
+        private final boolean singleFileGenerated;
+
+        private BuildOutcome(final int exitCode, final boolean singleFileGenerated) {
+            this.exitCode = exitCode;
+            this.singleFileGenerated = singleFileGenerated;
+        }
+
+        private int getExitCode() {
+            return exitCode;
+        }
+
+        private boolean isSingleFileGenerated() {
+            return singleFileGenerated;
         }
     }
 }

@@ -16,6 +16,7 @@
 package org.allurereport.jenkins.callables;
 
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author charlie (Dmitry Baev).
@@ -55,13 +56,21 @@ public class AddExecutorInfo extends AbstractAddInfo {
         final HashMap<String, Object> data = new HashMap<>();
         data.put("name", "Jenkins");
         data.put("type", "jenkins");
-        data.put("url", url);
         data.put("buildOrder", buildId);
         data.put("buildName", buildName);
-        data.put("buildUrl", buildUrl);
-        data.put("reportUrl", reportUrl);
+        putIfNotBlank(data, "url", url);
+        putIfNotBlank(data, "buildUrl", buildUrl);
+        putIfNotBlank(data, "reportUrl", reportUrl);
         data.put("reportName", reportName);
         return data;
+    }
+
+    private static void putIfNotBlank(final Map<String, Object> data,
+                                      final String key,
+                                      final String value) {
+        if (value != null && !value.isEmpty()) {
+            data.put(key, value);
+        }
     }
 
     @Override

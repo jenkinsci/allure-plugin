@@ -25,6 +25,8 @@ import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author charlie (Dmitry Baev).
@@ -36,6 +38,8 @@ public class ReportBuilder {
     private static final String OUTPUT_DIR_OPTION = "-o";
     private static final String CLEAN_OPTION = "-c";
     private static final String CONFIG_OPTION = "--config";
+    private static final String SINGLE_FILE_OPTION = "--single-file";
+    private static final Pattern FIRST_NUMBER = Pattern.compile("(\\d+)");
 
     private final FilePath workspace;
 
@@ -48,6 +52,8 @@ public class ReportBuilder {
     private final AllureCommandlineInstallation commandline;
 
     private FilePath configFilePath;
+
+    private boolean singleFile;
 
     public ReportBuilder(final @NonNull Launcher launcher,
                          final @NonNull TaskListener listener,
@@ -65,6 +71,10 @@ public class ReportBuilder {
         this.configFilePath = configFilePath;
     }
 
+    public void setSingleFile(final boolean singleFile) {
+        this.singleFile = singleFile;
+    }
+
     public int build(final @NonNull List<FilePath> resultsPaths,
                      final @NonNull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
@@ -79,14 +89,31 @@ public class ReportBuilder {
                                              final @NonNull List<FilePath> resultsPaths,
                                              final @NonNull FilePath reportPath)
             throws IOException, InterruptedException {
-        return version.startsWith("2") ? getAllure2Arguments(resultsPaths, reportPath)
-                : getAllure1Arguments(resultsPaths, reportPath);
+        final int major = parseMajor(version);
+        return major == 1 ? getAllure1Arguments(resultsPaths, reportPath)
+                : getAllure2Arguments(resultsPaths, reportPath);
+    }
+
+    private static int parseMajor(final String version) {
+        if (version == null) {
+            return 2;
+        }
+        final Matcher m = FIRST_NUMBER.matcher(version.trim());
+        if (!m.find()) {
+            return 2;
+        }
+        try {
+            return Integer.parseInt(m.group(1));
+        } catch (NumberFormatException ignored) {
+            return 2;
+        }
     }
 
     private ArgumentListBuilder getAllure2Arguments(final @NonNull List<FilePath> resultsPaths,
                                                     final @NonNull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
+        listener.getLogger().println("Using Allure CLI: " + commandline.getExecutable(launcher));
         arguments.add(commandline.getExecutable(launcher));
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
@@ -98,6 +125,9 @@ public class ReportBuilder {
         if (configFilePath != null) {
             arguments.add(CONFIG_OPTION);
             arguments.add(configFilePath.getRemote());
+        }
+        if (singleFile) {
+            arguments.add(SINGLE_FILE_OPTION);
         }
         return arguments;
     }
