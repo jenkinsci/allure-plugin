@@ -21,9 +21,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 
-/**
- * @author Artem Eroshenko eroshenkoam@yandex-team.ru
- */
 public class PropertyConfig implements Serializable {
 
     private String key;

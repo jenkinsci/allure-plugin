@@ -38,11 +38,6 @@ import org.allurereport.jenkins.utils.FilePathUtils;
 import org.allurereport.jenkins.utils.TrueZipArchiver;
 import org.allurereport.jenkins.utils.ZipUtils;
 
-/**
- * Registers XStream compatibility aliases so that
- * old configs with "ru.yandex.qatools.allure.jenkins.*"
- * continue to work after renaming packages to "org.allurereport.jenkins.*".
- */
 @SuppressWarnings("PMD.CouplingBetweenObjects")
 public final class AllureXStreamAliases {
 

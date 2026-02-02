@@ -35,9 +35,6 @@ import javaposse.jobdsl.plugin.RemovedViewAction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Artem Eroshenko
- */
 public class JobDslIT {
 
     private static final String JOB_NAME = "allure";

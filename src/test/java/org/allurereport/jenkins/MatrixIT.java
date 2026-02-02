@@ -32,10 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.getSimpleFileScm;
 
-/**
- * eroshenkoam.
- * 01.11.17
- */
 public class MatrixIT {
 
     private static final String ALLURE_RESULTS = "allure-results/sample-testsuite.xml";

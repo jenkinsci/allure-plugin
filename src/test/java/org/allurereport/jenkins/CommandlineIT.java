@@ -34,9 +34,6 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class CommandlineIT {
 
     public static final String SAMPLE_TESTSUITE_FILE_NAME = "sample-testsuite.xml";

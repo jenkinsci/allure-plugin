@@ -69,11 +69,6 @@ import java.util.zip.ZipFile;
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-/**
- * User: eroshenkoam.
- * Date: 10/8/13, 6:20 PM
- * {@link AllureReportPublisherDescriptor}
- */
 @SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
@@ -343,18 +338,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         copyResultsToParentIfNeeded(results, run, listener);
     }
 
-    /**
-     * Its chunk of code copies raw data to matrix build allure dir in order to generate aggregated report.
-     * <p>
-     * It is not possible to move this code to MatrixAggregator->endRun, because endRun executed according
-     * its triggering queue (despite of the run can be completed so long ago), and by the beginning of
-     * executing the slave can be off already (for ex. with jclouds plugin).
-     * <p>
-     * It is not possible to make a method like MatrixAggregator->simulatedEndRun and call its from here,
-     * because AllureReportPublisher is singleton for job, and it can't store state objects to communicate
-     * between perform and createAggregator, because for concurrent builds (Jenkins provides such feature)
-     * state objects will be corrupted.
-     */
+    
     private void copyResultsToParentIfNeeded(final @NonNull List<FilePath> results,
         final @NonNull Run<?, ?> run,
         final @NonNull TaskListener listener
@@ -687,9 +671,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return null;
     }
 
-    /**
-     * Configure java environment variables such as JAVA_HOME.
-     */
+    
     private void configureJdk(final Launcher launcher,
         final TaskListener listener,
         final EnvVars env) throws IOException, InterruptedException {

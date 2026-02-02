@@ -46,9 +46,6 @@ import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisherWithoutCommandline;
 import static org.allurereport.jenkins.testdata.TestUtils.getSimpleFileScm;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public class ReportGenerateIT {
 

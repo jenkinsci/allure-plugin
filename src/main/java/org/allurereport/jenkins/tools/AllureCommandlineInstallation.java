@@ -42,9 +42,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
- */
 public class AllureCommandlineInstallation extends ToolInstallation
         implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation> {
 

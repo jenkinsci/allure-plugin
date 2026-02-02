@@ -34,9 +34,6 @@ import org.allurereport.jenkins.Messages;
 
 import java.awt.Color;
 
-/**
- * @author Egor Borisov ehborisov@gmail.com
- */
 public final class ChartUtils {
 
     private ChartUtils() {

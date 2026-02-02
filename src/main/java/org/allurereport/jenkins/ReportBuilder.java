@@ -26,9 +26,6 @@ import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 @SuppressWarnings("TrailingComment")
 public class ReportBuilder {
 

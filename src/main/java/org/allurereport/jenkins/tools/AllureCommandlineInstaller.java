@@ -22,9 +22,6 @@ import hudson.tools.ToolInstallation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.allurereport.jenkins.Messages;
 
-/**
- * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
- */
 public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
 
     @DataBoundConstructor

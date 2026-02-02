@@ -30,8 +30,6 @@ import java.io.IOException;
 /**
  * @deprecated
  * {@link Action} that server allure report from archive directory on master of a given build.
- *
- * @author pupssman
  */
 @Deprecated
 public class AllureBuildAction implements BuildBadgeAction {

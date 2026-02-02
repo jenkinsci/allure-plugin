@@ -31,9 +31,6 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
-/**
- * @author Artem Eroshenko {@literal <erosenkoam@me.com>}
- */
 public final class BuildUtils {
 
     private BuildUtils() {

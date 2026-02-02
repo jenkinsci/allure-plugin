@@ -53,8 +53,6 @@ import static java.lang.String.format;
 
 /**
  * {@link Action} that serves allure report from archive directory on master of a given build.
- *
- * @author pupssman
  */
 @SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {

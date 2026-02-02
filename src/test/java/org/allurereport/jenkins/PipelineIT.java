@@ -35,9 +35,6 @@ import java.io.InputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class PipelineIT {
 
     private static final String ALLURE_RESULTS = "allure-results";

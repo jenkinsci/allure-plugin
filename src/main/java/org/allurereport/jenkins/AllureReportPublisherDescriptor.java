@@ -42,10 +42,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * User: eroshenkoam.
- * Date: 10/9/13, 7:49 PM
- */
 @Extension
 @Symbol("allure")
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
