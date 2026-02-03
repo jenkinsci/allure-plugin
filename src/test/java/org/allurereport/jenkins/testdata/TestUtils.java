@@ -18,12 +18,12 @@ package org.allurereport.jenkins.testdata;
 import hudson.FilePath;
 import hudson.model.JDK;
 import hudson.scm.SCM;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.SingleFileSCM;
 import org.allurereport.jenkins.AllureReportPublisher;
 import org.allurereport.jenkins.config.ResultsConfig;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.SingleFileSCM;
 
 import java.io.IOException;
 import java.nio.file.Path;

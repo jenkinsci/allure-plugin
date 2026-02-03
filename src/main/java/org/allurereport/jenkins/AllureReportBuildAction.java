@@ -28,14 +28,14 @@ import hudson.util.Graph;
 import jenkins.model.RunAction2;
 import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
+import org.allurereport.jenkins.utils.BuildSummary;
+import org.allurereport.jenkins.utils.ChartUtils;
+import org.allurereport.jenkins.utils.FilePathUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.allurereport.jenkins.utils.BuildSummary;
-import org.allurereport.jenkins.utils.ChartUtils;
-import org.allurereport.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;

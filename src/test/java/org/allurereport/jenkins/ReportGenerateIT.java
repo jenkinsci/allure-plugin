@@ -15,7 +15,6 @@
  */
 package org.allurereport.jenkins;
 
-import org.htmlunit.html.HtmlPage;
 import hudson.matrix.Axis;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
@@ -27,6 +26,9 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
 import hudson.model.labels.LabelAtom;
+import org.allurereport.jenkins.config.PropertyConfig;
+import org.allurereport.jenkins.testdata.TestUtils;
+import org.htmlunit.html.HtmlPage;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -34,17 +36,15 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.config.PropertyConfig;
-import org.allurereport.jenkins.testdata.TestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisherWithoutCommandline;
 import static org.allurereport.jenkins.testdata.TestUtils.getSimpleFileScm;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("ClassDataAbstractionCoupling")
 public class ReportGenerateIT {

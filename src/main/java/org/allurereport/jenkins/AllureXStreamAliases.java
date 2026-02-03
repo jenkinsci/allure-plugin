@@ -1,42 +1,51 @@
+/*
+ *  Copyright 2016-2023 Qameta Software OÜ
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.allurereport.jenkins;
 
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Items;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
-
 import org.allurereport.jenkins.callables.AbstractAddInfo;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
 import org.allurereport.jenkins.callables.AllureReportArchive;
 import org.allurereport.jenkins.callables.FindByGlob;
-
 import org.allurereport.jenkins.config.AllureReportConfig;
 import org.allurereport.jenkins.config.PropertyConfig;
 import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ReportBuildPolicyDecision;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.config.ResultsConfig;
-
 import org.allurereport.jenkins.dsl.AllurePluginJobDslExtension;
 import org.allurereport.jenkins.dsl.AllureReportPublisherContext;
-
 import org.allurereport.jenkins.exception.AllurePluginException;
-
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstaller;
-
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.ChartUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
 import org.allurereport.jenkins.utils.TrueZipArchiver;
 import org.allurereport.jenkins.utils.ZipUtils;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @SuppressWarnings("PMD.CouplingBetweenObjects")
 public final class AllureXStreamAliases {

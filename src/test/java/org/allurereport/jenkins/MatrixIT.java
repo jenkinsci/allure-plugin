@@ -20,17 +20,17 @@ import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.matrix.MatrixRun;
 import hudson.model.Result;
+import org.allurereport.jenkins.testdata.TestUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.testdata.TestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.getSimpleFileScm;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class MatrixIT {
 

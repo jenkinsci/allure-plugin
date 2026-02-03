@@ -19,8 +19,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.tools.DownloadFromUrlInstaller;
 import hudson.tools.ToolInstallation;
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.allurereport.jenkins.Messages;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
 
