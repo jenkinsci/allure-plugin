@@ -76,7 +76,8 @@ import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
  * Date: 10/8/13, 6:20 PM
  * {@link AllureReportPublisherDescriptor}
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
+@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods",
+    "PMD.NcssCount"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";

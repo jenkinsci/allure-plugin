@@ -151,8 +151,8 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         return Optional.of(Jenkins.get())
             .map(j -> j.getDescriptorByType(Allure3Installation.DescriptorImpl.class))
             .map(descriptor -> descriptor.getInstallations())
-            .filter(installations -> !installations.isEmpty())
-            .map(installations -> installations.get(0))
+            .filter(installations -> installations.length > 0)
+            .map(installations -> installations[0])
             .orElse(new Allure3Installation("Allure 3", "", Collections.emptyList()));
     }
 

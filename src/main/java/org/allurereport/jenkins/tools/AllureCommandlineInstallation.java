@@ -59,11 +59,13 @@ public class AllureCommandlineInstallation extends ToolInstallation
         super(Util.fixEmptyAndTrim(name), Util.fixEmptyAndTrim(home), properties);
     }
 
+    @Override
     @SuppressWarnings("TrailingComment")
     public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new GetExecutable(getHome()));
     }
 
+    @Override
     public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
         return launcher.getChannel().call(new GetMajorVersion(getHome()));
     }

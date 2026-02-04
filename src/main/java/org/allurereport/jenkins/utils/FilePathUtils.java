@@ -191,7 +191,7 @@ public final class FilePathUtils {
             }
         }
         // Standard Allure 2 locations (also fallback for Allure 3)
-        Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
+        final Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
         if (summary.isPresent()) {
             return summary;
         }
@@ -224,20 +224,20 @@ public final class FilePathUtils {
         if (isAllure3) {
             final FilePath awesomeDir = reportDir.child(DIR_AWESOME);
             if (awesomeDir.exists()) {
-                FilePath json = awesomeDir.child(DIR_EXPORT).child(FILE_SUMMARY);
-                if (json.exists()) {
-                    return json;
+                final FilePath awesomeExportJson = awesomeDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+                if (awesomeExportJson.exists()) {
+                    return awesomeExportJson;
                 }
-                json = awesomeDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-                if (json.exists()) {
-                    return json;
+                final FilePath awesomeWidgetsJson = awesomeDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
+                if (awesomeWidgetsJson.exists()) {
+                    return awesomeWidgetsJson;
                 }
             }
         }
         // Standard Allure 2 locations (also fallback for Allure 3)
-        FilePath json = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
-        if (json.exists()) {
-            return json;
+        final FilePath exportJson = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
+        if (exportJson.exists()) {
+            return exportJson;
         }
         return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
     }

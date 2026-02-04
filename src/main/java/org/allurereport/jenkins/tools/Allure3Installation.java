@@ -68,6 +68,7 @@ public class Allure3Installation extends ToolInstallation
      * Get the executable path for the allure command.
      * For Allure 3, we expect 'allure' to be in PATH.
      */
+    @Override
     @SuppressWarnings("TrailingComment")
     public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new GetExecutable());
@@ -77,6 +78,7 @@ public class Allure3Installation extends ToolInstallation
      * Get the major version of Allure.
      * For Allure 3 installations, this always returns "3".
      */
+    @Override
     public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
         return launcher.getChannel().call(new GetMajorVersion());
     }
@@ -96,6 +98,22 @@ public class Allure3Installation extends ToolInstallation
     @Override
     public void buildEnvVars(final EnvVars env) {
         // No special environment variables needed for Allure 3
+    }
+
+    private static String getExecutableName() {
+        return Functions.isWindows() ? ALLURE_CMD : ALLURE;
+    }
+
+    private static String parseMajorVersion(final String version) {
+        if (version.startsWith(VERSION_3)) {
+            return VERSION_3;
+        } else if (version.startsWith(VERSION_2)) {
+            return VERSION_2;
+        } else if (version.startsWith(VERSION_1)) {
+            return VERSION_1;
+        }
+        // Default to returning the first character as major version
+        return version.substring(0, 1);
     }
 
     /**
@@ -161,22 +179,6 @@ public class Allure3Installation extends ToolInstallation
         }
     }
 
-    private static String getExecutableName() {
-        return Functions.isWindows() ? ALLURE_CMD : ALLURE;
-    }
-
-    private static String parseMajorVersion(final String version) {
-        if (version.startsWith(VERSION_3)) {
-            return VERSION_3;
-        } else if (version.startsWith(VERSION_2)) {
-            return VERSION_2;
-        } else if (version.startsWith(VERSION_1)) {
-            return VERSION_1;
-        }
-        // Default to returning the first character as major version
-        return version.substring(0, 1);
-    }
-
     /**
      * Descriptor for Allure 3 installation.
      */
@@ -195,10 +197,14 @@ public class Allure3Installation extends ToolInstallation
         }
 
         @Override
-        public List<Allure3Installation> getInstallations() {
-            return super.getInstallations().isEmpty()
-                    ? Collections.singletonList(new Allure3Installation("Allure 3", "", Collections.emptyList()))
-                    : super.getInstallations();
+        public Allure3Installation[] getInstallations() {
+            final Allure3Installation[] installations = super.getInstallations();
+            if (installations.length == 0) {
+                return new Allure3Installation[]{
+                        new Allure3Installation("Allure 3", "", Collections.emptyList()),
+                };
+            }
+            return installations;
         }
 
         @Override
