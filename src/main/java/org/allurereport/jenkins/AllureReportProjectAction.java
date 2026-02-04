@@ -23,8 +23,6 @@ import org.kohsuke.stapler.StaplerProxy;
 
 /**
  * {@link Action} that shows link to the allure report on the project page.
- *
- * @author pupssman
  */
 public class AllureReportProjectAction implements ProminentProjectAction, StaplerProxy {
 

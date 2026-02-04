@@ -30,9 +30,9 @@ import hudson.tools.ToolInstallation;
 import hudson.tools.ToolInstaller;
 import hudson.tools.ToolProperty;
 import jenkins.security.MasterToSlaveCallable;
+import org.allurereport.jenkins.Messages;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.allurereport.jenkins.Messages;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,9 +42,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
- */
 public class AllureCommandlineInstallation extends ToolInstallation
         implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation> {
 

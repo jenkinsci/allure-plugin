@@ -18,10 +18,6 @@ package org.allurereport.jenkins.config;
 import hudson.model.Result;
 import hudson.model.Run;
 
-/**
- * eroshenkoam.
- * 6/25/14
- */
 @SuppressWarnings("TrailingComment")
 public enum ReportBuildPolicy {
 
