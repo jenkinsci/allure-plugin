@@ -50,7 +50,12 @@ public class Allure3Installation extends ToolInstallation
         AllureInstallation {
 
     private static final String ALLURE = "allure";
+    private static final String ALLURE_CMD = "allure.cmd";
+    private static final String VERSION_FLAG = "--version";
     private static final String CAN_FIND_ALLURE_MESSAGE = "Can't find allure command in PATH";
+    private static final String VERSION_1 = "1";
+    private static final String VERSION_2 = "2";
+    private static final String VERSION_3 = "3";
 
     @DataBoundConstructor
     public Allure3Installation(final String name,
@@ -99,11 +104,11 @@ public class Allure3Installation extends ToolInstallation
     private static final class GetExecutable extends MasterToSlaveCallable<String, IOException> {
         @Override
         public String call() throws IOException {
-            final String executable = Functions.isWindows() ? "allure.cmd" : ALLURE;
+            final String executable = getExecutableName();
 
             // Try to find allure in PATH by checking if it's executable
             try {
-                final ProcessBuilder pb = new ProcessBuilder(executable, "--version");
+                final ProcessBuilder pb = new ProcessBuilder(executable, VERSION_FLAG);
                 pb.redirectErrorStream(true);
                 final Process process = pb.start();
                 final int exitCode = process.waitFor();
@@ -126,10 +131,10 @@ public class Allure3Installation extends ToolInstallation
     private static final class GetMajorVersion extends MasterToSlaveCallable<String, IOException> {
         @Override
         public String call() throws IOException {
-            final String executable = Functions.isWindows() ? "allure.cmd" : ALLURE;
+            final String executable = getExecutableName();
 
             try {
-                final ProcessBuilder pb = new ProcessBuilder(executable, "--version");
+                final ProcessBuilder pb = new ProcessBuilder(executable, VERSION_FLAG);
                 pb.redirectErrorStream(true);
                 final Process process = pb.start();
 
@@ -145,23 +150,31 @@ public class Allure3Installation extends ToolInstallation
                 final int exitCode = process.waitFor();
                 if (exitCode == 0 && version != null) {
                     // Extract major version from version string (e.g., "3.1.0" -> "3")
-                    if (version.startsWith("3")) {
-                        return "3";
-                    } else if (version.startsWith("2")) {
-                        return "2";
-                    } else if (version.startsWith("1")) {
-                        return "1";
-                    }
-                    // Default to returning the first character as major version
-                    return version.substring(0, 1);
+                    return parseMajorVersion(version);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Failed to get Allure version", e);
             }
             // Default to version 3 for Allure3Installation
-            return "3";
+            return VERSION_3;
         }
+    }
+
+    private static String getExecutableName() {
+        return Functions.isWindows() ? ALLURE_CMD : ALLURE;
+    }
+
+    private static String parseMajorVersion(final String version) {
+        if (version.startsWith(VERSION_3)) {
+            return VERSION_3;
+        } else if (version.startsWith(VERSION_2)) {
+            return VERSION_2;
+        } else if (version.startsWith(VERSION_1)) {
+            return VERSION_1;
+        }
+        // Default to returning the first character as major version
+        return version.substring(0, 1);
     }
 
     /**
@@ -208,9 +221,9 @@ public class Allure3Installation extends ToolInstallation
          */
         @SuppressWarnings("unused")
         public FormValidation doValidate() {
-            final String executable = Functions.isWindows() ? "allure.cmd" : ALLURE;
+            final String executable = getExecutableName();
             try {
-                final ProcessBuilder pb = new ProcessBuilder(executable, "--version");
+                final ProcessBuilder pb = new ProcessBuilder(executable, VERSION_FLAG);
                 pb.redirectErrorStream(true);
                 final Process process = pb.start();
 

@@ -29,38 +29,42 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Allure3ConfigTest {
 
+    private static final String ALLURE_RESULTS = "allure-results";
+    private static final String VERSION_2 = "2";
+    private static final String VERSION_3 = "3";
+
     @ClassRule
     public static JenkinsRule jRule = new JenkinsRule();
 
     @Test
     public void shouldDefaultToAllure2() {
         final AllureReportPublisher publisher = new AllureReportPublisher(
-                Collections.singletonList(new ResultsConfig("allure-results"))
+                Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
 
-        assertThat(publisher.getAllureVersion()).isEqualTo("2");
+        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_2);
         assertThat(publisher.isAllure3()).isFalse();
     }
 
     @Test
     public void shouldSetAllure3Version() {
         final AllureReportPublisher publisher = new AllureReportPublisher(
-                Collections.singletonList(new ResultsConfig("allure-results"))
+                Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
-        publisher.setAllureVersion("3");
+        publisher.setAllureVersion(VERSION_3);
 
-        assertThat(publisher.getAllureVersion()).isEqualTo("3");
+        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_3);
         assertThat(publisher.isAllure3()).isTrue();
     }
 
     @Test
     public void shouldSetAllure2Version() {
         final AllureReportPublisher publisher = new AllureReportPublisher(
-                Collections.singletonList(new ResultsConfig("allure-results"))
+                Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
-        publisher.setAllureVersion("2");
+        publisher.setAllureVersion(VERSION_2);
 
-        assertThat(publisher.getAllureVersion()).isEqualTo("2");
+        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_2);
         assertThat(publisher.isAllure3()).isFalse();
     }
 
@@ -79,6 +83,6 @@ public class Allure3ConfigTest {
                 .getDescriptorByType(AllureReportPublisherDescriptor.class);
 
         final String[] versions = descriptor.getAllureVersions();
-        assertThat(versions).containsExactly("2", "3");
+        assertThat(versions).containsExactly(VERSION_2, VERSION_3);
     }
 }
