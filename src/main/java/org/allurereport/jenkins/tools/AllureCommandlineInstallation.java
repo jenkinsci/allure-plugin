@@ -43,7 +43,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class AllureCommandlineInstallation extends ToolInstallation
-        implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation> {
+        implements EnvironmentSpecific<AllureCommandlineInstallation>, NodeSpecific<AllureCommandlineInstallation>,
+        AllureInstallation {
 
     private static final String CAN_FIND_ALLURE_MESSAGE = "Can't find allure commandline <%s>";
     private static final String ALLURE = "allure";
@@ -55,11 +56,13 @@ public class AllureCommandlineInstallation extends ToolInstallation
         super(Util.fixEmptyAndTrim(name), Util.fixEmptyAndTrim(home), properties);
     }
 
+    @Override
     @SuppressWarnings("TrailingComment")
     public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new GetExecutable(getHome()));
     }
 
+    @Override
     public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
         return launcher.getChannel().call(new GetMajorVersion(getHome()));
     }

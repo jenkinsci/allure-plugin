@@ -46,7 +46,9 @@ import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.config.ResultsConfig;
 import org.allurereport.jenkins.exception.AllurePluginException;
+import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.allurereport.jenkins.tools.AllureInstallation;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
@@ -69,7 +71,13 @@ import java.util.zip.ZipFile;
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods"})
+/**
+ * User: eroshenkoam.
+ * Date: 10/8/13, 6:20 PM
+ * {@link AllureReportPublisherDescriptor}
+ */
+@SuppressWarnings({"ClassDataAbstractionCoupling", "ClassFanOutComplexity", "PMD.GodClass", "PMD.TooManyMethods",
+    "PMD.NcssCount"})
 public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -83,6 +91,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private String jdk;
 
     private String commandline;
+
+    private String allureVersion;
 
     private List<PropertyConfig> properties = new ArrayList<>();
 
@@ -208,7 +218,61 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return this.commandline;
     }
 
-    private AllureCommandlineInstallation getCommandline(
+    @DataBoundSetter
+    public void setAllureVersion(final String allureVersion) {
+        this.allureVersion = allureVersion;
+    }
+
+    public String getAllureVersion() {
+        // Default to "2" for backward compatibility
+        return this.allureVersion == null ? "2" : this.allureVersion;
+    }
+
+    /**
+     * Check if using Allure 3.
+     *
+     * @return true if Allure 3 is selected
+     */
+    public boolean isAllure3() {
+        return "3".equals(getAllureVersion());
+    }
+
+    private AllureInstallation getAllureInstallation(
+        final @NonNull Launcher launcher,
+        final @NonNull TaskListener listener,
+        final @NonNull EnvVars env)
+        throws IOException, InterruptedException {
+
+        if (isAllure3()) {
+            return getAllure3Installation(launcher, listener, env);
+        } else {
+            return getAllure2Installation(launcher, listener, env);
+        }
+    }
+
+    private Allure3Installation getAllure3Installation(
+        final @NonNull Launcher launcher,
+        final @NonNull TaskListener listener,
+        final @NonNull EnvVars env)
+        throws IOException, InterruptedException {
+
+        // Get Allure 3 installation from descriptor
+        final Allure3Installation installation = getDescriptor().getAllure3Installation();
+
+        if (installation == null) {
+            throw new AllurePluginException("Can not find Allure 3 installation. "
+                + "Please ensure 'allure' is installed and available in PATH (npm install -g allure).");
+        }
+
+        // Configure for the node
+        final Allure3Installation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
+        if (tool == null) {
+            throw new AllurePluginException("Can not find Allure 3 installation for given environment.");
+        }
+        return tool;
+    }
+
+    private AllureCommandlineInstallation getAllure2Installation(
         final @NonNull Launcher launcher,
         final @NonNull TaskListener listener,
         final @NonNull EnvVars env)
@@ -404,13 +468,19 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         setAllureProperties(env);
-        configureJdk(launcher, listener, env);
-        final AllureCommandlineInstallation commandline = getCommandline(launcher, listener, env);
+
+        // Only configure JDK for Allure 2 (Java-based), not for Allure 3 (Node.js-based)
+        if (!isAllure3()) {
+            configureJdk(launcher, listener, env);
+        }
+
+        final AllureInstallation allureInstallation = getAllureInstallation(launcher, listener, env);
+        listener.getLogger().printf("Using Allure %s%n", getAllureVersion());
 
         final String reportDirPath = getReport();
         final FilePath reportDirectoryInWorkspace = workspace.child(reportDirPath);
 
-        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, commandline);
+        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, allureInstallation);
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
@@ -430,7 +500,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
 
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
-            FilePathUtils.extractSummary(run, reportName)
+            FilePathUtils.extractSummary(run, reportName, isAllure3())
         );
         buildAction.setReportPath(reportUnderBuild);
         run.addAction(buildAction);
