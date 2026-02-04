@@ -17,9 +17,6 @@ package org.allurereport.jenkins.callables;
 
 import java.util.HashMap;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class AddTestRunInfo extends AbstractAddInfo {
 
     public static final String TESTRUN_JSON = "testrun.json";

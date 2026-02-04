@@ -23,10 +23,6 @@ import jenkins.model.Jenkins;
 
 import java.io.File;
 
-/**
- * User: eroshenkoam.
- * Date: 10/9/13, 8:29 PM
- */
 public class AllureReportPlugin extends Plugin {
 
     public static final String URL_PATH = "allure";

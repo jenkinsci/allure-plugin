@@ -15,9 +15,6 @@
  */
 package org.allurereport.jenkins.exception;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class AllurePluginException extends RuntimeException {
 
     public AllurePluginException(final String message) {

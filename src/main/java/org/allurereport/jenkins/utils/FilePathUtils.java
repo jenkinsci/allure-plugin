@@ -36,9 +36,6 @@ import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-/**
- * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
- */
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";

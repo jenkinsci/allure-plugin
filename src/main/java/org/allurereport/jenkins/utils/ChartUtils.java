@@ -18,6 +18,8 @@ package org.allurereport.jenkins.utils;
 import hudson.util.ChartUtil;
 import hudson.util.ShiftedCategoryAxis;
 import hudson.util.StackedAreaRenderer2;
+import org.allurereport.jenkins.AllureReportBuildAction;
+import org.allurereport.jenkins.Messages;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
@@ -29,14 +31,9 @@ import org.jfree.chart.renderer.category.StackedAreaRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.ui.RectangleInsets;
 import org.kohsuke.stapler.StaplerRequest;
-import org.allurereport.jenkins.AllureReportBuildAction;
-import org.allurereport.jenkins.Messages;
 
 import java.awt.Color;
 
-/**
- * @author Egor Borisov ehborisov@gmail.com
- */
 public final class ChartUtils {
 
     private ChartUtils() {

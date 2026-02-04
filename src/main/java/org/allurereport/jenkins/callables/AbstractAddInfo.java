@@ -28,9 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public abstract class AbstractAddInfo extends MasterToSlaveFileCallable<FilePath> {
 
     @Override

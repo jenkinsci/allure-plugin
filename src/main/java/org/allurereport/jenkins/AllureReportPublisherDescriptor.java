@@ -27,14 +27,14 @@ import hudson.tasks.Publisher;
 import hudson.tools.ToolDescriptor;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.commons.collections.CollectionUtils;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.StaplerRequest;
 import org.allurereport.jenkins.config.PropertyConfig;
 import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.apache.commons.collections.CollectionUtils;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,10 +43,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * User: eroshenkoam.
- * Date: 10/9/13, 7:49 PM
- */
 @Extension
 @Symbol("allure")
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {

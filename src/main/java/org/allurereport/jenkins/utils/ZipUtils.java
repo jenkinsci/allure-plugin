@@ -21,10 +21,6 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/**
- * eroshenkoam.
- * 11.04.17
- */
 public final class ZipUtils {
 
     private ZipUtils() {
