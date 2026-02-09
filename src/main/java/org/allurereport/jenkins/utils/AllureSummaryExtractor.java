@@ -213,7 +213,7 @@ public final class AllureSummaryExtractor {
         return getBuildSummary(inputStream);
     }
 
-    private static BuildSummary getBuildSummary(InputStream inputStream) throws IOException {
+    private static BuildSummary getBuildSummary(final InputStream inputStream) throws IOException {
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode root = mapper.readTree(inputStream);
         final JsonNode statisticNode = root.hasNonNull(KEY_STATISTIC) ? root.get(KEY_STATISTIC) : root;
