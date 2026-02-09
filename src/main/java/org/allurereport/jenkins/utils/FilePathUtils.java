@@ -24,13 +24,7 @@ import hudson.model.Run;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -40,19 +34,6 @@ public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
-    private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
-
-    private static final String KEY_PASSED = "passed";
-    private static final String KEY_FAILED = "failed";
-    private static final String KEY_BROKEN = "broken";
-    private static final String KEY_SKIPPED = "skipped";
-    private static final String KEY_UNKNOWN = "unknown";
-
-    private static final String DIR_EXPORT = "export";
-    private static final String DIR_WIDGETS = "widgets";
-    private static final String DIR_AWESOME = "awesome";
-    private static final String FILE_SUMMARY = "summary.json";
-    private static final String KEY_STATISTIC = "statistic";
 
     public static final String SEPARATOR = "/";
 
@@ -136,137 +117,6 @@ public final class FilePathUtils {
      * @return the build summary
      */
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
-        BuildSummary summary = extractSummaryFromZip(run, reportPath, isAllure3);
-        if (summary != null) {
-            return summary;
-        }
-
-        summary = extractSummaryFromDirectory(run, reportPath, isAllure3);
-        if (summary != null) {
-            return summary;
-        }
-
-        return new BuildSummary().withStatistics(new HashMap<>());
-    }
-
-    @SuppressWarnings("PMD.EmptyCatchBlock")
-    private static BuildSummary extractSummaryFromZip(final Run<?, ?> run,
-                                                      final String reportPath,
-                                                      final boolean isAllure3) {
-        final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-        try {
-            if (!reportZip.exists()) {
-                return null;
-            }
-            try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
-                final Optional<ZipEntry> summary = findSummaryInZip(archive, reportPath, isAllure3);
-                if (summary.isPresent()) {
-                    try (InputStream is = archive.getInputStream(summary.get())) {
-                        return parseSummaryJson(is);
-                    }
-                }
-            }
-        } catch (IOException | InterruptedException ex) {
-            LOG.log(Level.FINE, "Unable to read Allure summary from ZIP for {0}: {1}",
-                new Object[]{reportPath, ex.toString()});
-        }
-        return null;
-    }
-
-    private static Optional<ZipEntry> findSummaryInZip(final ZipFile archive,
-                                                       final String reportPath,
-                                                       final boolean isAllure3) {
-        // For Allure 3, check the awesome subdirectory first
-        if (isAllure3) {
-            Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT);
-            if (summary.isPresent()) {
-                return summary;
-            }
-            summary = getSummary(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS);
-            if (summary.isPresent()) {
-                return summary;
-            }
-        }
-        // Standard Allure 2 locations (also fallback for Allure 3)
-        final Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
-        if (summary.isPresent()) {
-            return summary;
-        }
-        return getSummary(archive, reportPath, DIR_WIDGETS);
-    }
-
-    @SuppressWarnings("PMD.EmptyCatchBlock")
-    private static BuildSummary extractSummaryFromDirectory(final Run<?, ?> run,
-                                                            final String reportPath,
-                                                            final boolean isAllure3) {
-        try {
-            final FilePath reportDir = new FilePath(run.getRootDir()).child(reportPath);
-            final FilePath json = findSummaryInDirectory(reportDir, isAllure3);
-            if (json != null && json.exists()) {
-                try (InputStream is = json.read()) {
-                    return parseSummaryJson(is);
-                }
-            }
-        } catch (IOException | InterruptedException ex) {
-            LOG.log(Level.FINE, "Unable to read Allure summary from unpacked dir for {0}: {1}",
-                new Object[]{reportPath, ex.toString()});
-        }
-        return null;
-    }
-
-    private static FilePath findSummaryInDirectory(final FilePath reportDir,
-                                                   final boolean isAllure3)
-            throws IOException, InterruptedException {
-        // For Allure 3, check the awesome subdirectory first
-        if (isAllure3) {
-            final FilePath awesomeDir = reportDir.child(DIR_AWESOME);
-            if (awesomeDir.exists()) {
-                final FilePath awesomeExportJson = awesomeDir.child(DIR_EXPORT).child(FILE_SUMMARY);
-                if (awesomeExportJson.exists()) {
-                    return awesomeExportJson;
-                }
-                final FilePath awesomeWidgetsJson = awesomeDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-                if (awesomeWidgetsJson.exists()) {
-                    return awesomeWidgetsJson;
-                }
-            }
-        }
-        // Standard Allure 2 locations (also fallback for Allure 3)
-        final FilePath exportJson = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
-        if (exportJson.exists()) {
-            return exportJson;
-        }
-        return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-    }
-
-    private static BuildSummary parseSummaryJson(final InputStream inputStream) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
-        final JsonNode root = mapper.readTree(inputStream);
-
-        final JsonNode statisticNode = root.hasNonNull(KEY_STATISTIC) ? root.get(KEY_STATISTIC) : root;
-
-        final Map<String, Integer> statistics = new HashMap<>(5);
-        statistics.put(KEY_PASSED, nodeAsInt(statisticNode.get(KEY_PASSED)));
-        statistics.put(KEY_FAILED, nodeAsInt(statisticNode.get(KEY_FAILED)));
-        statistics.put(KEY_BROKEN, nodeAsInt(statisticNode.get(KEY_BROKEN)));
-        statistics.put(KEY_SKIPPED, nodeAsInt(statisticNode.get(KEY_SKIPPED)));
-        statistics.put(KEY_UNKNOWN, nodeAsInt(statisticNode.get(KEY_UNKNOWN)));
-
-        return new BuildSummary().withStatistics(statistics);
-    }
-
-    private static int nodeAsInt(final JsonNode node) {
-        return (node == null || node.isNull()) ? 0 : node.asInt(0);
-    }
-
-    private static Optional<ZipEntry> getSummary(final ZipFile archive,
-        final String reportPath,
-        final String location) {
-        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPARATOR).concat(location));
-        final String toSearch = reportPath.concat(SEPARATOR).concat(location).concat(SEPARATOR).concat(FILE_SUMMARY);
-        return entries.stream()
-            .filter(Objects::nonNull)
-            .filter(input -> input.getName().equals(toSearch))
-            .findFirst();
+        return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
 }

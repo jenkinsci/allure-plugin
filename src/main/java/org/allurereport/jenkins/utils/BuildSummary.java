@@ -33,7 +33,8 @@ public class BuildSummary {
             return 0;
         }
         final Integer value = this.statistics.get(key);
-        return value != null ? value : 0;    }
+        return value != null ? value : 0;
+    }
 
     public long getFailedCount() {
         return getStatistic("failed");
