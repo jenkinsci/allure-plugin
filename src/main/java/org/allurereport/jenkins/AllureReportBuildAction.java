@@ -67,12 +67,13 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
-
+    private final boolean allure3;
     private String reportPath;
 
-    AllureReportBuildAction(final BuildSummary buildSummary) {
+    AllureReportBuildAction(final BuildSummary buildSummary, final boolean allure3) {
         this.buildSummary = new WeakReference<>(buildSummary);
         this.reportPath = ALLURE_REPORT;
+        this.allure3 = allure3;
     }
 
     private String getReportPath() {
@@ -111,7 +112,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     public BuildSummary getBuildSummary() {
         if (this.buildSummary == null || this.buildSummary.get() == null) {
-            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath()));
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath(), allure3));
         }
         final BuildSummary data = this.buildSummary.get();
         return data != null ? data : new BuildSummary();

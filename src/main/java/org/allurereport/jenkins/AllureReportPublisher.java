@@ -36,6 +36,7 @@ import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
+import org.allurereport.jenkins.callables.AddEnvironmentInfo;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
 import org.allurereport.jenkins.callables.AllureReportArchive;
@@ -500,7 +501,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
 
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
-            FilePathUtils.extractSummary(run, reportName, isAllure3())
+            FilePathUtils.extractSummary(run, reportName, isAllure3()),
+                isAllure3()
         );
         buildAction.setReportPath(reportUnderBuild);
         run.addAction(buildAction);
@@ -598,8 +600,39 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull TaskListener listener)
         throws IOException, InterruptedException {
         addHistory(resultsPaths, run, workspace, listener);
-        addTestRunInfo(resultsPaths, run);
+        if (isAllure3()) {
+            quarantineLegacyTestRunJson(resultsPaths);
+            addEnvironmentInfo(resultsPaths, run);
+        } else {
+            addTestRunInfo(resultsPaths, run);
+        }
         addExecutorInfo(resultsPaths, run);
+    }
+
+    private static void quarantineLegacyTestRunJson(final @NonNull List<FilePath> resultsPaths)
+            throws IOException, InterruptedException {
+        for (FilePath path : resultsPaths) {
+            final FilePath legacy = path.child(AddTestRunInfo.TESTRUN_JSON);
+            if (!legacy.exists()) {
+                continue;
+            }
+            final FilePath quarantined = path.child("testrun.allure2.bak");
+            if (quarantined.exists()) {
+                quarantined.delete();
+            }
+            legacy.renameTo(quarantined);
+        }
+    }
+
+    private void addEnvironmentInfo(final @NonNull List<FilePath> resultsPaths,
+                                    final @NonNull Run<?, ?> run)
+            throws IOException, InterruptedException {
+        final long start = run.getStartTimeInMillis();
+        final long stop = run.getTimeInMillis();
+        final AddEnvironmentInfo callable = new AddEnvironmentInfo(run.getFullDisplayName(), start, stop);
+        for (FilePath path : resultsPaths) {
+            path.act(callable);
+        }
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
