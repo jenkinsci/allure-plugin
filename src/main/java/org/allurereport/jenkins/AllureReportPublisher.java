@@ -36,6 +36,7 @@ import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
+import jenkins.util.VirtualFile;
 import org.allurereport.jenkins.callables.AddEnvironmentInfo;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
@@ -67,10 +68,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
 /**
  * User: eroshenkoam.
@@ -84,6 +84,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final String ARCHIVE_DIR = "archive";
+    private static final String DIR_AWESOME = "awesome";
+    private static final String DIR_WIDGETS = "widgets";
+    private static final String DIR_EXPORT = "export";
+    private static final String FILE_SUMMARY_JSON = "summary.json";
 
     private AllureReportConfig config;
 
@@ -498,13 +504,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final String reportName = reportDirectoryInWorkspace.getName();
 
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
-
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
             FilePathUtils.extractSummary(run, reportName, isAllure3()),
                 isAllure3()
         );
-        buildAction.setReportPath(reportUnderBuild);
+        buildAction.setReportPath(reportDirectoryInWorkspace);
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
     }
@@ -535,21 +539,27 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
-        final String reportName = reportPathWs.getName();
+        createSummaryJson(workspace, reportPathWs);
 
         workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
-        final FilePath existingArchivedZip = new FilePath(run.getRootDir())
-            .child("archive")
-            .child(REPORT_ARCHIVE_NAME);
-
+        final FilePath archiveDir = new FilePath(run.getRootDir()).child(ARCHIVE_DIR);
+        final FilePath existingArchivedZip = archiveDir.child(REPORT_ARCHIVE_NAME);
         if (existingArchivedZip.exists()) {
             listener.getLogger().println("Removing existing archived artifact: " + existingArchivedZip.getRemote());
             existingArchivedZip.delete();
         }
 
-        final Map<String, String> artifacts =
-            Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
+        final FilePath existingArchivedSummary = archiveDir.child(SUMMARY_ARTIFACT_NAME);
+        if (existingArchivedSummary.exists()) {
+            existingArchivedSummary.delete();
+        }
+
+        final Map<String, String> artifacts = new HashMap<>();
+        artifacts.put(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
+        if (workspace.child(SUMMARY_ARTIFACT_NAME).exists()) {
+            artifacts.put(SUMMARY_ARTIFACT_NAME, SUMMARY_ARTIFACT_NAME);
+        }
 
         final BuildListener buildListener =
             (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
@@ -562,12 +572,44 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             zipPath.delete();
         }
 
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
-        if (reportUnderBuild.exists()) {
-            reportUnderBuild.deleteRecursive();
+        final FilePath summaryPath = workspace.child(SUMMARY_ARTIFACT_NAME);
+        if (summaryPath.exists()) {
+            summaryPath.delete();
         }
-        reportPathWs.copyRecursiveTo(reportUnderBuild);
-        listener.getLogger().println("Allure report copied to: " + reportUnderBuild.getRemote());
+    }
+
+    private void createSummaryJson(final FilePath workspace,
+                                  final FilePath reportPathWs) throws IOException, InterruptedException {
+        final FilePath summarySource = findSummaryJsonInReport(reportPathWs);
+        if (summarySource != null && summarySource.exists()) {
+            final FilePath summaryDest = workspace.child(SUMMARY_ARTIFACT_NAME);
+            if (summaryDest.exists()) {
+                summaryDest.delete();
+            }
+            summarySource.copyTo(summaryDest);
+        }
+    }
+
+    private FilePath findSummaryJsonInReport(final FilePath reportDir) throws IOException, InterruptedException {
+        if (isAllure3()) {
+            final FilePath awesome = reportDir.child(DIR_AWESOME).child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
+            if (awesome.exists()) {
+                return awesome;
+            }
+            final FilePath awesomeExport = reportDir.child(DIR_AWESOME).child(DIR_EXPORT).child(FILE_SUMMARY_JSON);
+            if (awesomeExport.exists()) {
+                return awesomeExport;
+            }
+            final FilePath widgets = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
+            if (widgets.exists()) {
+                return widgets;
+            }
+        }
+        final FilePath export = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY_JSON);
+        if (export.exists()) {
+            return export;
+        }
+        return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
     }
 
     private void setAllureProperties(final EnvVars envVars) {
@@ -678,11 +720,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull TaskListener listener) {
         try {
             final String reportPath = workspace.child(getReport()).getName();
-            final FilePath previousReport = FilePathUtils.getPreviousReportWithHistory(run, reportPath);
-            if (previousReport == null) {
+            final VirtualFile previousReportZip = FilePathUtils.getPreviousReportZipWithHistory(run, reportPath);
+            if (previousReportZip == null) {
                 return;
             }
-            copyHistoryToResultsPaths(resultsPaths, previousReport, workspace);
+            copyHistoryToResultsPaths(resultsPaths, previousReportZip, reportPath);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
             listener.getLogger().println(e);
@@ -690,26 +732,28 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void copyHistoryToResultsPaths(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull FilePath previousReport,
-        final @NonNull FilePath workspace)
+        final @NonNull VirtualFile previousReportZip,
+        final @NonNull String reportPath)
         throws IOException, InterruptedException {
-        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            for (FilePath resultsPath : resultsPaths) {
-                copyHistoryToResultsPath(archive, resultsPath, workspace);
-            }
+        for (FilePath resultsPath : resultsPaths) {
+            copyHistoryToResultsPath(resultsPath, previousReportZip, reportPath);
         }
     }
 
-    private void copyHistoryToResultsPath(final ZipFile archive,
-        final @NonNull FilePath resultsPath,
-        final @NonNull FilePath workspace)
+    private void copyHistoryToResultsPath(final @NonNull FilePath resultsPath,
+        final @NonNull VirtualFile previousReportZip,
+        final @NonNull String reportPath)
         throws IOException, InterruptedException {
-        final FilePath reportPath = workspace.child(getReport());
-        for (final ZipEntry historyEntry : listEntries(archive, reportPath.getName() + "/history")) {
-            final String historyFile = historyEntry.getName().replace(reportPath.getName() + "/", "");
-            try (InputStream entryStream = archive.getInputStream(historyEntry)) {
-                final FilePath historyCopy = resultsPath.child(historyFile);
-                historyCopy.copyFrom(entryStream);
+        try (InputStream in = previousReportZip.open();
+             ZipInputStream zis = new ZipInputStream(in)) {
+            ZipEntry entry = zis.getNextEntry();
+            while (entry != null) {
+                if (!entry.isDirectory() && entry.getName().startsWith(reportPath + "/history/")) {
+                    final String historyFile = entry.getName().replace(reportPath + "/", "");
+                    final FilePath historyCopy = resultsPath.child(historyFile);
+                    historyCopy.copyFrom(zis);
+                }
+                entry = zis.getNextEntry();
             }
         }
     }
