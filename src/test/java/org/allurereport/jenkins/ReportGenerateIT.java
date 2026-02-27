@@ -37,9 +37,17 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisherWithoutCommandline;
@@ -214,5 +222,62 @@ public class ReportGenerateIT {
         final JenkinsRule.WebClient webClient = jRule.createWebClient();
         final HtmlPage page = webClient.getPage(build);
         jRule.assertGoodStatus(page);
+    }
+
+    @Test
+    public void shouldGenerateReportWithHistory() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, ALLURE_RESULTS_PATH);
+        publisher.setIncludeHistory(true);
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build1 = jRule.buildAndAssertSuccess(project);
+        assertThat(build1.getActions(AllureReportBuildAction.class)).hasSize(1);
+
+        final FreeStyleBuild build2 = jRule.buildAndAssertSuccess(project);
+        assertThat(build2.getActions(AllureReportBuildAction.class)).hasSize(1);
+
+        assertThat(getHistoryTrendSize(build2))
+                .as("Second build report should contain history trend with entries from previous build")
+                .isGreaterThan(1);
+    }
+
+    @Test
+    public void shouldGenerateReportWithoutHistory() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        project.setScm(getSimpleFileScm(SAMPLE_TESTSUITE_FILE_NAME, ALLURE_RESULTS));
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, ALLURE_RESULTS_PATH);
+        publisher.setIncludeHistory(false);
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build1 = jRule.buildAndAssertSuccess(project);
+        assertThat(build1.getActions(AllureReportBuildAction.class)).hasSize(1);
+
+        final FreeStyleBuild build2 = jRule.buildAndAssertSuccess(project);
+        assertThat(build2.getActions(AllureReportBuildAction.class)).hasSize(1);
+
+        assertThat(getHistoryTrendSize(build2))
+                .as("Second build report should only contain current build in history when includeHistory is false")
+                .isLessThanOrEqualTo(1);
+    }
+
+    private int getHistoryTrendSize(final FreeStyleBuild build) throws Exception {
+        final File archive = new File(build.getArtifactsDir(), "allure-report.zip");
+        assertThat(archive).exists();
+        try (ZipFile zip = new ZipFile(archive)) {
+            final Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                final ZipEntry entry = entries.nextElement();
+                if (entry.getName().contains("/history/history-trend.json")) {
+                    try (InputStream is = zip.getInputStream(entry)) {
+                        final ObjectMapper mapper = new ObjectMapper();
+                        final JsonNode trendJson = mapper.readTree(is);
+                        return trendJson.size();
+                    }
+                }
+            }
+        }
+        return 0;
     }
 }
