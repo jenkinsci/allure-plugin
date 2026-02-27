@@ -64,6 +64,10 @@ public class AllureReportPublisherContext implements Context {
         getPublisher().setIncludeProperties(includeProperties);
     }
 
+    public void includeHistory(final boolean includeHistory) {
+        getPublisher().setIncludeHistory(includeHistory);
+    }
+
     public void configPath(final String configPath) {
         getPublisher().setConfigPath(configPath);
     }
