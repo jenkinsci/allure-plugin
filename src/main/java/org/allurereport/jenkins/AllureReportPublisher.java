@@ -487,6 +487,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final String reportDirPath = getReport();
         final FilePath reportDirectoryInWorkspace = workspace.child(reportDirPath);
 
+        cleanReportDirIfNeeded(reportDirectoryInWorkspace, listener);
+
         final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, allureInstallation);
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
@@ -511,6 +513,23 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         buildAction.setReportPath(reportDirectoryInWorkspace);
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
+    }
+
+    private void cleanReportDirIfNeeded(final FilePath reportDirectoryInWorkspace,
+                                        final TaskListener listener) throws IOException {
+        if (!isAllure3()) {
+            return;
+        }
+        try {
+            if (reportDirectoryInWorkspace.exists()) {
+                listener.getLogger().println("Cleaning existing Allure report directory: "
+                        + reportDirectoryInWorkspace.getRemote());
+                reportDirectoryInWorkspace.deleteRecursive();
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while cleaning report directory", interrupted);
+        }
     }
 
     private void applyResultStatus(final Run<?, ?> run, final BuildSummary summary) {
