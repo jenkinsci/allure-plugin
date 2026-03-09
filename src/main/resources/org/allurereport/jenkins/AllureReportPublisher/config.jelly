@@ -46,26 +46,66 @@
         </f:repeatable>
     </f:entry>
     <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
+    
+    <j:set var="isAllure2" value="${instance.getAllureVersion() == '2' or instance.getAllureVersion() == null}"/>
+    <j:set var="showQuickSetup" value="${empty(installations) and isAllure2 and app.hasPermission(app.ADMINISTER)}"/>
+    
     <f:entry>
-        <j:if test="${empty(installations)}">
-            <div class="warning" id="allure2Warning">
-                ${%CommandlineMissingError(rootURL)}
+        <j:if test="${empty(installations) and isAllure2}">
+            <div class="alert alert-warning" id="allure2Warning" style="padding: 15px; margin: 10px 0; border: 1px solid #f0ad4e; border-radius: 4px; background-color: #fcf8e3;">
+                <strong>⚠️ ${%QuickSetupWarningTitle}</strong>
+                <p>${%CommandlineMissingError(rootURL)}</p>
+                
+                <j:if test="${showQuickSetup}">
+                    <div style="margin-top: 10px;">
+                        <f:validateButton
+                            title="${%QuickSetupButton}"
+                            progress="${%QuickSetupProgress}"
+                            method="quickSetup"
+                            with="version"
+                            style="margin-right: 10px;"/>
+                        <input type="hidden" name="version" value="latest"/>
+                        <span style="color: #666; font-size: 0.9em;">
+                            ${%QuickSetupHint}
+                        </span>
+                    </div>
+                </j:if>
+                
+                <div style="margin-top: 10px;">
+                    <p style="margin: 5px 0;">${%AlternativeOptions}</p>
+                    <ul style="margin: 5px 0; padding-left: 20px;">
+                        <li>
+                            <a href="${rootURL}/configureTools" target="_blank">
+                                ${%ManualConfigLink}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://docs.qameta.io/allure/#_installing_a_commandline" target="_blank">
+                                ${%OfflineInstallLink}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </j:if>
     </f:entry>
+    
+    <j:if test="${installations.size() > 0 and isAllure2}">
+        <f:entry title="${%Commandline}" description="${%CommandlineDescription}">
+            <select class="setting-input" style="width: 90%" name="commandline">
+                <j:if test="${installations.size() > 1 and empty(instance.getCommandline())}">
+                    <option value="">${%SelectInstallation}</option>
+                </j:if>
+                <j:forEach var="inst" items="${installations}">
+                    <f:option selected="${inst.name==instance.getCommandline()}"
+                              value="${inst.name}">
+                        ${inst.name}
+                    </f:option>
+                </j:forEach>
+            </select>
+        </f:entry>
+    </j:if>
     <f:advanced>
-        <j:if test="${installations.size() > 1}">
-            <f:entry title="${%Commandline}:" description="${%CommandlineDescription}">
-                <select class="setting-input" style="width: 90%" name="commandline">
-                    <j:forEach var="inst" items="${installations}">
-                        <f:option selected="${inst.name==instance.getCommandline()}"
-                                  value="${inst.name}">
-                            ${inst.name}
-                        </f:option>
-                    </j:forEach>
-                </select>
-            </f:entry>
-        </j:if>
         <j:set var="jdks" value="${app.JDKs}"/>
         <f:entry title="JDK" description="${%JDKDescription}">
             <select class="setting-input" style="width: 90%" name="jdk">
