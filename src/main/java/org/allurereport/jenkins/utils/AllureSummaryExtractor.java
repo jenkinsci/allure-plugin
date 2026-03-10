@@ -29,16 +29,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.NcssCount"})
 public final class AllureSummaryExtractor {
 
     private static final Logger LOG = Logger.getLogger(AllureSummaryExtractor.class.getName());
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
 
     private static final String KEY_PASSED = "passed";
     private static final String KEY_FAILED = "failed";
@@ -83,21 +78,17 @@ public final class AllureSummaryExtractor {
     }
 
     private static BuildSummary extractFromZip(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
-        final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-        try {
-            if (!reportZip.exists()) {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(run)) {
+            if (!source.exists()) {
                 return null;
             }
-            try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
-                final Optional<ZipEntry> entry = findSummaryEntryInZip(archive, reportPath, isAllure3);
-                if (entry.isPresent()) {
-                    try (InputStream is = archive.getInputStream(entry.get())) {
-                        final String name = entry.get().getName();
-                        if (name.endsWith(SEPARATOR + FILE_STATISTIC)) {
-                            return parseStatisticJson(is);
-                        }
-                        return parseSummaryJson(is);
+            final Optional<String> entryName = findSummaryEntryName(source, reportPath, isAllure3);
+            if (entryName.isPresent()) {
+                try (InputStream is = source.openEntry(entryName.get())) {
+                    if (entryName.get().endsWith(SEPARATOR + FILE_STATISTIC)) {
+                        return parseStatisticJson(is);
                     }
+                    return parseSummaryJson(is);
                 }
             }
         } catch (IOException | InterruptedException ex) {
@@ -107,23 +98,38 @@ public final class AllureSummaryExtractor {
         return null;
     }
 
-    private static Optional<ZipEntry> findSummaryEntryInZip(final ZipFile archive,
-                                                            final String reportPath,
-                                                            final boolean isAllure3) {
+    private static Optional<String> findSummaryEntryName(final AllureReportArchiveSource source,
+                                                         final String reportPath,
+                                                         final boolean isAllure3)
+            throws IOException, InterruptedException {
         if (isAllure3) {
             return firstPresent(
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_STATISTIC),
-                    getReportFile(archive, reportPath, DIR_WIDGETS, FILE_STATISTIC),
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_EXPORT, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_WIDGETS, FILE_SUMMARY)
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_STATISTIC),
+                    findEntry(source, reportPath, DIR_WIDGETS, FILE_STATISTIC),
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_EXPORT, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_WIDGETS, FILE_SUMMARY)
             );
         }
         return firstPresent(
-                getReportFile(archive, reportPath, DIR_EXPORT, FILE_SUMMARY),
-                getReportFile(archive, reportPath, DIR_WIDGETS, FILE_SUMMARY)
+                findEntry(source, reportPath, DIR_EXPORT, FILE_SUMMARY),
+                findEntry(source, reportPath, DIR_WIDGETS, FILE_SUMMARY)
         );
+    }
+
+    private static Optional<String> findEntry(final AllureReportArchiveSource source,
+                                              final String reportPath,
+                                              final String location,
+                                              final String fileName)
+            throws IOException, InterruptedException {
+        final String prefix = reportPath.concat(SEPARATOR).concat(location);
+        final String toSearch = prefix.concat(SEPARATOR).concat(fileName);
+        final List<String> entries = source.listEntries(prefix);
+        return entries.stream()
+                .filter(Objects::nonNull)
+                .filter(name -> name.equals(toSearch))
+                .findFirst();
     }
 
     @SafeVarargs
@@ -195,18 +201,6 @@ public final class AllureSummaryExtractor {
             return exportJson;
         }
         return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-    }
-
-    private static Optional<ZipEntry> getReportFile(final ZipFile archive,
-                                                    final String reportPath,
-                                                    final String location,
-                                                    final String fileName) {
-        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPARATOR).concat(location));
-        final String toSearch = reportPath.concat(SEPARATOR).concat(location).concat(SEPARATOR).concat(fileName);
-        return entries.stream()
-                .filter(Objects::nonNull)
-                .filter(input -> input.getName().equals(toSearch))
-                .findFirst();
     }
 
     private static BuildSummary parseSummaryJson(final InputStream inputStream) throws IOException {

@@ -50,6 +50,8 @@ import org.allurereport.jenkins.exception.AllurePluginException;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureInstallation;
+import org.allurereport.jenkins.utils.AllureReportArchiveSource;
+import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
@@ -66,11 +68,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
 /**
  * User: eroshenkoam.
@@ -693,21 +692,22 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull FilePath previousReport,
         final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
-        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(previousReport)) {
             for (FilePath resultsPath : resultsPaths) {
-                copyHistoryToResultsPath(archive, resultsPath, workspace);
+                copyHistoryToResultsPath(source, resultsPath, workspace);
             }
         }
     }
 
-    private void copyHistoryToResultsPath(final ZipFile archive,
+    private void copyHistoryToResultsPath(final AllureReportArchiveSource source,
         final @NonNull FilePath resultsPath,
         final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
         final FilePath reportPath = workspace.child(getReport());
-        for (final ZipEntry historyEntry : listEntries(archive, reportPath.getName() + "/history")) {
-            final String historyFile = historyEntry.getName().replace(reportPath.getName() + "/", "");
-            try (InputStream entryStream = archive.getInputStream(historyEntry)) {
+        final String historyPrefix = reportPath.getName() + "/history";
+        for (final String entryName : source.listEntries(historyPrefix)) {
+            final String historyFile = entryName.replace(reportPath.getName() + "/", "");
+            try (InputStream entryStream = source.openEntry(entryName)) {
                 final FilePath historyCopy = resultsPath.child(historyFile);
                 historyCopy.copyFrom(entryStream);
             }

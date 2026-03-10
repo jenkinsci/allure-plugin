@@ -25,15 +25,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
+    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
 
     public static final String SEPARATOR = "/";
 
@@ -72,7 +68,8 @@ public final class FilePathUtils {
         throws IOException, InterruptedException {
         Run<?, ?> current = run;
         while (current != null) {
-            final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
+            final FilePath previousReport = new FilePath(current.getArtifactsDir())
+                    .child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
                 return previousReport;
             }
@@ -82,12 +79,11 @@ public final class FilePathUtils {
     }
 
     private static boolean isHistoryNotEmpty(final FilePath previousReport,
-        final String reportPath) throws IOException {
-        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            final List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
-            if (Integer.valueOf(entries.size()).equals(1)) {
-                final ZipEntry historyEntry = entries.get(0);
-                try (InputStream is = archive.getInputStream(historyEntry)) {
+        final String reportPath) throws IOException, InterruptedException {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(previousReport)) {
+            final List<String> entries = source.listEntries(reportPath + "/history/history.json");
+            if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
+                try (InputStream is = source.openEntry(entries.get(0))) {
                     final ObjectMapper mapper = new ObjectMapper();
                     final JsonNode historyJson = mapper.readTree(is);
                     return historyJson.elements().hasNext();
