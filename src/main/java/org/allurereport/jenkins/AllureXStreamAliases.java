@@ -101,7 +101,7 @@ public final class AllureXStreamAliases {
     }
 
     private static void registerDslAliases() {
-        if (!isPresent()) {
+        if (!isJobDslPluginAvailable()) {
             LOGGER.log(Level.FINE, "Job DSL plugin not found, skipping DSL aliases");
             return;
         }
@@ -117,7 +117,7 @@ public final class AllureXStreamAliases {
         }
     }
 
-    private static boolean isPresent() {
+    private static boolean isJobDslPluginAvailable() {
         try {
             Class.forName("javaposse.jobdsl.plugin.ContextExtensionPoint",
                     false,
