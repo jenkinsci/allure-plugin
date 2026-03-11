@@ -19,7 +19,6 @@ import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
-import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.util.ChartUtil;
@@ -87,8 +86,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         return this.reportPath == null ? ALLURE_REPORT : this.reportPath;
     }
 
-    public void setReportPath(final FilePath reportPath) {
-        this.reportPath = reportPath.getName();
+    public void setReportPath(final String reportPath) {
+        this.reportPath = reportPath;
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
@@ -258,29 +257,21 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             return new DirectoryReportBrowser(reportDirectoryUnderBuild);
         }
 
-        final FilePath archivedZip = runRootDir.child("archive/allure-report.zip");
-        if (archivedZip.exists()) {
-            final ArchiveReportBrowser browser = new ArchiveReportBrowser(archivedZip);
-            browser.setReportPath(reportDirName);
-            return browser;
-        }
-
-        final AllureReportArchiveSource artifactSource = AllureReportArchiveSourceFactory.forArtifactManager(run);
+        final AllureReportArchiveSource archiveSource = AllureReportArchiveSourceFactory.forRun(run);
         try {
-            if (artifactSource.exists()) {
-                return new ArtifactManagerReportBrowser(artifactSource, reportDirName);
+            if (archiveSource.exists()) {
+                return new ArchiveReportBrowser(archiveSource, reportDirName);
             }
         } catch (IOException | InterruptedException ex) {
-            artifactSource.close();
+            archiveSource.close();
             throw ex;
         }
-        artifactSource.close();
+        archiveSource.close();
 
         response.sendError(
             HttpServletResponse.SC_NOT_FOUND,
             "Allure report not found. Checked: directory '" + reportDirectoryUnderBuild.getRemote()
-                + "', archive '" + archivedZip.getRemote()
-                + "', and artifact storage."
+                + "', and archive/artifact storage."
         );
         return null;
     }
@@ -340,57 +331,15 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     /**
-     * {@link DirectoryBrowserSupport} a modified browser support class that serves from an archive.
+     * Browser that serves report files from an {@link AllureReportArchiveSource}
+     * (local zip or remote artifact storage).
      */
-    private static class ArchiveReportBrowser implements HttpResponse {
-
-        private final FilePath archive;
-
-        private String reportPath;
-
-        ArchiveReportBrowser(final FilePath archive) {
-            this.archive = archive;
-            this.reportPath = ALLURE_REPORT;
-        }
-
-        public void setReportPath(final String reportPath) {
-            this.reportPath = reportPath;
-        }
-
-        @Override
-        public void generateResponse(final StaplerRequest req,
-            final StaplerResponse rsp,
-            final Object node)
-            throws IOException, ServletException {
-            rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
-            rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
-            rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-            rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
-            rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
-            rsp.setDateHeader(HEADER_EXPIRES, 0);
-
-            final String restOfPath = req.getRestOfPath().isEmpty() ? SLASH + INDEX_HTML : req.getRestOfPath();
-            final String entryPath = this.reportPath + restOfPath;
-
-            try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(archive)) {
-                try (InputStream is = source.openEntry(entryPath)) {
-                    rsp.serveFile(req, is, -1L, -1L, -1L, entryPath);
-                } catch (java.util.NoSuchElementException notFound) {
-                    rsp.sendRedirect(SLASH + INDEX_HTML + HASH_404);
-                }
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new IOException("Interrupted while reading archive entry", interrupted);
-            }
-        }
-    }
-
-    private static final class ArtifactManagerReportBrowser implements HttpResponse {
+    private static final class ArchiveReportBrowser implements HttpResponse {
 
         private final AllureReportArchiveSource source;
         private final String reportPath;
 
-        ArtifactManagerReportBrowser(final AllureReportArchiveSource source, final String reportPath) {
+        ArchiveReportBrowser(final AllureReportArchiveSource source, final String reportPath) {
             this.source = source;
             this.reportPath = reportPath;
         }
@@ -418,7 +367,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                 }
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
-                throw new IOException("Interrupted while reading artifact storage entry", interrupted);
+                throw new IOException("Interrupted while reading archive entry", interrupted);
             }
         }
     }

@@ -68,7 +68,7 @@ public final class LocalFileArchiveSource implements AllureReportArchiveSource {
         final List<String> result = new ArrayList<>();
         while (entries.hasMoreElements()) {
             final ZipEntry entry = entries.nextElement();
-            if (entry.getName().startsWith(prefix)) {
+            if (entry.getName().startsWith(prefix) && !entry.isDirectory()) {
                 result.add(entry.getName());
             }
         }

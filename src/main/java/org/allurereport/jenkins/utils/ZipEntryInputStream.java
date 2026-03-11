@@ -15,6 +15,7 @@
  */
 package org.allurereport.jenkins.utils;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,27 +36,42 @@ final class ZipEntryInputStream {
     }
 
     static InputStream open(final InputStream zipStream, final String entryPath) throws IOException {
-        final ZipInputStream zis = new ZipInputStream(zipStream);
-        ZipEntry entry = zis.getNextEntry();
-        while (entry != null) {
-            if (entryPath.equals(entry.getName())) {
-                return zis;
+        final ZipInputStream zipInputStream = new ZipInputStream(zipStream);
+        try {
+            ZipEntry entry = zipInputStream.getNextEntry();
+            while (entry != null) {
+                if (entryPath.equals(entry.getName())) {
+                    return new FilterInputStream(zipInputStream) {
+                        @Override
+                        @SuppressWarnings("PMD.UseTryWithResources")
+                        public void close() throws IOException {
+                            try {
+                                super.close();
+                            } finally {
+                                zipStream.close();
+                            }
+                        }
+                    };
+                }
+                entry = zipInputStream.getNextEntry();
             }
-            entry = zis.getNextEntry();
+        } catch (IOException ex) {
+            zipInputStream.close();
+            throw ex;
         }
-        zis.close();
+        zipInputStream.close();
         throw new NoSuchElementException("Entry not found in ZIP stream: " + entryPath);
     }
 
     static List<String> listEntries(final InputStream zipStream, final String prefix) throws IOException {
         final List<String> result = new ArrayList<>();
-        try (ZipInputStream zis = new ZipInputStream(zipStream)) {
-            ZipEntry entry = zis.getNextEntry();
+        try (ZipInputStream zipInputStream = new ZipInputStream(zipStream)) {
+            ZipEntry entry = zipInputStream.getNextEntry();
             while (entry != null) {
-                if (entry.getName().startsWith(prefix)) {
+                if (entry.getName().startsWith(prefix) && !entry.isDirectory()) {
                     result.add(entry.getName());
                 }
-                entry = zis.getNextEntry();
+                entry = zipInputStream.getNextEntry();
             }
         }
         return result;

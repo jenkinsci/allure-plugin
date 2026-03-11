@@ -38,8 +38,6 @@ import java.util.NoSuchElementException;
  */
 public final class ArtifactManagerArchiveSource implements AllureReportArchiveSource {
 
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
-
     private final Run<?, ?> run;
 
     private VirtualFile artifactRoot;
@@ -54,7 +52,7 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
         if (root == null) {
             return false;
         }
-        final VirtualFile zip = root.child(ALLURE_REPORT_ZIP);
+        final VirtualFile zip = root.child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
         return zip.exists();
     }
 
@@ -71,7 +69,7 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
             return directChild.open();
         }
 
-        final VirtualFile zipBlob = root.child(ALLURE_REPORT_ZIP);
+        final VirtualFile zipBlob = root.child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
         if (!zipBlob.exists()) {
             throw new NoSuchElementException("allure-report.zip not found in artifact store for run: "
                     + run.getFullDisplayName());
@@ -93,7 +91,7 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
             return result;
         }
 
-        final VirtualFile zipBlob = root.child(ALLURE_REPORT_ZIP);
+        final VirtualFile zipBlob = root.child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
         if (!zipBlob.exists()) {
             return new ArrayList<>();
         }

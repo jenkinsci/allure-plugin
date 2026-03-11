@@ -497,13 +497,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final String reportName = reportDirectoryInWorkspace.getName();
 
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
-
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
             FilePathUtils.extractSummary(run, reportName, isAllure3()),
                 isAllure3()
         );
-        buildAction.setReportPath(reportUnderBuild);
+        buildAction.setReportPath(reportName);
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
     }
@@ -534,8 +532,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
-        final String reportName = reportPathWs.getName();
-
         workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
         final FilePath existingArchivedZip = new FilePath(run.getRootDir())
@@ -560,13 +556,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (zipPath.exists()) {
             zipPath.delete();
         }
-
-        final FilePath reportUnderBuild = new FilePath(run.getRootDir()).child(reportName);
-        if (reportUnderBuild.exists()) {
-            reportUnderBuild.deleteRecursive();
-        }
-        reportPathWs.copyRecursiveTo(reportUnderBuild);
-        listener.getLogger().println("Allure report copied to: " + reportUnderBuild.getRemote());
     }
 
     private void setAllureProperties(final EnvVars envVars) {
@@ -677,11 +666,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull TaskListener listener) {
         try {
             final String reportPath = workspace.child(getReport()).getName();
-            final FilePath previousReport = FilePathUtils.getPreviousReportWithHistory(run, reportPath);
-            if (previousReport == null) {
+            final Run<?, ?> previousRun = FilePathUtils.getPreviousRunWithHistory(run, reportPath);
+            if (previousRun == null) {
                 return;
             }
-            copyHistoryToResultsPaths(resultsPaths, previousReport, workspace);
+            copyHistoryToResultsPaths(resultsPaths, previousRun, workspace);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
             listener.getLogger().println(e);
@@ -689,10 +678,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void copyHistoryToResultsPaths(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull FilePath previousReport,
+        final @NonNull Run<?, ?> previousRun,
         final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
-        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(previousReport)) {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(previousRun)) {
             for (FilePath resultsPath : resultsPaths) {
                 copyHistoryToResultsPath(source, resultsPath, workspace);
             }

@@ -21,9 +21,9 @@ import hudson.model.Run;
 /**
  * Factory that creates the appropriate {@link AllureReportArchiveSource} for a given build.
  *
- * <p>Resolution order:
+ * <p>Resolution order for {@link #forRun(Run)}:
  * <ol>
- *   <li>Local file: {@code <artifactsDir>/allure-report.zip} ÃÂ¢ wrapped in
+ *   <li>Local file: {@code <artifactsDir>/allure-report.zip} — wrapped in
  *       {@link LocalFileArchiveSource}.</li>
  *   <li>Artifact manager: delegates to {@link ArtifactManagerArchiveSource} which reads
  *       via {@link jenkins.model.ArtifactManager} / {@link jenkins.util.VirtualFile}.</li>
@@ -43,13 +43,12 @@ public final class AllureReportArchiveSourceFactory {
     private AllureReportArchiveSourceFactory() {
     }
 
+    @SuppressWarnings("PMD.CloseResource")
     public static AllureReportArchiveSource forRun(final Run<?, ?> run) {
         final FilePath localPath = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-        return new LocalFileArchiveSource(localPath);
-    }
-
-    public static AllureReportArchiveSource forArtifactManager(final Run<?, ?> run) {
-        return new ArtifactManagerArchiveSource(run);
+        final AllureReportArchiveSource local = new LocalFileArchiveSource(localPath);
+        final AllureReportArchiveSource remote = new ArtifactManagerArchiveSource(run);
+        return new FallbackArchiveSource(local, remote);
     }
 
     public static AllureReportArchiveSource forLocalFile(final FilePath archivePath) {

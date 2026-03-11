@@ -78,16 +78,38 @@ public final class FilePathUtils {
         return null;
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
+        final String reportPath)
+        throws IOException, InterruptedException {
+        Run<?, ?> current = run.getPreviousCompletedBuild();
+        while (current != null) {
+            try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(current)) {
+                if (source.exists() && isHistoryNotEmptyInSource(source, reportPath)) {
+                    return current;
+                }
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
     private static boolean isHistoryNotEmpty(final FilePath previousReport,
         final String reportPath) throws IOException, InterruptedException {
         try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(previousReport)) {
-            final List<String> entries = source.listEntries(reportPath + "/history/history.json");
-            if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
-                try (InputStream is = source.openEntry(entries.get(0))) {
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final JsonNode historyJson = mapper.readTree(is);
-                    return historyJson.elements().hasNext();
-                }
+            return isHistoryNotEmptyInSource(source, reportPath);
+        }
+    }
+
+    private static boolean isHistoryNotEmptyInSource(final AllureReportArchiveSource source,
+        final String reportPath) throws IOException, InterruptedException {
+        final String historyPath = reportPath + "/history/history.json";
+        final List<String> entries = source.listEntries(historyPath);
+        if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
+            try (InputStream is = source.openEntry(entries.get(0))) {
+                final ObjectMapper mapper = new ObjectMapper();
+                final JsonNode historyJson = mapper.readTree(is);
+                return historyJson.elements().hasNext();
             }
         }
         return false;
