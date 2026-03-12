@@ -67,6 +67,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -91,6 +92,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String DIR_EXPORT = "export";
     private static final String FILE_SUMMARY_JSON = "summary.json";
 
+    private static final String NOT_FOUND_MESSAGE =
+            "Can not find allure commandline installation for given environment.";
+    private static final String SEPARATOR = ", ";
+    private static final String NEWLINE = "\n";
+    private static final String AVAILABLE_INSTALLATIONS = "Available installations: ";
     private AllureReportConfig config;
 
     private String configPath;
@@ -285,20 +291,61 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull EnvVars env)
         throws IOException, InterruptedException {
 
-        // discover commandline
-        final AllureCommandlineInstallation installation =
-            getDescriptor().getCommandlineInstallation(getCommandline());
+        final List<AllureCommandlineInstallation> installations =
+            getDescriptor().getCommandlineInstallations();
 
-        if (installation == null) {
-            throw new AllurePluginException("Can not find any allure commandline installation.");
+        if (installations.isEmpty()) {
+            throw new AllurePluginException(
+                "No Allure CLI installation found."
+                + NEWLINE + "Please configure Allure CLI in Jenkins:"
+                + NEWLINE + "  Manage Jenkins - Tools - Allure Commandline"
+                + NEWLINE + "Or use 'Quick Setup' button in job configuration (admin only).");
         }
 
-        // configure commandline
-        final AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
-        if (tool == null) {
-            throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
+        if (StringUtils.isNotBlank(getCommandline())) {
+            final AllureCommandlineInstallation installation =
+                getDescriptor().getCommandlineInstallation(getCommandline());
+
+            if (installation == null) {
+                final String installationsList = installations.stream()
+                    .map(AllureCommandlineInstallation::getName)
+                    .collect(Collectors.joining(SEPARATOR));
+                throw new AllurePluginException(
+                    "Selected Allure installation '" + getCommandline() + "' not found."
+                    + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
+                    + NEWLINE + "Please check Global Tool Configuration.");
+            }
+
+            listener.getLogger().println("[Allure] Using selected installation: " + installation.getName());
+
+            final AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+            }
+            return tool;
         }
-        return tool;
+
+        final AllureCommandlineInstallation defaultInstallation =
+                getDescriptor().getDefaultCommandlineInstallation();
+        if (defaultInstallation != null) {
+            listener.getLogger().println(
+                "[Allure] No installation selected, using the only available: " + defaultInstallation.getName());
+
+            final AllureCommandlineInstallation tool =
+                BuildUtils.setUpTool(defaultInstallation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+            }
+            return tool;
+        }
+
+        final String installationsList = installations.stream()
+            .map(AllureCommandlineInstallation::getName)
+            .collect(Collectors.joining(SEPARATOR));
+        throw new AllurePluginException(
+            "Multiple Allure CLI installations found, please select one in job configuration."
+            + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
+            + NEWLINE + "Configure in: Job Configuration → Post-build Actions - Allure Report - Commandline");
     }
 
     @DataBoundSetter
