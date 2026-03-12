@@ -19,20 +19,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.FilePath;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
+import java.util.zip.ZipInputStream;
 
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.NcssCount"})
 public final class AllureSummaryExtractor {
@@ -56,6 +52,29 @@ public final class AllureSummaryExtractor {
     private static final String SEPARATOR = "/";
 
     private AllureSummaryExtractor() {
+    }
+
+    public static BuildSummary extractFromSummaryJson(final VirtualFile summaryArtifact) throws IOException {
+        try (InputStream is = summaryArtifact.open()) {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode root = mapper.readTree(is);
+            final JsonNode statistic = root != null ? root.get(KEY_STATISTIC) : null;
+            if (statistic == null || statistic.isNull()) {
+                return emptySummary();
+            }
+            final Map<String, Integer> statistics = new HashMap<>(5);
+            statistics.put(KEY_PASSED, readInt(statistic, KEY_PASSED));
+            statistics.put(KEY_FAILED, readInt(statistic, KEY_FAILED));
+            statistics.put(KEY_BROKEN, readInt(statistic, KEY_BROKEN));
+            statistics.put(KEY_SKIPPED, readInt(statistic, KEY_SKIPPED));
+            statistics.put(KEY_UNKNOWN, readInt(statistic, KEY_UNKNOWN));
+            return new BuildSummary().withStatistics(statistics);
+        }
+    }
+
+    private static int readInt(final JsonNode node, final String field) {
+        final JsonNode v = node.get(field);
+        return v != null && v.isNumber() ? v.asInt(0) : 0;
     }
 
     public static BuildSummary extract(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
@@ -83,57 +102,73 @@ public final class AllureSummaryExtractor {
     }
 
     private static BuildSummary extractFromZip(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
-        final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
         try {
+            final VirtualFile reportZip = run.getArtifactManager().root().child(ALLURE_REPORT_ZIP);
             if (!reportZip.exists()) {
                 return null;
             }
-            try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
-                final Optional<ZipEntry> entry = findSummaryEntryInZip(archive, reportPath, isAllure3);
-                if (entry.isPresent()) {
-                    try (InputStream is = archive.getInputStream(entry.get())) {
-                        final String name = entry.get().getName();
-                        if (name.endsWith(SEPARATOR + FILE_STATISTIC)) {
-                            return parseStatisticJson(is);
-                        }
-                        return parseSummaryJson(is);
-                    }
-                }
-            }
-        } catch (IOException | InterruptedException ex) {
+            return extractFromZipStream(reportZip, reportPath, isAllure3);
+        } catch (IOException ex) {
             LOG.log(Level.FINE, "Unable to read Allure summary from ZIP for {0}: {1}",
                     new Object[]{reportPath, ex.toString()});
         }
         return null;
     }
 
-    private static Optional<ZipEntry> findSummaryEntryInZip(final ZipFile archive,
-                                                            final String reportPath,
-                                                            final boolean isAllure3) {
-        if (isAllure3) {
-            return firstPresent(
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_STATISTIC),
-                    getReportFile(archive, reportPath, DIR_WIDGETS, FILE_STATISTIC),
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_EXPORT, FILE_SUMMARY),
-                    getReportFile(archive, reportPath, DIR_WIDGETS, FILE_SUMMARY)
-            );
-        }
-        return firstPresent(
-                getReportFile(archive, reportPath, DIR_EXPORT, FILE_SUMMARY),
-                getReportFile(archive, reportPath, DIR_WIDGETS, FILE_SUMMARY)
-        );
-    }
-
-    @SafeVarargs
-    private static <T> Optional<T> firstPresent(final Optional<T>... options) {
-        for (Optional<T> o : options) {
-            if (o.isPresent()) {
-                return o;
+    private static BuildSummary extractFromZipStream(final VirtualFile reportZip,
+                                                     final String reportPath,
+                                                     final boolean isAllure3) throws IOException {
+        try (InputStream in = reportZip.open();
+             ZipInputStream zis = new ZipInputStream(in)) {
+            ZipEntry entry = zis.getNextEntry();
+            while (entry != null) {
+                if (!entry.isDirectory() && isSummaryEntry(entry.getName(), reportPath, isAllure3)) {
+                    final String name = entry.getName();
+                    if (name.endsWith(SEPARATOR + FILE_STATISTIC)) {
+                        return parseStatisticJson(zis);
+                    }
+                    return parseSummaryJson(zis);
+                }
+                entry = zis.getNextEntry();
             }
         }
-        return Optional.empty();
+        return null;
+    }
+
+    @SuppressWarnings("PMD.NPathComplexity")
+    private static boolean isSummaryEntry(final String entryName,
+                                         final String reportPath,
+                                         final boolean isAllure3) {
+        if (isAllure3) {
+            return isAllure3SummaryEntry(entryName, reportPath);
+        }
+        return isAllure2SummaryEntry(entryName, reportPath);
+    }
+
+    @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
+    private static boolean isAllure3SummaryEntry(final String entryName, final String reportPath) {
+        final String awesomeWidgetsStat = reportPath + SEPARATOR + DIR_AWESOME
+                + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_STATISTIC;
+        final String widgetsStat = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_STATISTIC;
+        final String awesomeExport = reportPath + SEPARATOR + DIR_AWESOME
+                + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
+        final String awesomeWidgets = reportPath + SEPARATOR + DIR_AWESOME
+                + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
+        final String export = reportPath + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
+        final String widgets = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
+
+        return awesomeWidgetsStat.equals(entryName)
+                || widgetsStat.equals(entryName)
+                || awesomeExport.equals(entryName)
+                || awesomeWidgets.equals(entryName)
+                || export.equals(entryName)
+                || widgets.equals(entryName);
+    }
+
+    private static boolean isAllure2SummaryEntry(final String entryName, final String reportPath) {
+        final String export = reportPath + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
+        final String widgets = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
+        return export.equals(entryName) || widgets.equals(entryName);
     }
 
     private static BuildSummary extractFromDirectory(
@@ -195,18 +230,6 @@ public final class AllureSummaryExtractor {
             return exportJson;
         }
         return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-    }
-
-    private static Optional<ZipEntry> getReportFile(final ZipFile archive,
-                                                    final String reportPath,
-                                                    final String location,
-                                                    final String fileName) {
-        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPARATOR).concat(location));
-        final String toSearch = reportPath.concat(SEPARATOR).concat(location).concat(SEPARATOR).concat(fileName);
-        return entries.stream()
-                .filter(Objects::nonNull)
-                .filter(input -> input.getName().equals(toSearch))
-                .findFirst();
     }
 
     private static BuildSummary parseSummaryJson(final InputStream inputStream) throws IOException {

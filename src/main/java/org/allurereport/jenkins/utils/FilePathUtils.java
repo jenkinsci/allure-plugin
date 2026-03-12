@@ -20,22 +20,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-
-import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
+import java.util.zip.ZipInputStream;
 
 public final class FilePathUtils {
 
+    private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
+
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
-
-    public static final String SEPARATOR = "/";
+    private static final String HISTORY_HISTORY_JSON = "/history/history.json";
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
 
     private FilePathUtils() {
     }
@@ -73,7 +75,7 @@ public final class FilePathUtils {
         Run<?, ?> current = run;
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-            if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
+            if (previousReport.exists() && isHistoryNotEmpty(previousReport.toVirtualFile(), reportPath)) {
                 return previousReport;
             }
             current = current.getPreviousCompletedBuild();
@@ -81,19 +83,39 @@ public final class FilePathUtils {
         return null;
     }
 
-    private static boolean isHistoryNotEmpty(final FilePath previousReport,
-        final String reportPath) throws IOException {
-        try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            final List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
-            if (Integer.valueOf(entries.size()).equals(1)) {
-                final ZipEntry historyEntry = entries.get(0);
-                try (InputStream is = archive.getInputStream(historyEntry)) {
-                    final ObjectMapper mapper = new ObjectMapper();
-                    final JsonNode historyJson = mapper.readTree(is);
-                    return historyJson.elements().hasNext();
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    public static VirtualFile getPreviousReportZipWithHistory(final Run<?, ?> run,
+                                                              final String reportPath)
+            throws IOException, InterruptedException {
+        Run<?, ?> current = run;
+        while (current != null) {
+            final VirtualFile root = current.getArtifactManager().root();
+            final VirtualFile zip = root.child(ALLURE_REPORT_ZIP);
+            if (zip.exists() && isHistoryNotEmpty(zip, reportPath)) {
+                return zip;
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
+    private static boolean isHistoryNotEmpty(final VirtualFile previousReportZip,
+                                             final String reportPath) throws IOException {
+        final String expected = reportPath + HISTORY_HISTORY_JSON;
+        final ObjectMapper mapper = new ObjectMapper();
+
+        try (InputStream in = previousReportZip.open();
+             ZipInputStream zis = new ZipInputStream(in)) {
+            ZipEntry entry = zis.getNextEntry();
+            while (entry != null) {
+                if (!entry.isDirectory() && expected.equals(entry.getName())) {
+                    final JsonNode historyJson = mapper.readTree(zis);
+                    return historyJson != null && historyJson.elements().hasNext();
                 }
+                entry = zis.getNextEntry();
             }
         }
+
         return false;
     }
 
@@ -117,6 +139,14 @@ public final class FilePathUtils {
      * @return the build summary
      */
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
+        try {
+            final VirtualFile summary = run.getArtifactManager().root().child(SUMMARY_ARTIFACT_NAME);
+            if (summary.exists()) {
+                return AllureSummaryExtractor.extractFromSummaryJson(summary);
+            }
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "Failed to extract summary from artifact", e);
+        }
         return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
 }
