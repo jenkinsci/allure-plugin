@@ -257,23 +257,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             return new DirectoryReportBrowser(reportDirectoryUnderBuild);
         }
 
-        final AllureReportArchiveSource archiveSource = AllureReportArchiveSourceFactory.forRun(run);
-        try {
-            if (archiveSource.exists()) {
-                return new ArchiveReportBrowser(archiveSource, reportDirName);
-            }
-        } catch (IOException | InterruptedException ex) {
-            archiveSource.close();
-            throw ex;
-        }
-        archiveSource.close();
-
-        response.sendError(
-            HttpServletResponse.SC_NOT_FOUND,
-            "Allure report not found. Checked: directory '" + reportDirectoryUnderBuild.getRemote()
-                + "', and archive/artifact storage."
-        );
-        return null;
+        return new ArchiveReportBrowser(AllureReportArchiveSourceFactory.forRun(run), reportDirName,
+            reportDirectoryUnderBuild.getRemote());
     }
 
     private static final class DirectoryReportBrowser implements HttpResponse {
@@ -338,29 +323,44 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         private final AllureReportArchiveSource source;
         private final String reportPath;
+        private final String reportDirectoryPath;
 
-        ArchiveReportBrowser(final AllureReportArchiveSource source, final String reportPath) {
+        ArchiveReportBrowser(final AllureReportArchiveSource source,
+                             final String reportPath,
+                             final String reportDirectoryPath) {
             this.source = source;
             this.reportPath = reportPath;
+            this.reportDirectoryPath = reportDirectoryPath;
         }
 
         @Override
+        @SuppressWarnings("PMD.CloseResource")
         public void generateResponse(final StaplerRequest req,
             final StaplerResponse rsp,
             final Object node)
             throws IOException, ServletException {
-            rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
-            rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
-            rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-            rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
-            rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
-            rsp.setDateHeader(HEADER_EXPIRES, 0);
-
-            final String restOfPath = req.getRestOfPath().isEmpty() ? SLASH + INDEX_HTML : req.getRestOfPath();
-            final String entryPath = this.reportPath + restOfPath;
-
             try (AllureReportArchiveSource s = this.source) {
-                try (InputStream is = s.openEntry(entryPath)) {
+                final AllureReportArchiveSource active = s.activeSource();
+                if (active == null) {
+                    rsp.sendError(
+                        HttpServletResponse.SC_NOT_FOUND,
+                        "Allure report not found. Checked: directory '" + reportDirectoryPath
+                            + "', and archive/artifact storage."
+                    );
+                    return;
+                }
+
+                rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
+                rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
+                rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+                rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
+                rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
+                rsp.setDateHeader(HEADER_EXPIRES, 0);
+
+                final String restOfPath = req.getRestOfPath().isEmpty() ? SLASH + INDEX_HTML : req.getRestOfPath();
+                final String entryPath = this.reportPath + restOfPath;
+
+                try (InputStream is = active.openEntry(entryPath)) {
                     rsp.serveFile(req, is, -1L, -1L, -1L, entryPath);
                 } catch (java.util.NoSuchElementException notFound) {
                     rsp.sendRedirect(SLASH + INDEX_HTML + HASH_404);

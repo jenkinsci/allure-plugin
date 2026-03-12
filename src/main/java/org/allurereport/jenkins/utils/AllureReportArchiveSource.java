@@ -44,6 +44,10 @@ public interface AllureReportArchiveSource extends AutoCloseable {
 
     List<String> listEntries(String prefix) throws IOException, InterruptedException;
 
+    default AllureReportArchiveSource activeSource() throws IOException, InterruptedException {
+        return exists() ? this : null;
+    }
+
     @Override
     void close() throws IOException;
 }

@@ -63,22 +63,6 @@ public final class FilePathUtils {
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-    public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
-        final String reportPath)
-        throws IOException, InterruptedException {
-        Run<?, ?> current = run;
-        while (current != null) {
-            final FilePath previousReport = new FilePath(current.getArtifactsDir())
-                    .child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
-            if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
-                return previousReport;
-            }
-            current = current.getPreviousCompletedBuild();
-        }
-        return null;
-    }
-
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
         final String reportPath)
         throws IOException, InterruptedException {
@@ -92,13 +76,6 @@ public final class FilePathUtils {
             current = current.getPreviousCompletedBuild();
         }
         return null;
-    }
-
-    private static boolean isHistoryNotEmpty(final FilePath previousReport,
-        final String reportPath) throws IOException, InterruptedException {
-        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forLocalFile(previousReport)) {
-            return isHistoryNotEmptyInSource(source, reportPath);
-        }
     }
 
     private static boolean isHistoryNotEmptyInSource(final AllureReportArchiveSource source,

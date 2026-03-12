@@ -17,7 +17,9 @@ package org.allurereport.jenkins.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 final class FallbackArchiveSource implements AllureReportArchiveSource {
 
@@ -31,24 +33,39 @@ final class FallbackArchiveSource implements AllureReportArchiveSource {
     }
 
     @Override
+    public AllureReportArchiveSource activeSource() throws IOException, InterruptedException {
+        if (primary.exists()) {
+            return primary;
+        }
+        if (fallback.exists()) {
+            return fallback;
+        }
+        return null;
+    }
+
+    @Override
     public boolean exists() throws IOException, InterruptedException {
-        return primary.exists() || fallback.exists();
+        return activeSource() != null;
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource")
     public InputStream openEntry(final String entryPath) throws IOException, InterruptedException {
-        if (primary.exists()) {
-            return primary.openEntry(entryPath);
+        final AllureReportArchiveSource active = activeSource();
+        if (active != null) {
+            return active.openEntry(entryPath);
         }
-        return fallback.openEntry(entryPath);
+        throw new NoSuchElementException("No archive source available for entry: " + entryPath);
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource")
     public List<String> listEntries(final String prefix) throws IOException, InterruptedException {
-        if (primary.exists()) {
-            return primary.listEntries(prefix);
+        final AllureReportArchiveSource active = activeSource();
+        if (active != null) {
+            return active.listEntries(prefix);
         }
-        return fallback.listEntries(prefix);
+        return Collections.emptyList();
     }
 
     @Override
