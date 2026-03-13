@@ -24,17 +24,17 @@ import jenkins.util.VirtualFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 @SuppressWarnings({"PMD.TooManyMethods", "PMD.NcssCount"})
 public final class AllureSummaryExtractor {
 
     private static final Logger LOG = Logger.getLogger(AllureSummaryExtractor.class.getName());
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
 
     private static final String KEY_PASSED = "passed";
     private static final String KEY_FAILED = "failed";
@@ -73,8 +73,8 @@ public final class AllureSummaryExtractor {
     }
 
     private static int readInt(final JsonNode node, final String field) {
-        final JsonNode v = node.get(field);
-        return v != null && v.isNumber() ? v.asInt(0) : 0;
+        final JsonNode value = node.get(field);
+        return value != null && value.isNumber() ? value.asInt(0) : 0;
     }
 
     public static BuildSummary extract(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
@@ -102,73 +102,68 @@ public final class AllureSummaryExtractor {
     }
 
     private static BuildSummary extractFromZip(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
-        try {
-            final VirtualFile reportZip = run.getArtifactManager().root().child(ALLURE_REPORT_ZIP);
-            if (!reportZip.exists()) {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(run)) {
+            if (!source.exists()) {
                 return null;
             }
-            return extractFromZipStream(reportZip, reportPath, isAllure3);
-        } catch (IOException ex) {
+            final Optional<String> entryName = findSummaryEntryName(source, reportPath, isAllure3);
+            if (entryName.isPresent()) {
+                try (InputStream is = source.openEntry(entryName.get())) {
+                    if (entryName.get().endsWith(SEPARATOR + FILE_STATISTIC)) {
+                        return parseStatisticJson(is);
+                    }
+                    return parseSummaryJson(is);
+                }
+            }
+        } catch (IOException | InterruptedException ex) {
             LOG.log(Level.FINE, "Unable to read Allure summary from ZIP for {0}: {1}",
                     new Object[]{reportPath, ex.toString()});
         }
         return null;
     }
 
-    private static BuildSummary extractFromZipStream(final VirtualFile reportZip,
-                                                     final String reportPath,
-                                                     final boolean isAllure3) throws IOException {
-        try (InputStream in = reportZip.open();
-             ZipInputStream zis = new ZipInputStream(in)) {
-            ZipEntry entry = zis.getNextEntry();
-            while (entry != null) {
-                if (!entry.isDirectory() && isSummaryEntry(entry.getName(), reportPath, isAllure3)) {
-                    final String name = entry.getName();
-                    if (name.endsWith(SEPARATOR + FILE_STATISTIC)) {
-                        return parseStatisticJson(zis);
-                    }
-                    return parseSummaryJson(zis);
-                }
-                entry = zis.getNextEntry();
+    private static Optional<String> findSummaryEntryName(final AllureReportArchiveSource source,
+                                                         final String reportPath,
+                                                         final boolean isAllure3)
+            throws IOException, InterruptedException {
+        if (isAllure3) {
+            return firstPresent(
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_STATISTIC),
+                    findEntry(source, reportPath, DIR_WIDGETS, FILE_STATISTIC),
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_EXPORT, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_AWESOME + SEPARATOR + DIR_WIDGETS, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_EXPORT, FILE_SUMMARY),
+                    findEntry(source, reportPath, DIR_WIDGETS, FILE_SUMMARY)
+            );
+        }
+        return firstPresent(
+                findEntry(source, reportPath, DIR_EXPORT, FILE_SUMMARY),
+                findEntry(source, reportPath, DIR_WIDGETS, FILE_SUMMARY)
+        );
+    }
+
+    private static Optional<String> findEntry(final AllureReportArchiveSource source,
+                                              final String reportPath,
+                                              final String location,
+                                              final String fileName)
+            throws IOException, InterruptedException {
+        final String prefix = reportPath.concat(SEPARATOR).concat(location);
+        final String toSearch = prefix.concat(SEPARATOR).concat(fileName);
+        final List<String> entries = source.listEntries(prefix);
+        return entries.stream()
+                .filter(Objects::nonNull)
+                .filter(name -> name.equals(toSearch))
+                .findFirst();
+    }
+
+    @SafeVarargs
+    private static <T> Optional<T> firstPresent(final Optional<T>... options) {
+        for (Optional<T> o : options) {
+            if (o.isPresent()) {
+                return o;
             }
         }
-        return null;
-    }
-
-    @SuppressWarnings("PMD.NPathComplexity")
-    private static boolean isSummaryEntry(final String entryName,
-                                         final String reportPath,
-                                         final boolean isAllure3) {
-        if (isAllure3) {
-            return isAllure3SummaryEntry(entryName, reportPath);
-        }
-        return isAllure2SummaryEntry(entryName, reportPath);
-    }
-
-    @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
-    private static boolean isAllure3SummaryEntry(final String entryName, final String reportPath) {
-        final String awesomeWidgetsStat = reportPath + SEPARATOR + DIR_AWESOME
-                + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_STATISTIC;
-        final String widgetsStat = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_STATISTIC;
-        final String awesomeExport = reportPath + SEPARATOR + DIR_AWESOME
-                + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
-        final String awesomeWidgets = reportPath + SEPARATOR + DIR_AWESOME
-                + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
-        final String export = reportPath + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
-        final String widgets = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
-
-        return awesomeWidgetsStat.equals(entryName)
-                || widgetsStat.equals(entryName)
-                || awesomeExport.equals(entryName)
-                || awesomeWidgets.equals(entryName)
-                || export.equals(entryName)
-                || widgets.equals(entryName);
-    }
-
-    private static boolean isAllure2SummaryEntry(final String entryName, final String reportPath) {
-        final String export = reportPath + SEPARATOR + DIR_EXPORT + SEPARATOR + FILE_SUMMARY;
-        final String widgets = reportPath + SEPARATOR + DIR_WIDGETS + SEPARATOR + FILE_SUMMARY;
-        return export.equals(entryName) || widgets.equals(entryName);
+        return Optional.empty();
     }
 
     private static BuildSummary extractFromDirectory(

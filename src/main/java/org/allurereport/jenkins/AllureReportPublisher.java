@@ -36,7 +36,6 @@ import hudson.tasks.Recorder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
-import jenkins.util.VirtualFile;
 import org.allurereport.jenkins.callables.AddEnvironmentInfo;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
@@ -51,6 +50,8 @@ import org.allurereport.jenkins.exception.AllurePluginException;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureInstallation;
+import org.allurereport.jenkins.utils.AllureReportArchiveSource;
+import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
@@ -68,8 +69,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 
@@ -557,7 +556,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             FilePathUtils.extractSummary(run, reportName, isAllure3()),
                 isAllure3()
         );
-        buildAction.setReportPath(reportDirectoryInWorkspace);
+        buildAction.setReportPath(reportName);
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
     }
@@ -592,9 +591,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void saveAllureArtifact(final Run<?, ?> run,
-        final FilePath workspace,
-        final TaskListener listener,
-        final Launcher launcher) throws IOException, InterruptedException {
+                                    final FilePath workspace,
+                                    final TaskListener listener,
+                                    final Launcher launcher) throws IOException, InterruptedException {
         listener.getLogger().println("Archiving Allure report via ArtifactManager…");
 
         final String reportDirPath = getReport();
@@ -628,7 +627,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         final BuildListener buildListener =
-            (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
+                (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
 
         run.pickArtifactManager().archive(workspace, launcher, buildListener, artifacts);
         listener.getLogger().println("Allure artifact archived via ArtifactManager.");
@@ -786,11 +785,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull TaskListener listener) {
         try {
             final String reportPath = workspace.child(getReport()).getName();
-            final VirtualFile previousReportZip = FilePathUtils.getPreviousReportZipWithHistory(run, reportPath);
-            if (previousReportZip == null) {
+            final Run<?, ?> previousRun = FilePathUtils.getPreviousRunWithHistory(run, reportPath);
+            if (previousRun == null) {
                 return;
             }
-            copyHistoryToResultsPaths(resultsPaths, previousReportZip, reportPath);
+            copyHistoryToResultsPaths(resultsPaths, previousRun, workspace);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
             listener.getLogger().println(e);
@@ -798,28 +797,27 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void copyHistoryToResultsPaths(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull VirtualFile previousReportZip,
-        final @NonNull String reportPath)
+        final @NonNull Run<?, ?> previousRun,
+        final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
-        for (FilePath resultsPath : resultsPaths) {
-            copyHistoryToResultsPath(resultsPath, previousReportZip, reportPath);
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(previousRun)) {
+            for (FilePath resultsPath : resultsPaths) {
+                copyHistoryToResultsPath(source, resultsPath, workspace);
+            }
         }
     }
 
-    private void copyHistoryToResultsPath(final @NonNull FilePath resultsPath,
-        final @NonNull VirtualFile previousReportZip,
-        final @NonNull String reportPath)
+    private void copyHistoryToResultsPath(final AllureReportArchiveSource source,
+        final @NonNull FilePath resultsPath,
+        final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
-        try (InputStream in = previousReportZip.open();
-             ZipInputStream zis = new ZipInputStream(in)) {
-            ZipEntry entry = zis.getNextEntry();
-            while (entry != null) {
-                if (!entry.isDirectory() && entry.getName().startsWith(reportPath + "/history/")) {
-                    final String historyFile = entry.getName().replace(reportPath + "/", "");
-                    final FilePath historyCopy = resultsPath.child(historyFile);
-                    historyCopy.copyFrom(zis);
-                }
-                entry = zis.getNextEntry();
+        final FilePath reportPath = workspace.child(getReport());
+        final String historyPrefix = reportPath.getName() + "/history";
+        for (final String entryName : source.listEntries(historyPrefix)) {
+            final String historyFile = entryName.replace(reportPath.getName() + "/", "");
+            try (InputStream entryStream = source.openEntry(entryName)) {
+                final FilePath historyCopy = resultsPath.child(historyFile);
+                historyCopy.copyFrom(entryStream);
             }
         }
     }

@@ -25,19 +25,18 @@ import jenkins.util.VirtualFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 public final class FilePathUtils {
 
     private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
 
     private static final String ALLURE_PREFIX = "allure";
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final String HISTORY_HISTORY_JSON = "/history/history.json";
     private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
 
     private FilePathUtils() {
     }
@@ -69,53 +68,33 @@ public final class FilePathUtils {
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-    public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
+    public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
         final String reportPath)
         throws IOException, InterruptedException {
-        Run<?, ?> current = run;
+        Run<?, ?> current = run.getPreviousCompletedBuild();
         while (current != null) {
-            final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
-            if (previousReport.exists() && isHistoryNotEmpty(previousReport.toVirtualFile(), reportPath)) {
-                return previousReport;
-            }
-            current = current.getPreviousCompletedBuild();
-        }
-        return null;
-    }
-
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-    public static VirtualFile getPreviousReportZipWithHistory(final Run<?, ?> run,
-                                                              final String reportPath)
-            throws IOException, InterruptedException {
-        Run<?, ?> current = run;
-        while (current != null) {
-            final VirtualFile root = current.getArtifactManager().root();
-            final VirtualFile zip = root.child(ALLURE_REPORT_ZIP);
-            if (zip.exists() && isHistoryNotEmpty(zip, reportPath)) {
-                return zip;
-            }
-            current = current.getPreviousCompletedBuild();
-        }
-        return null;
-    }
-
-    private static boolean isHistoryNotEmpty(final VirtualFile previousReportZip,
-                                             final String reportPath) throws IOException {
-        final String expected = reportPath + HISTORY_HISTORY_JSON;
-        final ObjectMapper mapper = new ObjectMapper();
-
-        try (InputStream in = previousReportZip.open();
-             ZipInputStream zis = new ZipInputStream(in)) {
-            ZipEntry entry = zis.getNextEntry();
-            while (entry != null) {
-                if (!entry.isDirectory() && expected.equals(entry.getName())) {
-                    final JsonNode historyJson = mapper.readTree(zis);
-                    return historyJson != null && historyJson.elements().hasNext();
+            try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(current)) {
+                if (source.exists() && isHistoryNotEmptyInSource(source, reportPath)) {
+                    return current;
                 }
-                entry = zis.getNextEntry();
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
+
+    private static boolean isHistoryNotEmptyInSource(final AllureReportArchiveSource source,
+        final String reportPath) throws IOException, InterruptedException {
+        final String historyPath = reportPath + HISTORY_HISTORY_JSON;
+        final List<String> entries = source.listEntries(historyPath);
+        if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
+            try (InputStream is = source.openEntry(entries.get(0))) {
+                final ObjectMapper mapper = new ObjectMapper();
+                final JsonNode historyJson = mapper.readTree(is);
+                return historyJson != null && historyJson.elements().hasNext();
             }
         }
-
         return false;
     }
 
