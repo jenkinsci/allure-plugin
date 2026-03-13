@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.FilePath;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +52,29 @@ public final class AllureSummaryExtractor {
     private static final String SEPARATOR = "/";
 
     private AllureSummaryExtractor() {
+    }
+
+    public static BuildSummary extractFromSummaryJson(final VirtualFile summaryArtifact) throws IOException {
+        try (InputStream is = summaryArtifact.open()) {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode root = mapper.readTree(is);
+            final JsonNode statistic = root != null ? root.get(KEY_STATISTIC) : null;
+            if (statistic == null || statistic.isNull()) {
+                return emptySummary();
+            }
+            final Map<String, Integer> statistics = new HashMap<>(5);
+            statistics.put(KEY_PASSED, readInt(statistic, KEY_PASSED));
+            statistics.put(KEY_FAILED, readInt(statistic, KEY_FAILED));
+            statistics.put(KEY_BROKEN, readInt(statistic, KEY_BROKEN));
+            statistics.put(KEY_SKIPPED, readInt(statistic, KEY_SKIPPED));
+            statistics.put(KEY_UNKNOWN, readInt(statistic, KEY_UNKNOWN));
+            return new BuildSummary().withStatistics(statistics);
+        }
+    }
+
+    private static int readInt(final JsonNode node, final String field) {
+        final JsonNode value = node.get(field);
+        return value != null && value.isNumber() ? value.asInt(0) : 0;
     }
 
     public static BuildSummary extract(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {

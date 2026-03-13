@@ -20,18 +20,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.List;
 
 public final class FilePathUtils {
 
-    private static final String ALLURE_PREFIX = "allure";
-    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
+    private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
 
-    public static final String SEPARATOR = "/";
+    private static final String ALLURE_PREFIX = "allure";
+    private static final String HISTORY_HISTORY_JSON = "/history/history.json";
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
 
     private FilePathUtils() {
     }
@@ -78,6 +83,7 @@ public final class FilePathUtils {
         return null;
     }
 
+
     private static boolean isHistoryNotEmptyInSource(final AllureReportArchiveSource source,
         final String reportPath) throws IOException, InterruptedException {
         final String historyPath = reportPath + "/history/history.json";
@@ -112,6 +118,14 @@ public final class FilePathUtils {
      * @return the build summary
      */
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
+        try {
+            final VirtualFile summary = run.getArtifactManager().root().child(SUMMARY_ARTIFACT_NAME);
+            if (summary.exists()) {
+                return AllureSummaryExtractor.extractFromSummaryJson(summary);
+            }
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "Failed to extract summary from artifact", e);
+        }
         return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
 }

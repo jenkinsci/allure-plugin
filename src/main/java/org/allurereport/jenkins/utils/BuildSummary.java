@@ -28,6 +28,10 @@ public class BuildSummary {
         return this;
     }
 
+    public Map<String, Integer> getStatistics() {
+        return statistics;
+    }
+
     private Integer getStatistic(final String key) {
         if (this.statistics == null) {
             return 0;

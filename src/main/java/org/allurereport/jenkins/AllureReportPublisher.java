@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 
@@ -83,7 +84,18 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
     private static final String REPORT_ARCHIVE_NAME = "allure-report.zip";
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final String ARCHIVE_DIR = "archive";
+    private static final String DIR_AWESOME = "awesome";
+    private static final String DIR_WIDGETS = "widgets";
+    private static final String DIR_EXPORT = "export";
+    private static final String FILE_SUMMARY_JSON = "summary.json";
 
+    private static final String NOT_FOUND_MESSAGE =
+            "Can not find allure commandline installation for given environment.";
+    private static final String SEPARATOR = ", ";
+    private static final String NEWLINE = "\n";
+    private static final String AVAILABLE_INSTALLATIONS = "Available installations: ";
     private AllureReportConfig config;
 
     private String configPath;
@@ -278,20 +290,61 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull EnvVars env)
         throws IOException, InterruptedException {
 
-        // discover commandline
-        final AllureCommandlineInstallation installation =
-            getDescriptor().getCommandlineInstallation(getCommandline());
+        final List<AllureCommandlineInstallation> installations =
+            getDescriptor().getCommandlineInstallations();
 
-        if (installation == null) {
-            throw new AllurePluginException("Can not find any allure commandline installation.");
+        if (installations.isEmpty()) {
+            throw new AllurePluginException(
+                "No Allure CLI installation found."
+                + NEWLINE + "Please configure Allure CLI in Jenkins:"
+                + NEWLINE + "  Manage Jenkins - Tools - Allure Commandline"
+                + NEWLINE + "Or use 'Quick Setup' button in job configuration (admin only).");
         }
 
-        // configure commandline
-        final AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
-        if (tool == null) {
-            throw new AllurePluginException("Can not find any allure commandline installation for given environment.");
+        if (StringUtils.isNotBlank(getCommandline())) {
+            final AllureCommandlineInstallation installation =
+                getDescriptor().getCommandlineInstallation(getCommandline());
+
+            if (installation == null) {
+                final String installationsList = installations.stream()
+                    .map(AllureCommandlineInstallation::getName)
+                    .collect(Collectors.joining(SEPARATOR));
+                throw new AllurePluginException(
+                    "Selected Allure installation '" + getCommandline() + "' not found."
+                    + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
+                    + NEWLINE + "Please check Global Tool Configuration.");
+            }
+
+            listener.getLogger().println("[Allure] Using selected installation: " + installation.getName());
+
+            final AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+            }
+            return tool;
         }
-        return tool;
+
+        final AllureCommandlineInstallation defaultInstallation =
+                getDescriptor().getDefaultCommandlineInstallation();
+        if (defaultInstallation != null) {
+            listener.getLogger().println(
+                "[Allure] No installation selected, using the only available: " + defaultInstallation.getName());
+
+            final AllureCommandlineInstallation tool =
+                BuildUtils.setUpTool(defaultInstallation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+            }
+            return tool;
+        }
+
+        final String installationsList = installations.stream()
+            .map(AllureCommandlineInstallation::getName)
+            .collect(Collectors.joining(SEPARATOR));
+        throw new AllurePluginException(
+            "Multiple Allure CLI installations found, please select one in job configuration."
+            + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
+            + NEWLINE + "Configure in: Job Configuration → Post-build Actions - Allure Report - Commandline");
     }
 
     @DataBoundSetter
@@ -480,6 +533,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final String reportDirPath = getReport();
         final FilePath reportDirectoryInWorkspace = workspace.child(reportDirPath);
 
+        cleanReportDirIfNeeded(reportDirectoryInWorkspace, listener);
+
         final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, allureInstallation);
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
@@ -506,6 +561,23 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         applyResultStatus(run, buildAction.getBuildSummary());
     }
 
+    private void cleanReportDirIfNeeded(final FilePath reportDirectoryInWorkspace,
+                                        final TaskListener listener) throws IOException {
+        if (!isAllure3()) {
+            return;
+        }
+        try {
+            if (reportDirectoryInWorkspace.exists()) {
+                listener.getLogger().println("Cleaning existing Allure report directory: "
+                        + reportDirectoryInWorkspace.getRemote());
+                reportDirectoryInWorkspace.deleteRecursive();
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while cleaning report directory", interrupted);
+        }
+    }
+
     private void applyResultStatus(final Run<?, ?> run, final BuildSummary summary) {
         final Result thresholdResult = decideByThresholds(summary);
         if (thresholdResult != null) {
@@ -519,9 +591,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void saveAllureArtifact(final Run<?, ?> run,
-        final FilePath workspace,
-        final TaskListener listener,
-        final Launcher launcher) throws IOException, InterruptedException {
+                                    final FilePath workspace,
+                                    final TaskListener listener,
+                                    final Launcher launcher) throws IOException, InterruptedException {
         listener.getLogger().println("Archiving Allure report via ArtifactManager…");
 
         final String reportDirPath = getReport();
@@ -532,22 +604,30 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
+        createSummaryJson(workspace, reportPathWs);
+
         workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
-        final FilePath existingArchivedZip = new FilePath(run.getRootDir())
-            .child("archive")
-            .child(REPORT_ARCHIVE_NAME);
-
+        final FilePath archiveDir = new FilePath(run.getRootDir()).child(ARCHIVE_DIR);
+        final FilePath existingArchivedZip = archiveDir.child(REPORT_ARCHIVE_NAME);
         if (existingArchivedZip.exists()) {
             listener.getLogger().println("Removing existing archived artifact: " + existingArchivedZip.getRemote());
             existingArchivedZip.delete();
         }
 
-        final Map<String, String> artifacts =
-            Collections.singletonMap(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
+        final FilePath existingArchivedSummary = archiveDir.child(SUMMARY_ARTIFACT_NAME);
+        if (existingArchivedSummary.exists()) {
+            existingArchivedSummary.delete();
+        }
+
+        final Map<String, String> artifacts = new HashMap<>();
+        artifacts.put(REPORT_ARCHIVE_NAME, REPORT_ARCHIVE_NAME);
+        if (workspace.child(SUMMARY_ARTIFACT_NAME).exists()) {
+            artifacts.put(SUMMARY_ARTIFACT_NAME, SUMMARY_ARTIFACT_NAME);
+        }
 
         final BuildListener buildListener =
-            (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
+                (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
 
         run.pickArtifactManager().archive(workspace, launcher, buildListener, artifacts);
         listener.getLogger().println("Allure artifact archived via ArtifactManager.");
@@ -556,6 +636,45 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (zipPath.exists()) {
             zipPath.delete();
         }
+
+        final FilePath summaryPath = workspace.child(SUMMARY_ARTIFACT_NAME);
+        if (summaryPath.exists()) {
+            summaryPath.delete();
+        }
+    }
+
+    private void createSummaryJson(final FilePath workspace,
+                                  final FilePath reportPathWs) throws IOException, InterruptedException {
+        final FilePath summarySource = findSummaryJsonInReport(reportPathWs);
+        if (summarySource != null && summarySource.exists()) {
+            final FilePath summaryDest = workspace.child(SUMMARY_ARTIFACT_NAME);
+            if (summaryDest.exists()) {
+                summaryDest.delete();
+            }
+            summarySource.copyTo(summaryDest);
+        }
+    }
+
+    private FilePath findSummaryJsonInReport(final FilePath reportDir) throws IOException, InterruptedException {
+        if (isAllure3()) {
+            final FilePath awesome = reportDir.child(DIR_AWESOME).child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
+            if (awesome.exists()) {
+                return awesome;
+            }
+            final FilePath awesomeExport = reportDir.child(DIR_AWESOME).child(DIR_EXPORT).child(FILE_SUMMARY_JSON);
+            if (awesomeExport.exists()) {
+                return awesomeExport;
+            }
+            final FilePath widgets = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
+            if (widgets.exists()) {
+                return widgets;
+            }
+        }
+        final FilePath export = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY_JSON);
+        if (export.exists()) {
+            return export;
+        }
+        return reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
     }
 
     private void setAllureProperties(final EnvVars envVars) {
