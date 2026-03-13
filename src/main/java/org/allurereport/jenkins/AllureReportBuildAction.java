@@ -70,6 +70,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String HEADER_NOSNIFF = "nosniff";
     private static final String SLASH = "/";
     private static final String INDEX_HTML = "index.html";
+    private static final String PATH_TRAVERSAL = "..";
+    private static final String ILLEGAL_PATH = "Illegal path";
 
     private Run<?, ?> run;
 
@@ -250,8 +252,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     @SuppressWarnings("unused")
-        public Object doDynamic(final StaplerRequest request, final StaplerResponse response)
-        throws IOException, InterruptedException {
+    public Object doDynamic(final StaplerRequest request, final StaplerResponse response)
+            throws IOException, InterruptedException {
 
         final FilePath runRootDir = new FilePath(run.getRootDir());
         final String reportDirName = getReportPath();
@@ -315,8 +317,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             } else if (rest.startsWith(SLASH)) {
                 rest = rest.substring(1);
             }
-            if (rest.contains("..")) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Illegal path");
+            if (rest.contains(PATH_TRAVERSAL)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
                 return null;
             }
             return rest;
@@ -449,11 +451,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             if (!rest.isEmpty() && !rest.startsWith(SLASH)) {
                 rest = SLASH + rest;
             }
-             if (rest.contains("..")) {
-                 rsp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Illegal path");
-                 return null;
-             }
-             return rest;
+            if (rest.contains(PATH_TRAVERSAL)) {
+                rsp.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+                return null;
+            }
+            return rest;
         }
 
         private boolean tryServeEntry(final StaplerRequest req,

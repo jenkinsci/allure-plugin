@@ -25,9 +25,9 @@ import jenkins.util.VirtualFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.List;
 
 public final class FilePathUtils {
 
@@ -86,13 +86,13 @@ public final class FilePathUtils {
 
     private static boolean isHistoryNotEmptyInSource(final AllureReportArchiveSource source,
         final String reportPath) throws IOException, InterruptedException {
-        final String historyPath = reportPath + "/history/history.json";
+        final String historyPath = reportPath + HISTORY_HISTORY_JSON;
         final List<String> entries = source.listEntries(historyPath);
         if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
             try (InputStream is = source.openEntry(entries.get(0))) {
                 final ObjectMapper mapper = new ObjectMapper();
                 final JsonNode historyJson = mapper.readTree(is);
-                return historyJson.elements().hasNext();
+                return historyJson != null && historyJson.elements().hasNext();
             }
         }
         return false;
