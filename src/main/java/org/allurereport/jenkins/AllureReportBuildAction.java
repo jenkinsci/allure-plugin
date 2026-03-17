@@ -328,7 +328,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                     response.serveFile(request, inputStream, -1L, -1L, -1L, INDEX_HTML);
                     return;
                 } catch (NoSuchElementException ignored) {
-                    LOGGER.log(Level.WARNING, "Entry not found in archive, fall through to 404");                }
+                    LOGGER.log(Level.WARNING, "Entry not found in archive, fall through to 404");
+                }
             }
         }
 
