@@ -24,9 +24,6 @@ import javaposse.jobdsl.dsl.helpers.publisher.PublisherContext;
 import javaposse.jobdsl.plugin.ContextExtensionPoint;
 import javaposse.jobdsl.plugin.DslExtensionMethod;
 
-/**
- * @author <a href="mailto:mavlyutov@yandex-team.ru">Marat Mavlutov</a>
- */
 @Extension(optional = true)
 public class AllurePluginJobDslExtension extends ContextExtensionPoint {
 

@@ -19,9 +19,6 @@ import hudson.model.Result;
 
 import java.util.Map;
 
-/**
- * @author Egor Borisov ehborisov@gmail.com
- */
 public class BuildSummary {
 
     private Map<String, Integer> statistics;
@@ -31,9 +28,14 @@ public class BuildSummary {
         return this;
     }
 
+    public Map<String, Integer> getStatistics() {
+        return statistics;
+    }
+
     private Integer getStatistic(final String key) {
         return this.statistics != null ? statistics.getOrDefault(key, 0) : 0;
     }
+
     public long getFailedCount() {
         return getStatistic("failed");
     }

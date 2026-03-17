@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,8 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
@@ -39,9 +38,6 @@ import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-/**
- * @author Artem Eroshenko {@literal <eroshenkoam@yandex-team.ru>}
- */
 @SuppressWarnings("PMD.GodClass")
 public final class FilePathUtils {
 
@@ -61,7 +57,7 @@ public final class FilePathUtils {
     private static final String FILE_SUMMARY = "summary.json";
     private static final String KEY_STATISTIC = "statistic";
 
-    public static final String SEPARATOR = "/";
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
 
     private FilePathUtils() {
     }
@@ -211,7 +207,7 @@ public final class FilePathUtils {
     public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
         final String reportPath)
         throws IOException, InterruptedException {
-        Run<?, ?> current = run;
+        Run<?, ?> current = run.getPreviousCompletedBuild();
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
@@ -238,76 +234,34 @@ public final class FilePathUtils {
         return false;
     }
 
-    @SuppressWarnings("PMD.EmptyCatchBlock")
+    /**
+     * Extract build summary from the Allure report.
+     *
+     * @param run the build run
+     * @param reportPath the path to the report
+     * @return the build summary
+     */
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath) {
-        final FilePath reportZip = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
+        return extractSummary(run, reportPath, false);
+    }
 
+    /**
+     * Extract build summary from the Allure report.
+     *
+     * @param run the build run
+     * @param reportPath the path to the report
+     * @param isAllure3 whether this is an Allure 3 report
+     * @return the build summary
+     */
+    public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
         try {
-            if (reportZip.exists()) {
-                try (ZipFile archive = new ZipFile(reportZip.getRemote())) {
-                    Optional<ZipEntry> summary = getSummary(archive, reportPath, DIR_EXPORT);
-                    if (summary.isEmpty()) {
-                        summary = getSummary(archive, reportPath, DIR_WIDGETS);
-                    }
-                    if (summary.isPresent()) {
-                        try (InputStream is = archive.getInputStream(summary.get())) {
-                            return parseSummaryJson(is);
-                        }
-                    }
-                }
+            final VirtualFile summary = run.getArtifactManager().root().child(SUMMARY_ARTIFACT_NAME);
+            if (summary.exists()) {
+                return AllureSummaryExtractor.extractFromSummaryJson(summary);
             }
-        } catch (IOException | InterruptedException ex) {
-            LOG.log(Level.FINE, "Unable to read Allure summary from ZIP for {0}: {1}",
-                new Object[]{reportPath, ex.toString()});
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "Failed to extract summary from artifact", e);
         }
-
-        try {
-            final FilePath reportDir = new FilePath(run.getRootDir()).child(reportPath);
-            FilePath json = reportDir.child(DIR_EXPORT).child(FILE_SUMMARY);
-            if (!json.exists()) {
-                json = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
-            }
-            if (json.exists()) {
-                try (InputStream is = json.read()) {
-                    return parseSummaryJson(is);
-                }
-            }
-        } catch (IOException | InterruptedException ex) {
-            LOG.log(Level.FINE, "Unable to read Allure summary from unpacked dir for {0}: {1}",
-                new Object[]{reportPath, ex.toString()});
-        }
-
-        return new BuildSummary().withStatistics(new HashMap<>());
-    }
-
-    private static BuildSummary parseSummaryJson(final InputStream inputStream) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
-        final JsonNode root = mapper.readTree(inputStream);
-
-        final JsonNode statisticNode = root.hasNonNull(KEY_STATISTIC) ? root.get(KEY_STATISTIC) : root;
-
-        final Map<String, Integer> statistics = new HashMap<>(5);
-        statistics.put(KEY_PASSED, nodeAsInt(statisticNode.get(KEY_PASSED)));
-        statistics.put(KEY_FAILED, nodeAsInt(statisticNode.get(KEY_FAILED)));
-        statistics.put(KEY_BROKEN, nodeAsInt(statisticNode.get(KEY_BROKEN)));
-        statistics.put(KEY_SKIPPED, nodeAsInt(statisticNode.get(KEY_SKIPPED)));
-        statistics.put(KEY_UNKNOWN, nodeAsInt(statisticNode.get(KEY_UNKNOWN)));
-
-        return new BuildSummary().withStatistics(statistics);
-    }
-
-    private static int nodeAsInt(final JsonNode node) {
-        return (node == null || node.isNull()) ? 0 : node.asInt(0);
-    }
-
-    private static Optional<ZipEntry> getSummary(final ZipFile archive,
-        final String reportPath,
-        final String location) {
-        final List<ZipEntry> entries = listEntries(archive, reportPath.concat(SEPARATOR).concat(location));
-        final String toSearch = reportPath.concat(SEPARATOR).concat(location).concat(SEPARATOR).concat(FILE_SUMMARY);
-        return entries.stream()
-            .filter(Objects::nonNull)
-            .filter(input -> input.getName().equals(toSearch))
-            .findFirst();
+        return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
 }

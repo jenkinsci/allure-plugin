@@ -22,9 +22,6 @@ import org.allurereport.jenkins.config.ResultPolicy;
 
 import javaposse.jobdsl.dsl.Context;
 
-/**
- * @author Marat Mavlutov <{@literal mavlyutov@yandex-team.ru}>
- */
 public class AllureReportPublisherContext implements Context {
 
     private static final String FAILURE_POLICY = "FAILURE";

@@ -19,7 +19,6 @@ import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
-import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.util.ChartUtil;
@@ -30,14 +29,14 @@ import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
+import org.allurereport.jenkins.utils.BuildSummary;
+import org.allurereport.jenkins.utils.ChartUtils;
+import org.allurereport.jenkins.utils.FilePathUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-import org.allurereport.jenkins.utils.BuildSummary;
-import org.allurereport.jenkins.utils.ChartUtils;
-import org.allurereport.jenkins.utils.FilePathUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -55,18 +54,18 @@ import static java.lang.String.format;
 
 /**
  * {@link Action} that serves allure report from archive directory on master of a given build.
- *
- * @author pupssman
  */
-@SuppressWarnings({
-        "ClassDataAbstractionCoupling",
-        "PMD.GodClass",
-        "PMD.TooManyMethods"
-})
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
 
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
+    private static final String CACHE_CONTROL_NO_CACHE = "no-cache, no-store, must-revalidate";
+    private static final String CACHE_CONTROL_POST_CHECK = "post-check=0, pre-check=0";
+    private static final String HEADER_PRAGMA = "Pragma";
+    private static final String HEADER_PRAGMA_NO_CACHE = "no-cache";
+    private static final String HEADER_EXPIRES = "Expires";
+    private static final String HASH_404 = "#404";
     private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
     private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
     private static final String HEADER_X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
@@ -75,21 +74,25 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String INDEX_HTML = "index.html";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final String SLASH = "/";
+    private static final String PATH_TRAVERSAL = "..";
+    private static final String ILLEGAL_PATH = "Illegal path";
+
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
     private final BuildSummary persistedSummary;
-
+    private final boolean allure3;
     private String reportPath;
 
     @Getter
     @Setter
     private boolean singleFile;
 
-    AllureReportBuildAction(final BuildSummary buildSummary) {
+    AllureReportBuildAction(final BuildSummary buildSummary, final boolean allure3) {
         this.persistedSummary = buildSummary;
         this.buildSummary = new WeakReference<>(buildSummary);
         this.reportPath = ALLURE_REPORT;
+        this.allure3 = allure3;
     }
 
     private String getReportPath() {
@@ -98,6 +101,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     public void setReportPath(final FilePath reportPath) {
         this.reportPath = reportPath.getName();
+    }
+    public void setReportPath(final String reportPath) {
+        this.reportPath = reportPath;
     }
 
     public void doGraph(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
@@ -131,7 +137,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             return this.persistedSummary;
         }
         if (this.buildSummary == null || this.buildSummary.get() == null) {
-            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath()));
+            this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath(), allure3));
         }
         final BuildSummary data = this.buildSummary.get();
         return data != null ? data : new BuildSummary();
@@ -337,43 +343,91 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         @Override
         public void generateResponse(final StaplerRequest request,
-            final StaplerResponse response,
-            final Object node) throws IOException, ServletException {
+                                     final StaplerResponse response,
+                                     final Object node) throws IOException, ServletException {
 
             response.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
             response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
 
-            String relativePath = request.getRestOfPath();
-            if (relativePath == null || relativePath.isEmpty() || SLASH.equals(relativePath)) {
-                relativePath = INDEX_HTML;
-            } else if (relativePath.startsWith(SLASH)) {
-                relativePath = relativePath.substring(1);
-            }
-
-            if (relativePath.contains("..")) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Illegal path");
+            final String rest = normalizeRestOfPath(request, response);
+            if (rest == null) {
                 return;
             }
 
-            final FilePath fileToServe = baseDirectory.child(relativePath);
+            final FilePath fileToServe = resolveFileToServe(request, response, rest);
+            if (fileToServe == null) {
+                return;
+            }
 
+            serveFile(request, response, fileToServe);
+        }
+
+        private String normalizeRestOfPath(final StaplerRequest request,
+                                           final StaplerResponse response) throws IOException {
+            String rest = request.getRestOfPath();
+            if (rest == null) {
+                rest = "";
+            }
+            if (rest.isEmpty() || SLASH.equals(rest)) {
+                rest = INDEX_HTML;
+            } else if (rest.startsWith(SLASH)) {
+                rest = rest.substring(1);
+            }
+            if (rest.contains(PATH_TRAVERSAL)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+                return null;
+            }
+            return rest;
+        }
+
+        private FilePath resolveFileToServe(final StaplerRequest request,
+                                            final StaplerResponse response,
+                                            final String rest) throws IOException {
+            FilePath fileToServe = baseDirectory.child(rest);
             try {
-                if (!fileToServe.exists()) {
-                    response.sendRedirect2(request.getRequestURI().replaceAll("/+$", SLASH));
-                    return;
+                fileToServe = redirectOrIndexIfDirectory(request, response, fileToServe);
+                if (fileToServe == null) {
+                    return null;
                 }
+                if (!fileToServe.exists()) {
+                    return redirectOr404(request, response);
+                }
+                return fileToServe;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while checking report file existence", interrupted);
             }
+        }
 
+        private FilePath redirectOrIndexIfDirectory(final StaplerRequest request,
+                                                    final StaplerResponse response,
+                                                    final FilePath fileToServe)
+                throws IOException, InterruptedException {
+            if (!fileToServe.exists() || !fileToServe.isDirectory()) {
+                return fileToServe;
+            }
+            if (!request.getRequestURI().endsWith(SLASH)) {
+                response.sendRedirect2(request.getRequestURI() + SLASH);
+                return null;
+            }
+            return fileToServe.child(INDEX_HTML);
+        }
+
+        private FilePath redirectOr404(final StaplerRequest request,
+                                       final StaplerResponse response) throws IOException {
+            if (!request.getRequestURI().endsWith(SLASH)) {
+                response.sendRedirect2(request.getRequestURI() + SLASH);
+                return null;
+            }
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Not found");
+            return null;
+        }
+
+        private void serveFile(final StaplerRequest request,
+                               final StaplerResponse response,
+                               final FilePath fileToServe) throws IOException, ServletException {
             try (InputStream inputStream = fileToServe.read()) {
-                response.serveFile(
-                    request,
-                    inputStream,
-                    -1L, -1L, -1L,
-                    fileToServe.getName()
-                );
+                response.serveFile(request, inputStream, -1L, -1L, -1L, fileToServe.getName());
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while reading report file", interrupted);
@@ -382,9 +436,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     /**
-     * {@link DirectoryBrowserSupport} a modified browser support class that serves from an archive.
+     * Serves report content from archived zip.
      */
-    private static class ArchiveReportBrowser implements HttpResponse {
+    private static final class ArchiveReportBrowser implements HttpResponse {
 
         private final FilePath archive;
 
@@ -401,25 +455,58 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         @Override
         public void generateResponse(final StaplerRequest req,
-            final StaplerResponse rsp,
-            final Object node)
-            throws IOException, ServletException {
+                                     final StaplerResponse rsp,
+                                     final Object node)
+                throws IOException, ServletException {
             rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
             rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
-            rsp.setHeader(CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            rsp.addHeader(CACHE_CONTROL, "post-check=0, pre-check=0");
-            rsp.setHeader("Pragma", "no-cache");
-            rsp.setDateHeader("Expires", 0);
+            rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+            rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
+            rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
+            rsp.setDateHeader(HEADER_EXPIRES, 0);
 
-            final String path = req.getRestOfPath().isEmpty() ? "/index.html" : req.getRestOfPath();
+            final String path = initialZipPath(req);
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
-                final ZipEntry entry = allureReport.getEntry(this.reportPath + path);
-                if (entry != null) {
+                final ZipEntry entry = findEntry(allureReport, path);
+                if (entry != null && !entry.isDirectory()) {
                     rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
-                } else {
-                    rsp.sendRedirect("/index.html#404");
+                    return;
                 }
             }
+            rsp.sendRedirect2(baseUri(req) + INDEX_HTML + HASH_404);
+        }
+
+        private String initialZipPath(final StaplerRequest req) {
+            final String rest = req.getRestOfPath() == null ? "" : req.getRestOfPath();
+            return rest.isEmpty() ? SLASH + INDEX_HTML : rest;
+        }
+
+        private ZipEntry findEntry(final ZipFile zip, final String path) {
+            final ZipEntry direct = zip.getEntry(this.reportPath + path);
+            if (direct != null) {
+                return direct;
+            }
+            final String candidate = candidateIndexPath(path);
+            return zip.getEntry(this.reportPath + candidate);
+        }
+
+        private String candidateIndexPath(final String path) {
+            return path.endsWith(SLASH) ? (path + INDEX_HTML) : (path + SLASH + INDEX_HTML);
+        }
+
+        private String baseUri(final StaplerRequest req) {
+            final String requestUri = req.getRequestURI();
+            final String restOfPath = req.getRestOfPath() == null ? "" : req.getRestOfPath();
+            if (restOfPath.isEmpty() || !requestUri.endsWith(restOfPath)) {
+                return ensureTrailingSlash(requestUri);
+            }
+
+            final String base = requestUri.substring(0, requestUri.length() - restOfPath.length());
+            return ensureTrailingSlash(base);
+        }
+
+        private String ensureTrailingSlash(final String uri) {
+            return uri.endsWith(SLASH) ? uri : (uri + SLASH);
         }
     }
 }

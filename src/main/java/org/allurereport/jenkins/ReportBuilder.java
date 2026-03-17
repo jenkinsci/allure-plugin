@@ -21,7 +21,7 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
-import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.allurereport.jenkins.tools.AllureInstallation;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,7 +49,7 @@ public class ReportBuilder {
 
     private final EnvVars envVars;
 
-    private final AllureCommandlineInstallation commandline;
+    private final AllureInstallation commandline;
 
     private FilePath configFilePath;
 
@@ -59,7 +59,7 @@ public class ReportBuilder {
                          final @NonNull TaskListener listener,
                          final @NonNull FilePath workspace,
                          final @NonNull EnvVars envVars,
-                         final @NonNull AllureCommandlineInstallation commandline) {
+                         final @NonNull AllureInstallation commandline) {
         this.workspace = workspace;
         this.launcher = launcher;
         this.listener = listener;
@@ -79,6 +79,7 @@ public class ReportBuilder {
                      final @NonNull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final String version = commandline.getMajorVersion(launcher);
+        listener.getLogger().println("Using Allure CLI: " + commandline.getExecutable(launcher));
         final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
 
         return launcher.launch().cmds(arguments)
@@ -90,30 +91,55 @@ public class ReportBuilder {
                                              final @NonNull FilePath reportPath)
             throws IOException, InterruptedException {
         final int major = parseMajor(version);
-        return major == 1 ? getAllure1Arguments(resultsPaths, reportPath)
-                : getAllure2Arguments(resultsPaths, reportPath);
+        if (major >= 3) {
+            return getAllure3Arguments(resultsPaths, reportPath);
+        }
+        if (major == 2) {
+            return getAllure2Arguments(resultsPaths, reportPath);
+        }
+        return getAllure1Arguments(resultsPaths, reportPath);
     }
 
     private static int parseMajor(final String version) {
         if (version == null) {
             return 2;
         }
-        final Matcher m = FIRST_NUMBER.matcher(version.trim());
-        if (!m.find()) {
+        final Matcher matcher = FIRST_NUMBER.matcher(version.trim());
+        if (!matcher.find()) {
             return 2;
         }
         try {
-            return Integer.parseInt(m.group(1));
+            return Integer.parseInt(matcher.group(1));
         } catch (NumberFormatException ignored) {
             return 2;
         }
+    }
+
+    private ArgumentListBuilder getAllure3Arguments(final @NonNull List<FilePath> resultsPaths,
+                                                    final @NonNull FilePath reportPath) //NOSONAR
+            throws IOException, InterruptedException {
+        final ArgumentListBuilder arguments = new ArgumentListBuilder();
+        arguments.add(commandline.getExecutable(launcher));
+        arguments.add(GENERATE_COMMAND);
+        for (FilePath resultsPath : resultsPaths) {
+            arguments.add(resultsPath.getRemote());
+        }
+        arguments.add(OUTPUT_DIR_OPTION);
+        arguments.add(reportPath.getRemote());
+        if (configFilePath != null) {
+            arguments.add(CONFIG_OPTION);
+            arguments.add(configFilePath.getRemote());
+        }
+        if (singleFile) {
+            arguments.add(SINGLE_FILE_OPTION);
+        }
+        return arguments;
     }
 
     private ArgumentListBuilder getAllure2Arguments(final @NonNull List<FilePath> resultsPaths,
                                                     final @NonNull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final ArgumentListBuilder arguments = new ArgumentListBuilder();
-        listener.getLogger().println("Using Allure CLI: " + commandline.getExecutable(launcher));
         arguments.add(commandline.getExecutable(launcher));
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {

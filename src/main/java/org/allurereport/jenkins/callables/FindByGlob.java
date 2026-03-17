@@ -25,10 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * eroshenkoam.
- * 26.06.17
- */
 public class FindByGlob extends MasterToSlaveFileCallable<List<FilePath>> {
 
     private final String includes;

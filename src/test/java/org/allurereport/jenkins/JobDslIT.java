@@ -19,12 +19,12 @@ import hudson.model.Descriptor;
 import hudson.model.FreeStyleProject;
 import hudson.tasks.Publisher;
 import hudson.util.DescribableList;
+import org.allurereport.jenkins.config.PropertyConfig;
+import org.allurereport.jenkins.config.ResultsConfig;
 import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.config.PropertyConfig;
-import org.allurereport.jenkins.config.ResultsConfig;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -35,9 +35,6 @@ import javaposse.jobdsl.plugin.RemovedViewAction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author Artem Eroshenko
- */
 public class JobDslIT {
 
     private static final String JOB_NAME = "allure";

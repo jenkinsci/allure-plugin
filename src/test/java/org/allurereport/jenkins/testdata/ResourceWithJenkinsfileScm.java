@@ -28,9 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class ResourceWithJenkinsfileScm extends NullSCM {
 
     private final String contentFileResource;

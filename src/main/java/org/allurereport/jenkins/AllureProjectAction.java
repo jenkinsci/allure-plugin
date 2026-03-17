@@ -24,8 +24,6 @@ import org.kohsuke.stapler.StaplerProxy;
 /**
  * @deprecated
  * {@link Action} that shows link to the allure report on the project page
- *
- * @author pupssman
  */
 @Deprecated
 public class AllureProjectAction implements ProminentProjectAction, StaplerProxy {

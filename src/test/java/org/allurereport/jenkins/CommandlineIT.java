@@ -20,13 +20,13 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.JDK;
 import hudson.util.StreamTaskListener;
+import org.allurereport.jenkins.testdata.TestUtils;
+import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.testdata.TestUtils;
-import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -34,9 +34,6 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class CommandlineIT {
 
     public static final String SAMPLE_TESTSUITE_FILE_NAME = "sample-testsuite.xml";

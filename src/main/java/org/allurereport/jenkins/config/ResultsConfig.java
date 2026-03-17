@@ -23,10 +23,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * eroshenkoam.
- * 25/12/16
- */
 public class ResultsConfig implements Serializable {
 
     private final String path;

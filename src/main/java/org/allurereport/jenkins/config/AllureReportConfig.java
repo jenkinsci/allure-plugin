@@ -27,10 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * eroshenkoam.
- * 30/07/14
- */
 @SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class AllureReportConfig implements Serializable {
 

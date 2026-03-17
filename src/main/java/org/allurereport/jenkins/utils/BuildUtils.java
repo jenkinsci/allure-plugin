@@ -16,6 +16,7 @@
 package org.allurereport.jenkins.utils;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -27,13 +28,9 @@ import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolInstallation;
 import jenkins.model.Jenkins;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 
-/**
- * @author Artem Eroshenko {@literal <erosenkoam@me.com>}
- */
 public final class BuildUtils {
 
     private BuildUtils() {

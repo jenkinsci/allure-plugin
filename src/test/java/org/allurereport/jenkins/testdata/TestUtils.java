@@ -18,21 +18,18 @@ package org.allurereport.jenkins.testdata;
 import hudson.FilePath;
 import hudson.model.JDK;
 import hudson.scm.SCM;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.SingleFileSCM;
 import org.allurereport.jenkins.AllureReportPublisher;
 import org.allurereport.jenkins.config.ResultsConfig;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.SingleFileSCM;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public final class TestUtils {
 
     private TestUtils() {
@@ -77,6 +74,22 @@ public final class TestUtils {
         final List<ResultsConfig> results = ResultsConfig.convertPaths(Arrays.asList(resultsPaths));
         final AllureReportPublisher publisher = new AllureReportPublisher(results);
         publisher.setJdk(jdk);
+        return publisher;
+    }
+
+    /**
+     * Create an Allure 3 publisher for testing.
+     * Note: Allure 3 tests require 'allure' to be installed and available in PATH.
+     *
+     * @param resultsPaths the paths to the results directories
+     * @return the configured publisher
+     * @throws Exception if an error occurs
+     */
+    public static AllureReportPublisher createAllure3Publisher(final String... resultsPaths)
+            throws Exception {
+        final List<ResultsConfig> results = ResultsConfig.convertPaths(Arrays.asList(resultsPaths));
+        final AllureReportPublisher publisher = new AllureReportPublisher(results);
+        publisher.setAllureVersion("3");
         return publisher;
     }
 }

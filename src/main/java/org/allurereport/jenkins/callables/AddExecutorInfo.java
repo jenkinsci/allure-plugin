@@ -18,9 +18,6 @@ package org.allurereport.jenkins.callables;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author charlie (Dmitry Baev).
- */
 public class AddExecutorInfo extends AbstractAddInfo {
 
     private static final String EXECUTOR_JSON = "executor.json";
