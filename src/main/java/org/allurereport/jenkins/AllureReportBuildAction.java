@@ -29,6 +29,8 @@ import jenkins.model.lazy.LazyBuildMixIn;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
+import org.allurereport.jenkins.utils.AllureReportArchiveSource;
+import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.ChartUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
@@ -46,7 +48,10 @@ import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -55,8 +60,10 @@ import static java.lang.String.format;
 /**
  * {@link Action} that serves allure report from archive directory on master of a given build.
  */
-@SuppressWarnings({"ClassDataAbstractionCoupling"})
+@SuppressWarnings({"ClassDataAbstractionCoupling", "PMD.GodClass"})
 public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, SimpleBuildStep.LastBuildAction {
+
+    private static final Logger LOGGER = Logger.getLogger(AllureReportBuildAction.class.getName());
 
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
@@ -80,7 +87,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private Run<?, ?> run;
 
     private transient WeakReference<BuildSummary> buildSummary;
-    private final BuildSummary persistedSummary;
+    @SuppressWarnings("PMD.ImmutableField")
+    private transient BuildSummary cachedSummary;
     private final boolean allure3;
     private String reportPath;
 
@@ -89,7 +97,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private boolean singleFile;
 
     AllureReportBuildAction(final BuildSummary buildSummary, final boolean allure3) {
-        this.persistedSummary = buildSummary;
+        this.cachedSummary = buildSummary;
         this.buildSummary = new WeakReference<>(buildSummary);
         this.reportPath = ALLURE_REPORT;
         this.allure3 = allure3;
@@ -133,8 +141,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     }
 
     public BuildSummary getBuildSummary() {
-        if (this.persistedSummary != null) {
-            return this.persistedSummary;
+        if (this.cachedSummary != null) {
+            return this.cachedSummary;
         }
         if (this.buildSummary == null || this.buildSummary.get() == null) {
             this.buildSummary = new WeakReference<>(FilePathUtils.extractSummary(run, this.getReportPath(), allure3));
@@ -313,20 +321,14 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             }
         }
 
-        final FilePath archivedZip = runRootDir.child("archive").child(ALLURE_REPORT_ZIP);
-        if (archivedZip.exists()) {
-            try (ZipFile allureReport = new ZipFile(archivedZip.getRemote())) {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(run)) {
+            if (source.exists()) {
                 final String entryName = reportDirName + SLASH + INDEX_HTML;
-                final ZipEntry entry = allureReport.getEntry(entryName);
-                if (entry != null) {
-                    response.serveFile(
-                            request,
-                            allureReport.getInputStream(entry),
-                            -1L, -1L, -1L,
-                            INDEX_HTML
-                    );
+                try (InputStream inputStream = source.openEntry(entryName)) {
+                    response.serveFile(request, inputStream, -1L, -1L, -1L, INDEX_HTML);
                     return;
-                }
+                } catch (NoSuchElementException ignored) {
+                    LOGGER.log(Level.WARNING, "Entry not found in archive, fall through to 404");                }
             }
         }
 
@@ -465,19 +467,28 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
             rsp.setDateHeader(HEADER_EXPIRES, 0);
 
-            final String path = initialZipPath(req);
+            final String path = initialZipPath(req, rsp);
+            if (path == null) {
+                return;
+            }
             try (ZipFile allureReport = new ZipFile(archive.getRemote())) {
                 final ZipEntry entry = findEntry(allureReport, path);
                 if (entry != null && !entry.isDirectory()) {
-                    rsp.serveFile(req, allureReport.getInputStream(entry), -1L, -1L, -1L, entry.getName());
+                    try (InputStream entryStream = allureReport.getInputStream(entry)) {
+                        rsp.serveFile(req, entryStream, -1L, -1L, -1L, entry.getName());
+                    }
                     return;
                 }
             }
             rsp.sendRedirect2(baseUri(req) + INDEX_HTML + HASH_404);
         }
 
-        private String initialZipPath(final StaplerRequest req) {
+        private String initialZipPath(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
             final String rest = req.getRestOfPath() == null ? "" : req.getRestOfPath();
+            if (rest.contains(PATH_TRAVERSAL)) {
+                rsp.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+                return null;
+            }
             return rest.isEmpty() ? SLASH + INDEX_HTML : rest;
         }
 

@@ -33,23 +33,9 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Recorder;
-import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import jenkins.util.BuildListenerAdapter;
-import jenkins.util.VirtualFile;
 import org.allurereport.jenkins.callables.AddEnvironmentInfo;
 import org.allurereport.jenkins.callables.AddExecutorInfo;
 import org.allurereport.jenkins.callables.AddTestRunInfo;
@@ -70,9 +56,20 @@ import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.BuildUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRECTORY_NOT_FOUND;
 
@@ -835,11 +832,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull TaskListener listener) {
         try {
             final String reportPath = workspace.child(getReport()).getName();
-            final VirtualFile previousReportZip = FilePathUtils.getPreviousReportZipWithHistory(run, reportPath);
-            if (previousReportZip == null) {
+            final Run<?, ?> previousRun = FilePathUtils.getPreviousRunWithHistory(run, reportPath);
+            if (previousRun == null) {
                 return;
             }
-            copyHistoryToResultsPaths(resultsPaths, previousReportZip, workspace);
+            copyHistoryToResultsPaths(resultsPaths, previousRun, workspace);
         } catch (Exception e) {
             listener.getLogger().println("Cannot find a history information about previous builds.");
             listener.getLogger().println(e);
@@ -847,29 +844,27 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void copyHistoryToResultsPaths(final @NonNull List<FilePath> resultsPaths,
-                                           final @NonNull VirtualFile previousReportZip,
-                                           final @NonNull String reportPath)
+                                           final @NonNull Run<?, ?> previousRun,
+                                           final @NonNull FilePath workspace)
             throws IOException, InterruptedException {
+        try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(previousRun)) {
             for (FilePath resultsPath : resultsPaths) {
-                copyHistoryToResultsPath(resultsPath, previousReportZip, reportPath);
+                copyHistoryToResultsPath(source, resultsPath, workspace);
             }
         }
     }
 
-    private void copyHistoryToResultsPath(final @NonNull FilePath resultsPath,
-                                          final @NonNull VirtualFile previousReportZip,
-                                          final @NonNull String reportPath)
+    private void copyHistoryToResultsPath(final AllureReportArchiveSource source,
+                                          final @NonNull FilePath resultsPath,
+                                          final @NonNull FilePath workspace)
         throws IOException, InterruptedException {
-        try (InputStream inputStream = previousReportZip.open();
-             ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
-            ZipEntry entry = zipInputStream.getNextEntry();
-            while (entry != null) {
-                if (!entry.isDirectory() && entry.getName().startsWith(reportPath + "/history/")) {
-                    final String historyFile = entry.getName().replace(reportPath + SLASH, "");
-                    final FilePath historyCopy = resultsPath.child(historyFile);
-                    historyCopy.copyFrom(zipInputStream);
-                }
-                entry = zipInputStream.getNextEntry();
+        final FilePath reportPath = workspace.child(getReport());
+        final String historyPrefix = reportPath.getName() + "/history";
+        for (final String entryName : source.listEntries(historyPrefix)) {
+            final String historyFile = entryName.replace(reportPath.getName() + SLASH, "");
+            try (InputStream entryStream = source.openEntry(entryName)) {
+                final FilePath historyCopy = resultsPath.child(historyFile);
+                historyCopy.copyFrom(entryStream);
             }
         }
     }

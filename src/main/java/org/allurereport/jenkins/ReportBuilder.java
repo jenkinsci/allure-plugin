@@ -40,6 +40,8 @@ public class ReportBuilder {
     private static final String CONFIG_OPTION = "--config";
     private static final String SINGLE_FILE_OPTION = "--single-file";
     private static final Pattern FIRST_NUMBER = Pattern.compile("(\\d+)");
+    private static final int ALLURE_MAJOR_VERSION_2 = 2;
+    private static final int ALLURE_MAJOR_VERSION_3 = 3;
 
     private final FilePath workspace;
 
@@ -91,10 +93,10 @@ public class ReportBuilder {
                                              final @NonNull FilePath reportPath)
             throws IOException, InterruptedException {
         final int major = parseMajor(version);
-        if (major >= 3) {
+        if (major >= ALLURE_MAJOR_VERSION_3) {
             return getAllure3Arguments(resultsPaths, reportPath);
         }
-        if (major == 2) {
+        if (major == ALLURE_MAJOR_VERSION_2) {
             return getAllure2Arguments(resultsPaths, reportPath);
         }
         return getAllure1Arguments(resultsPaths, reportPath);
@@ -102,16 +104,16 @@ public class ReportBuilder {
 
     private static int parseMajor(final String version) {
         if (version == null) {
-            return 2;
+            return ALLURE_MAJOR_VERSION_2;
         }
         final Matcher matcher = FIRST_NUMBER.matcher(version.trim());
         if (!matcher.find()) {
-            return 2;
+            return ALLURE_MAJOR_VERSION_2;
         }
         try {
             return Integer.parseInt(matcher.group(1));
         } catch (NumberFormatException ignored) {
-            return 2;
+            return ALLURE_MAJOR_VERSION_2;
         }
     }
 

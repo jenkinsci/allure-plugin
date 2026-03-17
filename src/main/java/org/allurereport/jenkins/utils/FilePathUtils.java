@@ -58,6 +58,8 @@ public final class FilePathUtils {
     private static final String KEY_STATISTIC = "statistic";
 
     private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
+    private static final String HISTORY_JSON_SUFFIX = "/history/history.json";
 
     private FilePathUtils() {
     }
@@ -218,11 +220,41 @@ public final class FilePathUtils {
         return null;
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
+        final String reportPath)
+        throws IOException, InterruptedException {
+        Run<?, ?> current = run.getPreviousCompletedBuild();
+        while (current != null) {
+            try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(current)) {
+                if (source.exists() && isRunHistoryNotEmpty(source, reportPath)) {
+                    return current;
+                }
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
+    private static boolean isRunHistoryNotEmpty(final AllureReportArchiveSource source,
+        final String reportPath) throws IOException, InterruptedException {
+        final String historyEntry = reportPath + HISTORY_JSON_SUFFIX;
+        final List<String> entries = source.listEntries(reportPath + "/history");
+        if (!entries.contains(historyEntry)) {
+            return false;
+        }
+        try (InputStream is = source.openEntry(historyEntry)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode historyJson = mapper.readTree(is);
+            return historyJson.elements().hasNext();
+        }
+    }
+
     private static boolean isHistoryNotEmpty(final FilePath previousReport,
         final String reportPath) throws IOException {
         try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            final List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
-            if (Integer.valueOf(entries.size()).equals(1)) {
+            final List<ZipEntry> entries = listEntries(archive, reportPath + HISTORY_JSON_SUFFIX);
+            if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
                 final ZipEntry historyEntry = entries.get(0);
                 try (InputStream is = archive.getInputStream(historyEntry)) {
                     final ObjectMapper mapper = new ObjectMapper();
