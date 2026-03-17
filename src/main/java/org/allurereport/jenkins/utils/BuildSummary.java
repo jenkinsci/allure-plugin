@@ -33,11 +33,7 @@ public class BuildSummary {
     }
 
     private Integer getStatistic(final String key) {
-        if (this.statistics == null) {
-            return 0;
-        }
-        final Integer value = this.statistics.get(key);
-        return value != null ? value : 0;
+        return this.statistics != null ? statistics.getOrDefault(key, 0) : 0;
     }
 
     public long getFailedCount() {
