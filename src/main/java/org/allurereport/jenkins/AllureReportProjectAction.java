@@ -55,17 +55,12 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     public boolean isCanBuildGraph() {
         int dataPointsCount = 0;
-        AllureReportBuildAction allureBuildAction = getLastAllureBuildAction();
-        while (dataPointsCount < 2) {
-            if (allureBuildAction == null) {
-                return false;
-            }
-            if (allureBuildAction.hasSummaryLink()) {
-                dataPointsCount++;
-            }
-            allureBuildAction = allureBuildAction.getPreviousResult();
+        for (AllureReportBuildAction allureBuildAction = getLastAllureBuildAction();
+             allureBuildAction != null && dataPointsCount < 2;
+             allureBuildAction = allureBuildAction.getPreviousResult()) {
+            dataPointsCount++;
         }
-        return true;
+        return dataPointsCount >= 2;
     }
 
     //copied from junit-plugin
