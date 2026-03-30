@@ -24,6 +24,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.StringParameterDefinition;
 import hudson.model.labels.LabelAtom;
 import org.allurereport.jenkins.config.PropertyConfig;
@@ -91,7 +92,8 @@ public class ReportGenerateIT {
 
         assertThat(build.getArtifacts())
                 .as("An artifact for allure report should be created in the artifacts dir for the build")
-                .hasSize(1);
+                .extracting(Run.Artifact::getFileName)
+                .containsExactlyInAnyOrder("allure-report.zip", "allure-summary.json");
     }
 
     @Test
