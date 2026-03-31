@@ -91,7 +91,7 @@ public class ReportGenerateIT {
         final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         assertThat(build.getArtifacts())
-                .as("An artifact for allure report should be created in the artifacts dir for the build")
+                .as("Allure report and summary artifacts should be archived for the build")
                 .extracting(Run.Artifact::getFileName)
                 .containsExactlyInAnyOrder("allure-report.zip", "allure-summary.json");
     }

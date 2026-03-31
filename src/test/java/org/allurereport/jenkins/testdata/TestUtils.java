@@ -26,7 +26,10 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SingleFileSCM;
 
 import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -43,8 +46,7 @@ public final class TestUtils {
                                                                      final TemporaryFolder folder) throws Exception {
         final Path allureHome = folder.newFolder("some spaces in here").toPath();
         final FilePath allure = jRule.jenkins.getRootPath().createTempFile("allure", "zip");
-        //noinspection ConstantConditions
-        allure.copyFrom(TestUtils.class.getClassLoader().getResource("allure-commandline.zip"));
+        allure.copyFrom(getAllureCommandlineResource());
         allure.unzip(new FilePath(allureHome.toFile()));
 
         final AllureCommandlineInstallation installation = new AllureCommandlineInstallation(
@@ -52,6 +54,20 @@ public final class TestUtils {
         jRule.jenkins.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
                 .setInstallations(installation);
         return installation;
+    }
+
+    private static URL getAllureCommandlineResource() throws IOException {
+        final URL classpathResource = TestUtils.class.getClassLoader().getResource("allure-commandline.zip");
+        if (classpathResource != null) {
+            return classpathResource;
+        }
+
+        final Path fallbackPath = Paths.get("target", "resources", "test", "allure-commandline.zip");
+        if (Files.exists(fallbackPath)) {
+            return fallbackPath.toUri().toURL();
+        }
+
+        throw new IOException("Cannot locate allure-commandline.zip in test classpath or target/resources/test");
     }
 
     public static SCM getSimpleFileScm(final String resourceName,
