@@ -35,6 +35,8 @@ import java.util.List;
 
 public final class TestUtils {
 
+    private static final String ALLURE_COMMANDLINE_ZIP = "allure-commandline.zip";
+
     private TestUtils() {
     }
 
@@ -57,17 +59,19 @@ public final class TestUtils {
     }
 
     private static URL getAllureCommandlineResource() throws IOException {
-        final URL classpathResource = TestUtils.class.getClassLoader().getResource("allure-commandline.zip");
+        final URL classpathResource = TestUtils.class.getClassLoader().getResource(ALLURE_COMMANDLINE_ZIP);
         if (classpathResource != null) {
             return classpathResource;
         }
 
-        final Path fallbackPath = Paths.get("target", "resources", "test", "allure-commandline.zip");
+        final Path fallbackPath = Paths.get("target", "resources", "test", ALLURE_COMMANDLINE_ZIP);
         if (Files.exists(fallbackPath)) {
             return fallbackPath.toUri().toURL();
         }
 
-        throw new IOException("Cannot locate allure-commandline.zip in test classpath or target/resources/test");
+        throw new IOException(
+                "Cannot locate " + ALLURE_COMMANDLINE_ZIP + " in test classpath or target/resources/test"
+        );
     }
 
     public static SCM getSimpleFileScm(final String resourceName,
