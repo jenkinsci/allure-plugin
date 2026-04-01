@@ -20,6 +20,7 @@ import hudson.model.FreeStyleProject;
 import hudson.tasks.Publisher;
 import hudson.util.DescribableList;
 import org.allurereport.jenkins.config.PropertyConfig;
+import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.config.ResultsConfig;
 import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
@@ -72,6 +73,10 @@ public class JobDslIT {
         assertThat(allureReportPublisher.getIncludeProperties()).isEqualTo(Boolean.TRUE);
 
         assertThat(allureReportPublisher.getConfigPath()).isEqualTo(null);
+        assertThat(allureReportPublisher.getResultPolicy()).isEqualTo(ResultPolicy.FAILURE_IF_FAILED_OR_BROKEN);
+        assertThat(allureReportPublisher.getUnstableThresholdPercent()).isEqualTo(50);
+        assertThat(allureReportPublisher.getFailureThresholdCount()).isEqualTo(2);
+        assertThat(allureReportPublisher.getReportName()).isEqualTo("Team Allure");
     }
 
     private void buildJob() throws Exception {

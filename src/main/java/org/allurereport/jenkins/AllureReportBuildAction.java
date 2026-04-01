@@ -46,6 +46,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.NoSuchElementException;
@@ -336,6 +338,23 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         response.sendError(HttpServletResponse.SC_NOT_FOUND, "Allure index.html not found");
     }
 
+    private static String decodeAndValidatePath(final String path,
+                                                final StaplerResponse response) throws IOException {
+        final String decodedPath;
+        try {
+            decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ignored) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+            return null;
+        }
+
+        if (decodedPath.contains(PATH_TRAVERSAL)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+            return null;
+        }
+        return decodedPath;
+    }
+
     private static final class DirectoryReportBrowser implements HttpResponse {
 
         private final FilePath baseDirectory;
@@ -371,14 +390,14 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             if (rest == null) {
                 rest = "";
             }
+            rest = decodeAndValidatePath(rest, response);
+            if (rest == null) {
+                return null;
+            }
             if (rest.isEmpty() || SLASH.equals(rest)) {
                 rest = INDEX_HTML;
             } else if (rest.startsWith(SLASH)) {
                 rest = rest.substring(1);
-            }
-            if (rest.contains(PATH_TRAVERSAL)) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
-                return null;
             }
             return rest;
         }
@@ -485,9 +504,9 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         }
 
         private String initialZipPath(final StaplerRequest req, final StaplerResponse rsp) throws IOException {
-            final String rest = req.getRestOfPath() == null ? "" : req.getRestOfPath();
-            if (rest.contains(PATH_TRAVERSAL)) {
-                rsp.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+            final String rawRest = req.getRestOfPath() == null ? "" : req.getRestOfPath();
+            final String rest = decodeAndValidatePath(rawRest, rsp);
+            if (rest == null) {
                 return null;
             }
             return rest.isEmpty() ? SLASH + INDEX_HTML : rest;
