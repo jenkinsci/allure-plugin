@@ -57,7 +57,7 @@
     <spotless.skip>false</spotless.skip>
     <spotless.check.skip>false</spotless.check.skip>
     <spotless.apply.skip>false</spotless.apply.skip>
-    <spotless.ratchetFrom>origin/master</spotless.ratchetFrom>
+    <spotless.ratchetFrom>origin/main</spotless.ratchetFrom>
     <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.462</jenkins.baseline>
