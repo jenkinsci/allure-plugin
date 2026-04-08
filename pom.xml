@@ -59,7 +59,9 @@
     <spotless.apply.skip>false</spotless.apply.skip>
     <spotless.ratchetFrom>origin/master</spotless.ratchetFrom>
     <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
-    <jenkins.version>2.462.1</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.462</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <allureCommandline.version>2.35.1</allureCommandline.version>
     <truezip.version>7.7.10</truezip.version>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
@@ -69,8 +71,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.387.x</artifactId>
-        <version>2496.vddfca_753db_80</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>4228.v0a_71308d905b_</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -224,7 +226,6 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>${spotless-maven-plugin.version}</version>
         <inherited>false</inherited>
         <configuration combine.self="override">
           <encoding>UTF-8</encoding>
@@ -325,7 +326,6 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>${spotbugs-maven-plugin.version}</version>
         <configuration>
           <excludeFilterFile>.mvn/quality-configs/spotbugs/exclude.xml</excludeFilterFile>
           <failOnError>false</failOnError>
@@ -372,7 +372,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${maven-surefire-plugin.version}</version>
         <executions>
           <execution>
             <goals>
