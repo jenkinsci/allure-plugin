@@ -1,0 +1,31 @@
+name: Publish
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: 'maven'
+          server-id: maven.jenkins-ci.org
+          server-username: JENKINS_USERNAME
+          server-password: JENKINS_TOKEN
+      - name: "Build"
+        run: ./mvnw -B -ntp verify
+      - name: "Publish"
+        run: ./mvnw -B -ntp -DskipTests deploy
+        env:
+          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
+          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}

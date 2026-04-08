@@ -1,7 +1,7 @@
 # Allure Jenkins Plugin
 
 [![release](https://img.shields.io/github/v/release/jenkinsci/allure-plugin?style=flat)](https://github.com/jenkinsci/allure-plugin/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/jenkinsci/allure-plugin/build.yml?branch=master&style=flat)](https://github.com/jenkinsci/allure-plugin/actions/workflows/build.yml?query=branch%3Amaster)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/jenkinsci/allure-plugin/build.yml?branch=main&style=flat)](https://github.com/jenkinsci/allure-plugin/actions/workflows/build.yml?query=branch%3Amain)
 
 > This repository contains the source code of the Allure plugin for Jenkins.
 
