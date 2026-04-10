@@ -9,9 +9,9 @@
     <relativePath />
   </parent>
 
-  <groupId>org.allurereport</groupId>
+  <groupId>org.allurereport.jenkins</groupId>
   <artifactId>allure-jenkins-plugin</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>2.35-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <name>Allure Jenkins Plugin</name>
@@ -51,8 +51,6 @@
   </issueManagement>
 
   <properties>
-    <revision>2.31.0.11</revision>
-    <changelist>-SNAPSHOT</changelist>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
     <spotless.skip>false</spotless.skip>
     <spotless.check.skip>false</spotless.check.skip>
