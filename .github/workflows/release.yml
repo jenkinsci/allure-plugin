@@ -37,9 +37,7 @@ jobs:
           git config --global user.email qameta-ci@qameta.io
       - name: "Set release version"
         run: |
-          sed -i -E 's#<revision>.*</revision>#<revision>${{ github.event.inputs.releaseVersion }}</revision>#' pom.xml
-          sed -i -E 's#<changelist>.*</changelist>#<changelist></changelist>#' pom.xml
-          grep -E '<revision>|<changelist>' pom.xml
+           ./mvnw versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }}
       - name: "Commit release version and create tag"
         run: |
           git commit -am "release ${{ github.event.inputs.releaseVersion }}"
@@ -47,9 +45,7 @@ jobs:
           git push origin ${{ github.event.inputs.releaseVersion }}
       - name: "Set next development version"
         run: |
-          sed -i -E 's#<revision>.*</revision>#<revision>${{ github.event.inputs.nextVersion }}</revision>#' pom.xml
-          sed -i -E 's#<changelist>.*</changelist>#<changelist>-SNAPSHOT</changelist>#' pom.xml
-          grep -E '<revision>|<changelist>' pom.xml
+           ./mvnw versions:set -DnewVersion=${{ github.event.inputs.nextVersion }}-SNAPSHOT
       - name: "Commit next development version and push it"
         run: |
           git commit -am "set next development version ${{ github.event.inputs.nextVersion }}"
