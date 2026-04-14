@@ -33,7 +33,12 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
+import static org.allurereport.jenkins.ArchivedReportTestSupport.buildArchivedReportWithEntries;
+import static org.allurereport.jenkins.ArchivedReportTestSupport.buildDirectoryReportWithEntries;
+import static org.allurereport.jenkins.ArchivedReportTestSupport.switchToRemoteArtifactManager;
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
 import static org.allurereport.jenkins.testdata.TestUtils.getSimpleFileScm;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +46,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AllureReportBuildActionIT {
 
     private static final String RESULTS_DIR = "allure-results";
-    private static final String INDEX_ENTRY = "allure-report/index.html";
+    private static final String REPORT_DIR = "allure-report";
+    private static final String INDEX_ENTRY = REPORT_DIR + "/index.html";
+    private static final String INDEX_PATH = "allure/index.html";
+    private static final String ENCODED_ASSET_ENTRY = REPORT_DIR + "/data/space file.txt";
+    private static final String ENCODED_ASSET_CONTENT = "decoded asset";
+    private static final String LEGACY_INDEX_CONTENT = "<html>legacy</html>";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -68,10 +78,10 @@ public class AllureReportBuildActionIT {
 
         final HtmlPage buildPage = webClient.getPage(build);
         assertThat(buildPage.getByXPath("//a[contains(@href, '/allure')]")).isNotEmpty();
-        assertThat(new File(build.getRootDir(), "allure-report")).doesNotExist();
+        assertThat(new File(build.getRootDir(), REPORT_DIR)).doesNotExist();
 
         final WebResponse response = webClient.loadWebResponse(
-                new WebRequest(new URL(jRule.getURL(), build.getUrl() + "allure/index.html"))
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + INDEX_PATH))
         );
 
         assertThat(response.getStatusCode()).isEqualTo(200);
@@ -91,6 +101,56 @@ public class AllureReportBuildActionIT {
         assertThat(response.getResponseHeaderValue("Content-Disposition"))
                 .contains("attachment; filename=\"index.html\"");
         assertThat(response.getContentAsString()).isEqualTo(readArchivedEntry(build, INDEX_ENTRY));
+    }
+
+    @Test
+    public void shouldServeArchivedAssetWhenRequestPathIsUrlEncoded() throws Exception {
+        final FreeStyleBuild build = buildArchivedReportWithEntries(Map.of(
+                INDEX_ENTRY, "<html/>",
+                ENCODED_ASSET_ENTRY, ENCODED_ASSET_CONTENT
+        ), jRule, REPORT_DIR);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+
+        final WebResponse response = webClient.loadWebResponse(
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + "allure/data/space%20file.txt"))
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getContentAsString()).isEqualTo(ENCODED_ASSET_CONTENT);
+    }
+
+    @Test
+    public void shouldServeReportFromArtifactManagerWhenLocalArchiveIsMissing() throws Exception {
+        final FreeStyleBuild build = buildSingleReportBuild();
+        final File remoteRoot = folder.newFolder();
+        switchToRemoteArtifactManager(build, remoteRoot);
+
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+        final WebResponse response = webClient.loadWebResponse(
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + INDEX_PATH))
+        );
+
+        assertThat(new File(build.getArtifactsDir(), AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP))
+                .doesNotExist();
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getContentAsString()).isEqualTo(readArchivedEntry(build, INDEX_ENTRY));
+    }
+
+    @Test
+    public void shouldFallBackToLegacyDirectoryReportWhenArchiveIsMissing() throws Exception {
+        final FreeStyleBuild build = buildDirectoryReportWithEntries(Map.of(
+                "index.html", LEGACY_INDEX_CONTENT
+        ), jRule, REPORT_DIR);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+
+        final WebResponse response = webClient.loadWebResponse(
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + INDEX_PATH))
+        );
+
+        assertThat(new File(build.getArtifactsDir(), AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP))
+                .doesNotExist();
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getContentAsString()).isEqualTo(LEGACY_INDEX_CONTENT);
     }
 
     @Test
@@ -138,7 +198,7 @@ public class AllureReportBuildActionIT {
     private String readArchivedEntry(final FreeStyleBuild build, final String entryPath) throws Exception {
         try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(build);
              InputStream inputStream = source.openEntry(entryPath)) {
-            return new String(inputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }

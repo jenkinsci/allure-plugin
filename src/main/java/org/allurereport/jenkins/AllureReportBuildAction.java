@@ -478,8 +478,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                                      final Object node)
                 throws IOException, ServletException {
             try (AllureReportArchiveSource s = this.source) {
-                final AllureReportArchiveSource active = s.activeSource();
-                if (active == null) {
+                if (!s.exists()) {
                     rsp.sendError(
                             HttpServletResponse.SC_NOT_FOUND,
                             "Allure report not found. Checked: directory '" + reportDirectoryPath
@@ -501,12 +500,12 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                 }
 
                 final String path = rest.isEmpty() ? SLASH + INDEX_HTML : rest;
-                if (!path.endsWith(SLASH) && tryServeEntry(req, rsp, active, path)) {
+                if (!path.endsWith(SLASH) && tryServeEntry(req, rsp, s, path)) {
                     return;
                 }
 
                 final String candidate = candidateIndexPath(path);
-                if (tryServeEntry(req, rsp, active, candidate)) {
+                if (tryServeEntry(req, rsp, s, candidate)) {
                     return;
                 }
 
@@ -523,23 +522,23 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             if (rest == null) {
                 rest = "";
             }
+            rest = decodeAndValidatePath(rest, rsp);
+            if (rest == null) {
+                return null;
+            }
             if (!rest.isEmpty() && !rest.startsWith(SLASH)) {
                 rest = SLASH + rest;
-            }
-            if (rest.contains(PATH_TRAVERSAL)) {
-                rsp.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
-                return null;
             }
             return rest;
         }
 
         private boolean tryServeEntry(final StaplerRequest req,
                                       final StaplerResponse rsp,
-                                      final AllureReportArchiveSource active,
+                                      final AllureReportArchiveSource sourceToRead,
                                       final String path)
                 throws IOException, InterruptedException, ServletException {
             final String entryPath = reportPath + path;
-            try (InputStream is = active.openEntry(entryPath)) {
+            try (InputStream is = sourceToRead.openEntry(entryPath)) {
                 rsp.serveFile(req, is, -1L, -1L, -1L, fileName(path));
                 return true;
             } catch (NoSuchElementException ignored) {
