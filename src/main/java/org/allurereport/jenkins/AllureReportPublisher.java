@@ -804,8 +804,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final String rootUrl = StringUtils.trimToNull(Jenkins.get().getRootUrl());
         final String buildUrl = DisplayURLProvider.get().getRunURL(run);
-        final String reportUrl = buildUrl.endsWith(SLASH) ? (buildUrl + ALLURE_PREFIX)
-                : (buildUrl + SLASH + ALLURE_PREFIX);
+        final String classicBuildUrl = rootUrl == null ? run.getUrl() : rootUrl + run.getUrl();
+        final String reportUrl = classicBuildUrl.endsWith(SLASH) ? (classicBuildUrl + ALLURE_PREFIX)
+                : (classicBuildUrl + SLASH + ALLURE_PREFIX);
 
         final String buildId = run.getId();
 
