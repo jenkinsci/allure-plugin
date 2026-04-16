@@ -122,6 +122,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private Boolean disabled;
 
+    private Boolean includeHistory;
+
     private String report;
 
     private String reportName;
@@ -399,6 +401,18 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             this.includeProperties = this.config.getIncludeProperties();
         }
         return this.includeProperties == null ? Boolean.TRUE : includeProperties;
+    }
+
+    @DataBoundSetter
+    public void setIncludeHistory(final Boolean includeHistory) {
+        this.includeHistory = includeHistory;
+    }
+
+    public Boolean getIncludeHistory() {
+        if (this.includeHistory == null && this.config != null) {
+            this.includeHistory = this.config.getIncludeHistory();
+        }
+        return this.includeHistory == null ? Boolean.TRUE : includeHistory;
     }
 
     @DataBoundSetter
@@ -751,7 +765,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull FilePath workspace,
         final @NonNull TaskListener listener)
         throws IOException, InterruptedException {
-        addHistory(resultsPaths, run, workspace, listener);
+        if (getIncludeHistory()) {
+            addHistory(resultsPaths, run, workspace, listener);
+        }
         if (isAllure3()) {
             quarantineLegacyTestRunJson(resultsPaths);
             addEnvironmentInfo(resultsPaths, run);
