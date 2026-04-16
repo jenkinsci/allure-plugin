@@ -17,27 +17,166 @@ package org.allurereport.jenkins.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
+import jenkins.util.VirtualFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
+@SuppressWarnings("PMD.GodClass")
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
+    private static final Logger LOG = Logger.getLogger(FilePathUtils.class.getName());
 
-    public static final String SEPARATOR = "/";
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_PASSED = "passed";
+    private static final String KEY_FAILED = "failed";
+    private static final String KEY_BROKEN = "broken";
+    private static final String KEY_SKIPPED = "skipped";
+    private static final String KEY_UNKNOWN = "unknown";
+
+    private static final String DIR_EXPORT = "export";
+    private static final String DIR_WIDGETS = "widgets";
+    private static final String FILE_SUMMARY = "summary.json";
+    private static final String KEY_STATISTIC = "statistic";
+
+    private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
+    private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
+    private static final String HISTORY_JSON_SUFFIX = "/history/history.json";
 
     private FilePathUtils() {
+    }
+
+    @SuppressWarnings("PMD.AvoidCatchingGenericException")
+    public static void materializeSummaryForSingleFileReport(final List<FilePath> resultsPaths,
+                                                             final FilePath reportDir,
+                                                             final PrintStream logger) {
+        try {
+            final FilePath widgetsSummary = reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY);
+            if (widgetsSummary.exists()) {
+                return;
+            }
+
+            final BuildSummary summary = buildSummaryFromResults(resultsPaths);
+            writeSummaryJson(reportDir.child(DIR_WIDGETS).child(FILE_SUMMARY), summary);
+            writeSummaryJson(reportDir.child(DIR_EXPORT).child(FILE_SUMMARY), summary);
+        } catch (Exception e) {
+            logger.printf("Failed to materialize Allure summary for single-file report: %s%n", e);
+        }
+    }
+
+    private static BuildSummary buildSummaryFromResults(final List<FilePath> resultsPaths)
+            throws IOException, InterruptedException {
+        final Map<String, Integer> stats = initStats();
+        final ObjectMapper mapper = new ObjectMapper();
+
+        for (FilePath resultsPath : resultsPaths) {
+            if (resultsPath == null || !resultsPath.exists()) {
+                continue;
+            }
+            processResultsGlob(resultsPath, "**/*-result.json", mapper, stats);
+        }
+
+        return new BuildSummary().withStatistics(stats);
+    }
+
+    private static Map<String, Integer> initStats() {
+        final Map<String, Integer> stats = new HashMap<>(5);
+        stats.put(KEY_PASSED, 0);
+        stats.put(KEY_FAILED, 0);
+        stats.put(KEY_BROKEN, 0);
+        stats.put(KEY_SKIPPED, 0);
+        stats.put(KEY_UNKNOWN, 0);
+        return stats;
+    }
+
+    private static void processResultsGlob(final FilePath resultsPath,
+                                           final String glob,
+                                           final ObjectMapper mapper,
+                                           final Map<String, Integer> stats) {
+        try {
+            for (FilePath f : resultsPath.list(glob)) {
+                updateStatsFromResultFile(f, mapper, stats);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logGlobFailure(glob, resultsPath, e);
+        } catch (IOException e) {
+            logGlobFailure(glob, resultsPath, e);
+        }
+    }
+
+    private static void logGlobFailure(final String glob, final FilePath resultsPath, final Exception e) {
+        LOG.log(Level.FINE, "Unable to process Allure results for glob {0} in {1}: {2}",
+                new Object[]{glob, resultsPath.getRemote(), e.toString()});
+    }
+
+    private static void updateStatsFromResultFile(final FilePath file,
+                                                  final ObjectMapper mapper,
+                                                  final Map<String, Integer> stats
+    ) throws IOException, InterruptedException {
+        try (InputStream is = file.read()) {
+            final JsonNode root = mapper.readTree(is);
+            final String status = readStatus(root);
+            increment(stats, status);
+        }
+    }
+
+    private static String readStatus(final JsonNode root) {
+        final JsonNode statusNode = root.get(KEY_STATUS);
+        if (statusNode == null || statusNode.isNull()) {
+            return KEY_UNKNOWN;
+        }
+        return statusNode.asText(KEY_UNKNOWN).toLowerCase(Locale.ROOT);
+    }
+
+    private static void increment(final Map<String, Integer> stats, final String status) {
+        if (stats.containsKey(status)) {
+            stats.put(status, stats.get(status) + 1);
+        } else {
+            stats.put(KEY_UNKNOWN, stats.get(KEY_UNKNOWN) + 1);
+        }
+    }
+
+    private static void writeSummaryJson(final FilePath target, final BuildSummary summary)
+            throws IOException, InterruptedException {
+        final FilePath parent = target.getParent();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+
+        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectNode root = mapper.createObjectNode();
+        final ObjectNode stat = mapper.createObjectNode();
+
+        stat.put(KEY_PASSED, summary.getPassedCount());
+        stat.put(KEY_FAILED, summary.getFailedCount());
+        stat.put(KEY_BROKEN, summary.getBrokenCount());
+        stat.put(KEY_SKIPPED, summary.getSkipCount());
+        stat.put(KEY_UNKNOWN, summary.getUnknownCount());
+
+        root.set(KEY_STATISTIC, stat);
+
+        try (OutputStream os = target.write()) {
+            mapper.writerWithDefaultPrettyPrinter().writeValue(os, root);
+        }
     }
 
     @SuppressWarnings("TrailingComment")
@@ -70,7 +209,7 @@ public final class FilePathUtils {
     public static FilePath getPreviousReportWithHistory(final Run<?, ?> run,
         final String reportPath)
         throws IOException, InterruptedException {
-        Run<?, ?> current = run;
+        Run<?, ?> current = run.getPreviousCompletedBuild();
         while (current != null) {
             final FilePath previousReport = new FilePath(current.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
             if (previousReport.exists() && isHistoryNotEmpty(previousReport, reportPath)) {
@@ -81,11 +220,41 @@ public final class FilePathUtils {
         return null;
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+    public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
+        final String reportPath)
+        throws IOException, InterruptedException {
+        Run<?, ?> current = run.getPreviousCompletedBuild();
+        while (current != null) {
+            try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(current)) {
+                if (source.exists() && isRunHistoryNotEmpty(source, reportPath)) {
+                    return current;
+                }
+            }
+            current = current.getPreviousCompletedBuild();
+        }
+        return null;
+    }
+
+    private static boolean isRunHistoryNotEmpty(final AllureReportArchiveSource source,
+        final String reportPath) throws IOException, InterruptedException {
+        final String historyEntry = reportPath + HISTORY_JSON_SUFFIX;
+        final List<String> entries = source.listEntries(reportPath + "/history");
+        if (!entries.contains(historyEntry)) {
+            return false;
+        }
+        try (InputStream is = source.openEntry(historyEntry)) {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode historyJson = mapper.readTree(is);
+            return historyJson.elements().hasNext();
+        }
+    }
+
     private static boolean isHistoryNotEmpty(final FilePath previousReport,
         final String reportPath) throws IOException {
         try (ZipFile archive = new ZipFile(previousReport.getRemote())) {
-            final List<ZipEntry> entries = listEntries(archive, reportPath + "/history/history.json");
-            if (Integer.valueOf(entries.size()).equals(1)) {
+            final List<ZipEntry> entries = listEntries(archive, reportPath + HISTORY_JSON_SUFFIX);
+            if (entries.size() == EXPECTED_HISTORY_ENTRY_COUNT) {
                 final ZipEntry historyEntry = entries.get(0);
                 try (InputStream is = archive.getInputStream(historyEntry)) {
                     final ObjectMapper mapper = new ObjectMapper();
@@ -117,6 +286,14 @@ public final class FilePathUtils {
      * @return the build summary
      */
     public static BuildSummary extractSummary(final Run<?, ?> run, final String reportPath, final boolean isAllure3) {
+        try {
+            final VirtualFile summary = run.getArtifactManager().root().child(SUMMARY_ARTIFACT_NAME);
+            if (summary.exists()) {
+                return AllureSummaryExtractor.extractFromSummaryJson(summary);
+            }
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "Failed to extract summary from artifact", e);
+        }
         return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
 }

@@ -32,8 +32,6 @@ import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ReportBuildPolicyDecision;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.config.ResultsConfig;
-import org.allurereport.jenkins.dsl.AllurePluginJobDslExtension;
-import org.allurereport.jenkins.dsl.AllureReportPublisherContext;
 import org.allurereport.jenkins.exception.AllurePluginException;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstaller;
@@ -103,10 +101,31 @@ public final class AllureXStreamAliases {
     }
 
     private static void registerDslAliases() {
-        alias("ru.yandex.qatools.allure.jenkins.dsl.AllurePluginJobDslExtension",
-            AllurePluginJobDslExtension.class);
-        alias("ru.yandex.qatools.allure.jenkins.dsl.AllureReportPublisherContext",
-            AllureReportPublisherContext.class);
+        if (!isJobDslPluginAvailable()) {
+            LOGGER.log(Level.FINE, "Job DSL plugin not found, skipping DSL aliases");
+            return;
+        }
+        try {
+            alias("ru.yandex.qatools.allure.jenkins.dsl.AllurePluginJobDslExtension",
+                    Class.forName("org.allurereport.jenkins.dsl.AllurePluginJobDslExtension", false,
+                            AllureXStreamAliases.class.getClassLoader()));
+            alias("ru.yandex.qatools.allure.jenkins.dsl.AllureReportPublisherContext",
+                    Class.forName("org.allurereport.jenkins.dsl.AllureReportPublisherContext", false,
+                            AllureXStreamAliases.class.getClassLoader()));
+        } catch (Throwable t) {
+            LOGGER.log(Level.FINE, "Failed to register Job DSL aliases, skipping", t);
+        }
+    }
+
+    private static boolean isJobDslPluginAvailable() {
+        try {
+            Class.forName("javaposse.jobdsl.plugin.ContextExtensionPoint",
+                    false,
+                    AllureXStreamAliases.class.getClassLoader());
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static void registerExceptionAliases() {

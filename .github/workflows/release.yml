@@ -1,27 +1,61 @@
 name: Release
+run-name: Release ${{ inputs.releaseVersion }} (next ${{ inputs.nextVersion }}) by ${{ github.actor }}
 
 on:
-  release:
-    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: "The release version to publish (for example 2.36.0)"
+        required: true
+      nextVersion:
+        description: "The next development version without the -SNAPSHOT suffix"
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
   triage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - name: "Check release version"
+        run: |
+          echo "${{ github.event.inputs.releaseVersion }}" | grep -Eq '^[0-9]+(\.[0-9]+)+$'
+      - name: "Check next version"
+        run: |
+          echo "${{ github.event.inputs.nextVersion }}" | grep -Eq '^[0-9]+(\.[0-9]+)+$'
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
-      - uses: actions/setup-java@v5
+          token: ${{ secrets.QAMETA_CI }}
+      - name: "Configure CI Git User"
+        run: |
+          git config --global user.name qameta-ci
+          git config --global user.email qameta-ci@qameta.io
+      - name: "Set release version"
+        run: |
+           ./mvnw versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }}
+      - name: "Commit release version and create tag"
+        run: |
+          git commit -am "release ${{ github.event.inputs.releaseVersion }}"
+          git tag ${{ github.event.inputs.releaseVersion }}
+          git push origin ${{ github.event.inputs.releaseVersion }}
+      - name: "Set next development version"
+        run: |
+           ./mvnw versions:set -DnewVersion=${{ github.event.inputs.nextVersion }}-SNAPSHOT
+      - name: "Commit next development version and push it"
+        run: |
+          git commit -am "set next development version ${{ github.event.inputs.nextVersion }}"
+          git push origin ${{ github.ref_name }}
+      - name: "Publish GitHub Release"
+        uses: octokit/request-action@v2.x
         with:
-          distribution: 'temurin'
-          java-version: '11'
-          cache: 'maven'
-          server-id: maven.jenkins-ci.org
-          server-username: JENKINS_USERNAME
-          server-password: JENKINS_TOKEN
-      - run: |
-          ./mvnw versions:set -DnewVersion=${GITHUB_REF:10}
-          ./mvnw deploy
+          route: POST /repos/${{ github.repository }}/releases
+          tag_name: ${{ github.event.inputs.releaseVersion }}
+          generate_release_notes: true
+          target_commitish: ${{ github.ref_name }}
         env:
-          JENKINS_USERNAME: ${{ secrets.JENKINS_USERNAME }}
-          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.QAMETA_CI }}
