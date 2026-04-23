@@ -610,7 +610,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         applyResultStatus(run, buildAction.getBuildSummary());
     }
 
-    private void validatePublisherPaths(final FilePath workspace) throws IOException, InterruptedException {
+    void validatePublisherPaths(final FilePath workspace) throws IOException, InterruptedException {
         validateWorkspaceRelativePath(workspace, getReport(), REPORT_FIELD);
         final String config = getConfigPath();
         if (config != null) {
