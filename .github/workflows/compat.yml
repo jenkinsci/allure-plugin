@@ -1,0 +1,88 @@
+name: Compatibility Smoke
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      jenkins_version:
+        description: Jenkins Docker tag or core version to test
+        required: true
+        default: '2.462.1'
+        type: string
+
+jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build plugin artifact
+        run: ./mvnw -B -ntp -DskipTests clean package
+      - name: Upload plugin hpi
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-hpi
+          path: target/*.hpi
+          if-no-files-found: error
+
+  compat:
+    runs-on: ubuntu-latest
+    needs: build-plugin
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Resolve Jenkins version
+        id: resolve-version
+        run: |
+          echo "jenkins_version=${{ github.event.inputs.jenkins_version }}" >> "$GITHUB_OUTPUT"
+      - name: Download plugin hpi
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-hpi
+          path: target
+      - name: Run Jenkins compatibility smoke
+        env:
+          JENKINS_VERSION: ${{ steps.resolve-version.outputs.jenkins_version }}
+          COMPAT_ARTIFACT_ROOT: ${{ github.workspace }}/compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}
+        run: |
+          echo "Running Jenkins compatibility smoke for version: $JENKINS_VERSION"
+          ./mvnw -B -e -ntp -f compat/jenkins-smoke/pom.xml \
+            -Dcompat.rootDir="${{ github.workspace }}" \
+            -Dcompat.version="$JENKINS_VERSION" \
+            -Dcompat.artifactRoot="$COMPAT_ARTIFACT_ROOT" \
+            compile exec:java
+      - name: Print compatibility artifact index
+        if: always()
+        run: |
+          if [[ -d "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}" ]]; then
+            find "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}" -maxdepth 2 -type f | sort
+          else
+            echo "No compatibility artifacts directory found."
+          fi
+      - name: Upload compatibility artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compat-${{ steps.resolve-version.outputs.jenkins_version }}
+          path: compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}
+          if-no-files-found: warn
+      - name: Append workflow summary
+        if: always()
+        run: |
+          echo "## Jenkins ${{ steps.resolve-version.outputs.jenkins_version }}" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/summary.md" ]]; then
+            cat "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Compatibility smoke did not complete successfully." >> "$GITHUB_STEP_SUMMARY"
+          fi
