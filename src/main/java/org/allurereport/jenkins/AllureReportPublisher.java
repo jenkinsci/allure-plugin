@@ -20,10 +20,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.matrix.MatrixAggregatable;
-import hudson.matrix.MatrixAggregator;
-import hudson.matrix.MatrixBuild;
-import hudson.matrix.MatrixRun;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
@@ -84,7 +81,7 @@ import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRE
         "PMD.GodClass",
         "PMD.TooManyMethods",
         "PMD.NcssCount"})
-public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable, MatrixAggregatable {
+public class AllureReportPublisher extends Recorder implements SimpleBuildStep, Serializable {
 
     private static final String ALLURE_PREFIX = "allure";
     private static final String ALLURE_SUFFIX = "results";
@@ -102,6 +99,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String SEPARATOR = ", ";
     private static final String NEWLINE = "\n";
     private static final String AVAILABLE_INSTALLATIONS = "Available installations: ";
+    private static final String MATRIX_RUN_CLASS_NAME = "hudson.matrix.MatrixRun";
     private AllureReportConfig config;
 
     private String configPath;
@@ -489,51 +487,51 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull Run<?, ?> run,
         final @NonNull TaskListener listener
     ) throws IOException, InterruptedException {
-        if (run instanceof MatrixRun) {
-            final MatrixBuild parentBuild = ((MatrixRun) run).getParentBuild();
-            final FilePath workspace = parentBuild.getWorkspace();
-            if (workspace == null) {
-                listener.getLogger().format("Can not find workspace for parent build %s", parentBuild.getDisplayName());
-                return;
-            }
-            final FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_SUFFIX);
-            listener.getLogger().format("Copy matrix build results to directory [%s]", aggregationDir);
-            for (FilePath resultsPath : results) {
-                FilePathUtils.copyRecursiveTo(resultsPath, aggregationDir, parentBuild, listener.getLogger());
-            }
+        final AbstractBuild<?, ?> parentBuild = getMatrixParentBuild(run);
+        if (parentBuild == null) {
+            return;
+        }
+
+        final FilePath workspace = parentBuild.getWorkspace();
+        if (workspace == null) {
+            listener.getLogger().format("Can not find workspace for parent build %s", parentBuild.getDisplayName());
+            return;
+        }
+        final FilePath aggregationDir = workspace.createTempDir(ALLURE_PREFIX, ALLURE_SUFFIX);
+        listener.getLogger().format("Copy matrix build results to directory [%s]", aggregationDir);
+        for (FilePath resultsPath : results) {
+            FilePathUtils.copyRecursiveTo(resultsPath, aggregationDir, parentBuild, listener.getLogger());
         }
     }
 
-    @Override
-    public MatrixAggregator createAggregator(final MatrixBuild build,
-        final Launcher launcher,
-        final BuildListener listener) {
-        final FilePath workspace = build.getWorkspace();
-        if (workspace == null) {
+    private AbstractBuild<?, ?> getMatrixParentBuild(final Run<?, ?> run) {
+        if (!isMatrixRun(run)) {
             return null;
         }
-        return new MatrixAggregator(build, launcher, listener) {
-            @Override
-            public boolean endBuild() throws InterruptedException, IOException {
-                final List<FilePath> resultsPaths = new ArrayList<>();
-                for (FilePath directory : workspace.listDirectories()) {
-                    if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().contains(ALLURE_SUFFIX)) {
-                        resultsPaths.add(directory);
-                    }
-                }
+        try {
+            final Object parentBuild = run.getClass().getMethod("getParentBuild").invoke(run);
+            if (parentBuild instanceof AbstractBuild) {
+                return (AbstractBuild<?, ?>) parentBuild;
+            }
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+        return null;
+    }
 
-                final EnvVars buildEnvVars = BuildUtils.getBuildEnvVars(build, listener);
-                generateReport(resultsPaths, build, workspace, buildEnvVars, launcher, listener);
-                for (FilePath resultsPath : resultsPaths) {
-                    FilePathUtils.deleteRecursive(resultsPath, listener.getLogger());
-                }
+    private boolean isMatrixRun(final Run<?, ?> run) {
+        Class<?> type = run.getClass();
+        while (type != null) {
+            if (MATRIX_RUN_CLASS_NAME.equals(type.getName())) {
                 return true;
             }
-        };
+            type = type.getSuperclass();
+        }
+        return false;
     }
 
     @SuppressWarnings({"TrailingComment", "PMD.NcssCount"})
-    private void generateReport(
+    void generateReport(
         final @NonNull List<FilePath> resultsPaths,
         final @NonNull Run<?, ?> run,
         final @NonNull FilePath workspace,
