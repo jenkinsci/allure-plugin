@@ -17,6 +17,7 @@ build
 
 # Work
 work
+compat-artifacts
 
 # Mac OS
 .DS_Store
