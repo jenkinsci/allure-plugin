@@ -29,15 +29,17 @@ import hudson.tools.ToolInstallation;
 import hudson.tools.ToolProperty;
 import hudson.util.FormValidation;
 import jenkins.security.MasterToSlaveCallable;
+import org.allurereport.jenkins.Messages;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.allurereport.jenkins.Messages;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,6 +53,7 @@ public class Allure3Installation extends ToolInstallation
 
     private static final String ALLURE = "allure";
     private static final String ALLURE_CMD = "allure.cmd";
+    private static final String NODE_MODULES_ALLURE = "node_modules/allure/cli.js";
     private static final String VERSION_FLAG = "--version";
     private static final String CAN_FIND_ALLURE_MESSAGE = "Can't find allure command in PATH";
     private static final String VERSION_1 = "1";
@@ -71,7 +74,7 @@ public class Allure3Installation extends ToolInstallation
     @Override
     @SuppressWarnings("TrailingComment")
     public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
-        return launcher.getChannel().call(new GetExecutable());
+        return launcher.getChannel().call(new GetExecutable(getHome()));
     }
 
     /**
@@ -80,7 +83,7 @@ public class Allure3Installation extends ToolInstallation
      */
     @Override
     public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
-        return launcher.getChannel().call(new GetMajorVersion());
+        return launcher.getChannel().call(new GetMajorVersion(getHome()));
     }
 
     @Override
@@ -100,7 +103,13 @@ public class Allure3Installation extends ToolInstallation
         // No special environment variables needed for Allure 3
     }
 
-    private static String getExecutableName() {
+    private static String getExecutableName(final String toolHome) {
+        if (toolHome != null && !toolHome.isBlank()) {
+            final Path cliPath = Path.of(toolHome).resolve(NODE_MODULES_ALLURE);
+            if (Files.exists(cliPath)) {
+                return cliPath.toString();
+            }
+        }
         return Functions.isWindows() ? ALLURE_CMD : ALLURE;
     }
 
@@ -120,9 +129,15 @@ public class Allure3Installation extends ToolInstallation
      * Callable to get the executable path on the remote node.
      */
     private static final class GetExecutable extends MasterToSlaveCallable<String, IOException> {
+        private final String toolHome;
+
+        GetExecutable(final String toolHome) {
+            this.toolHome = toolHome;
+        }
+
         @Override
         public String call() throws IOException {
-            final String executable = getExecutableName();
+            final String executable = getExecutableName(toolHome);
 
             // Try to find allure in PATH by checking if it's executable
             try {
@@ -147,9 +162,15 @@ public class Allure3Installation extends ToolInstallation
      * Callable to get the major version on the remote node.
      */
     private static final class GetMajorVersion extends MasterToSlaveCallable<String, IOException> {
+        private final String toolHome;
+
+        GetMajorVersion(final String toolHome) {
+            this.toolHome = toolHome;
+        }
+
         @Override
         public String call() throws IOException {
-            final String executable = getExecutableName();
+            final String executable = getExecutableName(toolHome);
 
             try {
                 final ProcessBuilder pb = new ProcessBuilder(executable, VERSION_FLAG);
@@ -227,7 +248,7 @@ public class Allure3Installation extends ToolInstallation
          */
         @SuppressWarnings("unused")
         public FormValidation doValidate() {
-            final String executable = getExecutableName();
+            final String executable = getExecutableName(null);
             try {
                 final ProcessBuilder pb = new ProcessBuilder(executable, VERSION_FLAG);
                 pb.redirectErrorStream(true);
