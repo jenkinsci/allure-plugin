@@ -28,6 +28,8 @@ public final class ReportEntryCache {
     private static final long DEFAULT_MAX_BYTES = 200L * 1024 * 1024;
     private static final int INITIAL_CAPACITY = 64;
     private static final float LOAD_FACTOR = 0.75f;
+    private static final boolean ACCESS_ORDER = true;
+    private static final String KEY_SEPARATOR = "\0";
 
     private static final ReportEntryCache INSTANCE = new ReportEntryCache(DEFAULT_MAX_BYTES);
 
@@ -38,16 +40,13 @@ public final class ReportEntryCache {
     ReportEntryCache(final long maxBytes) {
         this.maxBytes = maxBytes;
         this.currentBytes = 0;
-        this.cache = new LinkedHashMap<String, byte[]>(INITIAL_CAPACITY, LOAD_FACTOR, true) {
-            @Override
-            protected boolean removeEldestEntry(final Map.Entry<String, byte[]> eldest) {
-                if (currentBytes > ReportEntryCache.this.maxBytes) {
-                    currentBytes -= eldest.getValue().length;
-                    return true;
-                }
-                return false;
-            }
-        };
+        // access-order map so iteration in trimToSize() evicts least-recently-used entries first.
+        // Eviction is driven solely by trimToSize() to keep currentBytes accounting in one place.
+        this.cache = new LinkedHashMap<>(INITIAL_CAPACITY, LOAD_FACTOR, ACCESS_ORDER);
+    }
+
+    private static String key(final String runId, final String entryPath) {
+        return runId + KEY_SEPARATOR + entryPath;
     }
 
     public static ReportEntryCache getInstance() {
@@ -55,8 +54,7 @@ public final class ReportEntryCache {
     }
 
     public synchronized InputStream get(final String runId, final String entryPath) {
-        final String key = runId + "\0" + entryPath;
-        final byte[] data = cache.get(key);
+        final byte[] data = cache.get(key(runId, entryPath));
         if (data == null) {
             return null;
         }
@@ -72,13 +70,12 @@ public final class ReportEntryCache {
         if (data.length > maxBytes) {
             return;
         }
-        final String key = runId + "\0" + entryPath;
-        final byte[] existing = cache.remove(key);
+        final byte[] existing = cache.remove(key(runId, entryPath));
         if (existing != null) {
             currentBytes -= existing.length;
         }
         currentBytes += data.length;
-        cache.put(key, data);
+        cache.put(key(runId, entryPath), data);
         trimToSize();
     }
 

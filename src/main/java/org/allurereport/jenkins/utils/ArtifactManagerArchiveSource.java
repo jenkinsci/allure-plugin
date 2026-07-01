@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
@@ -49,6 +50,16 @@ import java.util.zip.ZipFile;
 public final class ArtifactManagerArchiveSource implements AllureReportArchiveSource {
 
     private static final Logger LOGGER = Logger.getLogger(ArtifactManagerArchiveSource.class.getName());
+
+    /**
+     * Guards the download-and-open step against concurrent first views of the same build.
+     * A fresh {@link ArtifactManagerArchiveSource} is created per HTTP request, but browsers
+     * fire many parallel asset requests, so several instances can race to materialize the same
+     * {@code <artifactsDir>/allure-report.zip}. Keyed by the destination path so unrelated builds
+     * never contend; entries are only ever added, which is fine for the small, bounded set of
+     * builds browsed in a session.
+     */
+    private static final ConcurrentHashMap<Path, Object> DOWNLOAD_LOCKS = new ConcurrentHashMap<>();
 
     private final Run<?, ?> run;
     private VirtualFile artifactRoot;
@@ -169,6 +180,8 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
     @SuppressWarnings("PMD.CloseResource")
     private ZipFile getOrDownloadToArtifactsDir(final VirtualFile zipBlob)
             throws IOException, InterruptedException {
+        // This instance is confined to a single request, but multiple instances (one per
+        // parallel asset request) can target the same file; serialize per destination path.
         if (localZipFile != null) {
             return localZipFile;
         }
@@ -176,25 +189,30 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
         final Path localPath = run.getArtifactsDir().toPath()
                 .resolve(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
 
-        if (Files.exists(localPath)) {
-            LOGGER.log(Level.FINE, "Using existing local copy at {0}", localPath);
+        synchronized (DOWNLOAD_LOCKS.computeIfAbsent(localPath.toAbsolutePath(), k -> new Object())) {
+            if (localZipFile != null) {
+                return localZipFile;
+            }
+            if (Files.exists(localPath)) {
+                LOGGER.log(Level.FINE, "Using existing local copy at {0}", localPath);
+                localZipFile = new ZipFile(localPath.toFile());
+                return localZipFile;
+            }
+
+            LOGGER.log(Level.INFO, "Downloading allure-report.zip from remote storage to {0} for run {1}",
+                    new Object[]{localPath, run.getExternalizableId()});
+
+            Files.createDirectories(localPath.getParent());
+            final Path tmpFile = Files.createTempFile(localPath.getParent(), "allure-report-", ".zip.tmp");
+            try (InputStream is = zipBlob.open()) {
+                Files.copy(is, tmpFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.move(tmpFile, localPath, StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+
             localZipFile = new ZipFile(localPath.toFile());
             return localZipFile;
         }
-
-        LOGGER.log(Level.INFO, "Downloading allure-report.zip from remote storage to {0} for run {1}",
-                new Object[]{localPath, run.getExternalizableId()});
-
-        Files.createDirectories(localPath.getParent());
-        final Path tmpFile = Files.createTempFile(localPath.getParent(), "allure-report-", ".zip.tmp");
-        try (InputStream is = zipBlob.open()) {
-            Files.copy(is, tmpFile, StandardCopyOption.REPLACE_EXISTING);
-        }
-        Files.move(tmpFile, localPath, StandardCopyOption.REPLACE_EXISTING,
-                StandardCopyOption.ATOMIC_MOVE);
-
-        localZipFile = new ZipFile(localPath.toFile());
-        return localZipFile;
     }
 
     private VirtualFile getArtifactRoot() {

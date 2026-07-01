@@ -67,7 +67,11 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
+    // Content served under a numbered build URL (/job/x/42/allure/...) is fixed forever.
     private static final String CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
+    // The project-level permalink (/job/x/allure/...) is backed by getLastCompletedBuild(),
+    // so the same URL serves new content each build — it must be revalidated, never cached as immutable.
+    private static final String CACHE_CONTROL_REVALIDATE = "no-cache";
     private static final String HASH_404 = "#404";
     private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
     private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
@@ -278,7 +282,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         final AllureReportArchiveSource archiveSource = AllureReportArchiveSourceFactory.forRun(run);
         if (archiveSource.exists()) {
-            return new ArchiveReportBrowser(archiveSource, reportDirName, reportDirectoryUnderBuild.getRemote());
+            return new ArchiveReportBrowser(
+                    archiveSource, reportDirName, reportDirectoryUnderBuild.getRemote(), isBuildScopedUrl(request));
         }
         archiveSource.close();
 
@@ -292,6 +297,21 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                         + reportDirectoryUnderBuild.getRemote() + "' exists."
         );
         return null;
+    }
+
+    /**
+     * Whether this request reached the action through a concrete, numbered build URL
+     * ({@code /job/x/42/allure/...}) rather than the moving project permalink
+     * ({@code /job/x/allure/...}, backed by {@link Job#getLastCompletedBuild()}).
+     *
+     * <p>Build-scoped URLs address content that is fixed forever and may be served
+     * {@code immutable}; the permalink alias serves different content each build and
+     * must be revalidated. When accessed via a numbered URL Stapler traverses the
+     * {@link Run}, so it appears as an ancestor; the permalink resolves the action via
+     * {@link AllureReportProjectAction#getTarget()} without a {@link Run} ancestor.
+     */
+    private static boolean isBuildScopedUrl(final StaplerRequest request) {
+        return request.findAncestorObject(Run.class) != null;
     }
 
     @SuppressWarnings("unused")
@@ -459,13 +479,16 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         private final AllureReportArchiveSource source;
         private final String reportPath;
         private final String reportDirectoryPath;
+        private final boolean immutable;
 
         ArchiveReportBrowser(final AllureReportArchiveSource source,
                              final String reportPath,
-                             final String reportDirectoryPath) {
+                             final String reportDirectoryPath,
+                             final boolean immutable) {
             this.source = source;
             this.reportPath = reportPath;
             this.reportDirectoryPath = reportDirectoryPath;
+            this.immutable = immutable;
         }
 
         @Override
@@ -485,7 +508,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
                 rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
                 rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
-                rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_IMMUTABLE);
+                rsp.setHeader(CACHE_CONTROL, immutable ? CACHE_CONTROL_IMMUTABLE : CACHE_CONTROL_REVALIDATE);
 
                 final String rest = normalizeRestOfPath(req, rsp);
                 if (rest == null) {
