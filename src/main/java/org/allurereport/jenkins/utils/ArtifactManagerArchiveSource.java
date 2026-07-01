@@ -80,6 +80,7 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource") // zip is the cached, long-lived localZipFile, closed in close()
     public InputStream openEntry(final String entryPath) throws IOException, InterruptedException {
         final String runId = run.getExternalizableId();
 
@@ -121,6 +122,7 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource") // zip is the cached, long-lived localZipFile, closed in close()
     public List<String> listEntries(final String prefix) throws IOException, InterruptedException {
         final VirtualFile root = getArtifactRoot();
         if (root == null) {

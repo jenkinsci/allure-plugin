@@ -36,6 +36,7 @@ public final class ReportEntryCache {
     private final long maxBytes;
     private long currentBytes;
     private final Map<String, byte[]> cache;
+    private final Object lock = new Object();
 
     ReportEntryCache(final long maxBytes) {
         this.maxBytes = maxBytes;
@@ -53,30 +54,36 @@ public final class ReportEntryCache {
         return INSTANCE;
     }
 
-    public synchronized InputStream get(final String runId, final String entryPath) {
-        final byte[] data = cache.get(key(runId, entryPath));
-        if (data == null) {
-            return null;
+    public InputStream get(final String runId, final String entryPath) {
+        synchronized (lock) {
+            final byte[] data = cache.get(key(runId, entryPath));
+            if (data == null) {
+                return null;
+            }
+            return new ByteArrayInputStream(data);
         }
-        return new ByteArrayInputStream(data);
     }
 
-    public synchronized void clear() {
-        cache.clear();
-        currentBytes = 0;
+    public void clear() {
+        synchronized (lock) {
+            cache.clear();
+            currentBytes = 0;
+        }
     }
 
-    public synchronized void put(final String runId, final String entryPath, final byte[] data) {
-        if (data.length > maxBytes) {
-            return;
+    public void put(final String runId, final String entryPath, final byte[] data) {
+        synchronized (lock) {
+            if (data.length > maxBytes) {
+                return;
+            }
+            final byte[] existing = cache.remove(key(runId, entryPath));
+            if (existing != null) {
+                currentBytes -= existing.length;
+            }
+            currentBytes += data.length;
+            cache.put(key(runId, entryPath), data);
+            trimToSize();
         }
-        final byte[] existing = cache.remove(key(runId, entryPath));
-        if (existing != null) {
-            currentBytes -= existing.length;
-        }
-        currentBytes += data.length;
-        cache.put(key(runId, entryPath), data);
-        trimToSize();
     }
 
     private void trimToSize() {
