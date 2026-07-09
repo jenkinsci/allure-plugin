@@ -15,10 +15,11 @@
  */
 package org.allurereport.jenkins;
 
+import org.allurereport.jenkins.config.ResultsConfig;
+import org.allurereport.jenkins.tools.AllureVersionService;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.config.ResultsConfig;
 
 import java.util.Collections;
 
@@ -30,8 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class Allure3ConfigTest {
 
     private static final String ALLURE_RESULTS = "allure-results";
-    private static final String VERSION_2 = "2";
-    private static final String VERSION_3 = "3";
 
     @ClassRule
     public static JenkinsRule jRule = new JenkinsRule();
@@ -42,7 +41,7 @@ public class Allure3ConfigTest {
                 Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
 
-        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_2);
+        assertThat(publisher.getAllureVersion()).isEqualTo(AllureVersionService.VERSION_2);
         assertThat(publisher.isAllure3()).isFalse();
     }
 
@@ -51,9 +50,9 @@ public class Allure3ConfigTest {
         final AllureReportPublisher publisher = new AllureReportPublisher(
                 Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
-        publisher.setAllureVersion(VERSION_3);
+        publisher.setAllureVersion(AllureVersionService.VERSION_3);
 
-        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_3);
+        assertThat(publisher.getAllureVersion()).isEqualTo(AllureVersionService.VERSION_3);
         assertThat(publisher.isAllure3()).isTrue();
     }
 
@@ -62,19 +61,18 @@ public class Allure3ConfigTest {
         final AllureReportPublisher publisher = new AllureReportPublisher(
                 Collections.singletonList(new ResultsConfig(ALLURE_RESULTS))
         );
-        publisher.setAllureVersion(VERSION_2);
+        publisher.setAllureVersion(AllureVersionService.VERSION_2);
 
-        assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_2);
+        assertThat(publisher.getAllureVersion()).isEqualTo(AllureVersionService.VERSION_2);
         assertThat(publisher.isAllure3()).isFalse();
     }
 
     @Test
-    public void descriptorShouldReturnAllure3Installation() {
+    public void descriptorShouldNotReturnAllure3Installation() {
         final AllureReportPublisherDescriptor descriptor = jRule.jenkins
                 .getDescriptorByType(AllureReportPublisherDescriptor.class);
 
-        // Should return a default installation even if none configured
-        assertThat(descriptor.getAllure3Installation()).isNotNull();
+        assertThat(descriptor.getAllure3Installations()).isEmpty();
     }
 
     @Test
@@ -83,6 +81,6 @@ public class Allure3ConfigTest {
                 .getDescriptorByType(AllureReportPublisherDescriptor.class);
 
         final String[] versions = descriptor.getAllureVersions();
-        assertThat(versions).containsExactly(VERSION_2, VERSION_3);
+        assertThat(versions).containsExactly(AllureVersionService.VERSION_2, AllureVersionService.VERSION_3);
     }
 }

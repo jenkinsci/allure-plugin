@@ -183,21 +183,46 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
         return null;
     }
 
+    public Allure3Installation getDefaultAllure3Installation() {
+        final List<Allure3Installation> installations = getAllure3Installations();
+        if (installations.size() == SINGLE_INSTALLATION) {
+            return installations.get(0);
+        }
+        return null;
+    }
+
     /**
-     * Get the Allure 3 installation.
-     * For Allure 3, we use a single installation that expects 'allure' to be in PATH.
+     * Get the Allure 3 installations.
+     *
+     * @return the Allure 3 installations, or empty list if not configured
+     */
+    public List<Allure3Installation> getAllure3Installations() {
+        return Optional.of(Jenkins.get())
+            .map(j -> j.getDescriptorByType(Allure3Installation.DescriptorImpl.class))
+            .map(ToolDescriptor::getInstallations)
+            .map(Arrays::asList).orElse(Collections.emptyList());
+    }
+
+    /**
+     * Get the Allure 3 installation by name.
      *
      * @return the Allure 3 installation, or null if not configured
      */
-    public Allure3Installation getAllure3Installation() {
-        return Optional.of(Jenkins.get())
-            .map(j -> j.getDescriptorByType(Allure3Installation.DescriptorImpl.class))
-            .map(descriptor -> descriptor.getInstallations())
-            .filter(installations -> installations.length > 0)
-            .map(installations -> installations[0])
-            .orElse(new Allure3Installation("Allure 3", "", Collections.emptyList()));
-    }
+    public Allure3Installation getAllure3Installation(final String name) {
+        if (StringUtils.isBlank(name)) {
+            return null;
+        }
 
+        final List<Allure3Installation> installations = getAllure3Installations();
+        if (CollectionUtils.isEmpty(installations)) {
+            return null;
+        }
+
+        return installations.stream()
+                .filter(installation -> installation.getName().equals(name))
+                .findFirst()
+                .orElse(null);
+    }
     /**
      * Get available Allure versions for the UI dropdown.
      *
@@ -205,7 +230,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
      */
     @SuppressWarnings("unused")
     public String[] getAllureVersions() {
-        return new String[]{"2", "3"};
+        return new String[]{AllureVersionService.VERSION_2, AllureVersionService.VERSION_3};
     }
 
     @RequirePOST

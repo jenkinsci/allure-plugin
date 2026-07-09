@@ -29,16 +29,15 @@ import hudson.tools.ToolInstallation;
 import hudson.tools.ToolProperty;
 import hudson.util.FormValidation;
 import jenkins.security.MasterToSlaveCallable;
+import org.allurereport.jenkins.Messages;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.allurereport.jenkins.Messages;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -194,17 +193,6 @@ public class Allure3Installation extends ToolInstallation
         @NonNull
         public String getDisplayName() {
             return Messages.Allure3Installation_DisplayName();
-        }
-
-        @Override
-        public Allure3Installation[] getInstallations() {
-            final Allure3Installation[] installations = super.getInstallations();
-            if (installations.length == 0) {
-                return new Allure3Installation[]{
-                        new Allure3Installation("Allure 3", "", Collections.emptyList()),
-                };
-            }
-            return installations;
         }
 
         @Override
