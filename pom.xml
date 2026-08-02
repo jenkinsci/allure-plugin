@@ -79,6 +79,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
+    </dependency>
+    <dependency>
       <groupId>de.schlichtherle.truezip</groupId>
       <artifactId>truezip-driver-zip</artifactId>
       <version>${truezip.version}</version>
