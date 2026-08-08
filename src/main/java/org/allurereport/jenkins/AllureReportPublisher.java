@@ -741,9 +741,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     @NonNull
     @Override
     public Collection<? extends Action> getProjectActions(final AbstractProject<?, ?> project) {
-        return Collections.singleton(new AllureReportProjectAction(
-            project
-        ));
+        return Collections.singleton(
+                new AllureReportProjectAction(project, isAllure3(), getReport()));
     }
 
     private void prepareResults(final @NonNull List<FilePath> resultsPaths,

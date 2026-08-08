@@ -28,29 +28,56 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     private final Job<?, ?> job;
 
+    private final boolean allure3;
+
+    /** Report directory basename ({@code allure-report}, {@code allure2}, …). */
+    private final String reportPath;
+
     public AllureReportProjectAction(final Job<?, ?> job) {
+        this(job, false, AllureReportPlugin.REPORT_PATH);
+    }
+
+    public AllureReportProjectAction(final Job<?, ?> job, final boolean allure3) {
+        this(job, allure3, AllureReportPlugin.REPORT_PATH);
+    }
+
+    public AllureReportProjectAction(final Job<?, ?> job, final boolean allure3, final String reportPath) {
         this.job = job;
+        this.allure3 = allure3;
+        this.reportPath = reportPath == null || reportPath.isEmpty()
+                ? AllureReportPlugin.REPORT_PATH
+                : reportPath;
     }
 
     @Override
     public String getDisplayName() {
-        return Messages.AllureReportPlugin_Title();
+        return AllureReportPlugin.getTitle(allure3);
     }
 
     @Override
     public String getIconFileName() {
-        return AllureReportPlugin.getIconFilename();
+        // Prefer the publisher configuration — last build may be missing (new job) or A2-only.
+        return AllureReportPlugin.getIconFilename(allure3);
     }
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        return AllureReportPlugin.urlNameForReportDir(reportPath);
     }
 
     @Override
     public Object getTarget() {
         final Run<?, ?> last = job.getLastCompletedBuild();
-        return last == null ? null : last.getAction(AllureReportBuildAction.class);
+        if (last == null) {
+            return null;
+        }
+        final String url = getUrlName();
+        for (final AllureReportBuildAction action : last.getActions(AllureReportBuildAction.class)) {
+            if (url.equals(action.getUrlName())) {
+                return action;
+            }
+        }
+        return null;
     }
 
     public boolean isCanBuildGraph() {
@@ -67,10 +94,14 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
     public AllureReportBuildAction getLastAllureBuildAction() {
         final Run<?, ?> tb = job.getLastSuccessfulBuild();
         Run<?, ?> b = job.getLastBuild();
+        final String url = getUrlName();
         while (b != null) {
-            final AllureReportBuildAction a = b.getAction(AllureReportBuildAction.class);
-            if (a != null && !b.isBuilding()) {
-                return a;
+            if (!b.isBuilding()) {
+                for (final AllureReportBuildAction a : b.getActions(AllureReportBuildAction.class)) {
+                    if (url.equals(a.getUrlName())) {
+                        return a;
+                    }
+                }
             }
             if (b.equals(tb)) {
                 // if even the last successful build didn't produce the test result,

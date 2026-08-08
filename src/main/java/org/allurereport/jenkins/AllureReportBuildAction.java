@@ -17,6 +17,7 @@ package org.allurereport.jenkins;
 
 import hudson.FilePath;
 import hudson.Util;
+import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.Job;
@@ -182,17 +183,25 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     @Override
     public String getDisplayName() {
-        return Messages.AllureReportPlugin_Title();
+        return AllureReportPlugin.getTitle(allure3);
+    }
+
+    public boolean isAllure3() {
+        return allure3;
     }
 
     @Override
     public String getIconFileName() {
-        return AllureReportPlugin.getIconFilename();
+        return AllureReportPlugin.getIconFilename(allure3);
+    }
+
+    public String getBadgeIconFileName() {
+        return AllureReportPlugin.getBadgeIconFilename(allure3);
     }
 
     @Override
     public String getUrlName() {
-        return AllureReportPlugin.URL_PATH;
+        return AllureReportPlugin.urlNameForReportDir(getReportPath());
     }
 
     public AllureReportBuildAction getPreviousResult() {
@@ -217,7 +226,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             if (b == null) {
                 return null;
             }
-            final AllureReportBuildAction r = b.getAction(AllureReportBuildAction.class);
+            final AllureReportBuildAction r = findMatchingAction(b);
             if (r != null) {
                 if (r.equals(this)) {
                     throw new IllegalStateException(format(WAS_ATTACHED_TO_BOTH, this, b, run));
@@ -230,16 +239,56 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         }
     }
 
-    //copied from junit-plugin
+    private AllureReportBuildAction findMatchingAction(final Run<?, ?> build) {
+        final String url = getUrlName();
+        for (final AllureReportBuildAction candidate : build.getActions(AllureReportBuildAction.class)) {
+            if (url.equals(candidate.getUrlName())) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Pipeline / jobs without a freestyle publisher need a project link from the last build.
+     * Freestyle already gets {@link AllureReportProjectAction} from
+     * {@link AllureReportPublisher#getProjectActions} — skip entirely so an old build with a
+     * different report slug cannot add a second sidebar link after the job config changes.
+     */
     @Override
     public Collection<? extends Action> getProjectActions() {
         final Job<?, ?> job = run.getParent();
-        if (/* getAction(Class) and getAllActions() produces a StackOverflowError */
-            !Util.filter(job.getActions(), AllureReportProjectAction.class).isEmpty()) {
-            // JENKINS-26077: someone like XUnitPublisher already added one
+        if (hasAnyFreestyleAllurePublisher(job)) {
             return Collections.emptySet();
         }
-        return Collections.singleton(new AllureReportProjectAction(job));
+        final String url = getUrlName();
+        if (hasPersistedProjectAction(job, url)) {
+            return Collections.emptySet();
+        }
+        return Collections.singleton(new AllureReportProjectAction(job, allure3, getReportPath()));
+    }
+
+    private static boolean hasAnyFreestyleAllurePublisher(final Job<?, ?> job) {
+        if (!(job instanceof AbstractProject)) {
+            return false;
+        }
+        for (final Object publisher : ((AbstractProject<?, ?>) job).getPublishersList()) {
+            if (publisher instanceof AllureReportPublisher) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasPersistedProjectAction(final Job<?, ?> job, final String url) {
+        // getAction(Class) / getAllActions() can StackOverflow; use getActions + filter.
+        for (final AllureReportProjectAction existing
+                : Util.filter(job.getActions(), AllureReportProjectAction.class)) {
+            if (url.equals(existing.getUrlName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
