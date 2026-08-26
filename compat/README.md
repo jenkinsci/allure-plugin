@@ -6,9 +6,9 @@ This directory contains the Jenkins compatibility smoke tests used by the GitHub
 
 The suite starts a real Jenkins controller in Docker with Testcontainers, installs the plugin under test, configures Allure CLI, and verifies these flows:
 
-- Freestyle report generation
+- Freestyle report generation with and without the optional `matrix-project` plugin installed
 - Pipeline step execution
-- Matrix build aggregation
+- Matrix build aggregation when `matrix-project` is installed
 
 The harness stages Allure results, Surefire reports, Jenkins logs, console output, and report HTML under `compat-artifacts/` while it runs. GitHub Actions wraps the suite with Allure 3 and uploads a single `compat-<version>.zip` dump instead of that raw directory. The dump preserves the Allure results and their evidence attachments.
 
