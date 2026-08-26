@@ -61,7 +61,7 @@ jobs:
             -Dcompat.rootDir="${{ github.workspace }}" \
             -Dcompat.version="$JENKINS_VERSION" \
             -Dcompat.artifactRoot="$COMPAT_ARTIFACT_ROOT" \
-            compile exec:java
+            test
       - name: Print compatibility artifact index
         if: always()
         run: |
@@ -81,8 +81,11 @@ jobs:
         if: always()
         run: |
           echo "## Jenkins ${{ steps.resolve-version.outputs.jenkins_version }}" >> "$GITHUB_STEP_SUMMARY"
-          if [[ -f "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/summary.md" ]]; then
-            cat "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -d "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/allure-results" ]]; then
+            RESULT_FILES=$(find "compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/allure-results" -name '*-result.json' | wc -l | tr -d ' ')
+            echo "- Allure results: \`compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/allure-results\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Surefire reports: \`compat-artifacts/${{ steps.resolve-version.outputs.jenkins_version }}/surefire-reports\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Allure result files: ${RESULT_FILES}" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "- Compatibility smoke did not complete successfully." >> "$GITHUB_STEP_SUMMARY"
+            echo "- Compatibility smoke did not produce Allure results." >> "$GITHUB_STEP_SUMMARY"
           fi

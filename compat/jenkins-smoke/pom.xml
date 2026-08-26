@@ -10,30 +10,55 @@
     <packaging>jar</packaging>
 
     <properties>
+        <allure.junit5.version>2.29.1</allure.junit5.version>
+        <compat.rootDir>${project.basedir}/../..</compat.rootDir>
         <compat.version>2.462.1</compat.version>
+        <compat.artifactRoot>${compat.rootDir}/compat-artifacts/${compat.version}</compat.artifactRoot>
         <jackson.version>2.18.2</jackson.version>
+        <junit.jupiter.version>5.11.4</junit.jupiter.version>
+        <maven.surefire-plugin.version>3.5.3</maven.surefire-plugin.version>
         <slf4j.version>2.0.16</slf4j.version>
-        <testcontainers.version>1.20.6</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <exec.mainClass>org.allurereport.jenkins.compat.JenkinsCompatibilitySmokeRunner</exec.mainClass>
     </properties>
 
     <dependencies>
         <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit5</artifactId>
+            <version>${allure.junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <version>${testcontainers.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -48,12 +73,20 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire-plugin.version}</version>
                 <configuration>
-                    <mainClass>${exec.mainClass}</mainClass>
-                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                    <failIfNoTests>true</failIfNoTests>
+                    <reportsDirectory>${compat.artifactRoot}/surefire-reports</reportsDirectory>
+                    <trimStackTrace>false</trimStackTrace>
+                    <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                    <systemPropertyVariables>
+                        <allure.results.directory>${compat.artifactRoot}/allure-results</allure.results.directory>
+                        <compat.artifactRoot>${compat.artifactRoot}</compat.artifactRoot>
+                        <compat.rootDir>${compat.rootDir}</compat.rootDir>
+                        <compat.version>${compat.version}</compat.version>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
