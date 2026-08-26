@@ -20,6 +20,7 @@ import hudson.Launcher;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.StreamBuildListener;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -51,6 +52,11 @@ public class ArtifactManagerArchiveSourceTest {
 
     @Rule
     public JenkinsRule jRule = new JenkinsRule();
+
+    @Before
+    public void setUp() {
+        ReportEntryCache.getInstance().clear();
+    }
 
     @Test
     public void openEntryReadsDirectArtifactWithoutZip() throws Exception {

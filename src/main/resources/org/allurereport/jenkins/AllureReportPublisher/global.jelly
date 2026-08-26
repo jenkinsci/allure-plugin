@@ -21,5 +21,13 @@
             </f:repeatable>
         </f:entry>
 
+        <f:optionalBlock name="localCacheEnabled" title="${%LocalCacheEnabled}"
+                         checked="${descriptor.isLocalCacheEnabled()}"
+                         inline="true">
+            <f:entry title="${%LocalCacheThresholdMb}" field="localCacheThresholdMb">
+                <f:number value="${descriptor.getLocalCacheThresholdMb()}" min="1"/>
+            </f:entry>
+        </f:optionalBlock>
+
     </f:section>
 </j:jelly>

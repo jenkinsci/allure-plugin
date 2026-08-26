@@ -61,8 +61,11 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     private static final String PROPERTIES = "properties";
     private static final String NEWLINE = "\n";
     private static final int SINGLE_INSTALLATION = 1;
+    private static final long DEFAULT_LOCAL_CACHE_THRESHOLD_MB = 100;
     private final Object quickSetupLock = new Object();
     private List<PropertyConfig> properties;
+    private boolean localCacheEnabled;
+    private long localCacheThresholdMb = DEFAULT_LOCAL_CACHE_THRESHOLD_MB;
 
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
@@ -82,6 +85,22 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     public void setProperties(final List<PropertyConfig> properties) {
         this.properties = properties;
+    }
+
+    public boolean isLocalCacheEnabled() {
+        return localCacheEnabled;
+    }
+
+    public void setLocalCacheEnabled(final boolean localCacheEnabled) {
+        this.localCacheEnabled = localCacheEnabled;
+    }
+
+    public long getLocalCacheThresholdMb() {
+        return localCacheThresholdMb;
+    }
+
+    public void setLocalCacheThresholdMb(final long localCacheThresholdMb) {
+        this.localCacheThresholdMb = localCacheThresholdMb;
     }
 
     @Override
@@ -121,8 +140,10 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                 final List<PropertyConfig> properties = mapper.readValue(jsonProperties,
                     new TypeReference<List<PropertyConfig>>() { });
                 setProperties(properties);
-                save();
             }
+            localCacheEnabled = json.optBoolean("localCacheEnabled", false);
+            localCacheThresholdMb = json.optLong("localCacheThresholdMb", DEFAULT_LOCAL_CACHE_THRESHOLD_MB);
+            save();
         } catch (IOException e) {
             return false;
         }

@@ -17,30 +17,53 @@ package org.allurereport.jenkins.utils;
 
 import hudson.model.Run;
 import jenkins.model.ArtifactManager;
+import jenkins.model.Jenkins;
 import jenkins.util.VirtualFile;
+import org.allurereport.jenkins.AllureReportPublisherDescriptor;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
- * {@link AllureReportArchiveSource} implementation that reads from an artifact stored via
- * Jenkins {@link ArtifactManager} / {@link VirtualFile}.
+ * {@link AllureReportArchiveSource} that reads from a remote artifact store via
+ * {@link VirtualFile}. On first access, downloads the zip to the local artifacts
+ * directory ({@code <run.getArtifactsDir()>/allure-report.zip}) so that subsequent
+ * requests are served by {@link LocalFileArchiveSource} via the
+ * {@link FallbackArchiveSource} chain — identical behavior to a non-S3 setup.
  *
- * <p>This implementation does <em>not</em> require the archive to be present as a local
- * file on the master node Ã¢ it delegates all I/O to the {@link VirtualFile} API, which
- * may transparently read from S3, Azure Blob Storage, or any other pluggable back-end.
- *
- * <p>Because {@link VirtualFile} streams are opened on demand and closed by the caller,
- * this class itself holds no persistent resources and {@link #close()} is a no-op.
+ * <p>The local copy is naturally cleaned up by Jenkins' build discarder along with
+ * the rest of the build's artifacts.
  */
 public final class ArtifactManagerArchiveSource implements AllureReportArchiveSource {
 
-    private final Run<?, ?> run;
+    private static final Logger LOGGER = Logger.getLogger(ArtifactManagerArchiveSource.class.getName());
 
+    /**
+     * Guards the download-and-open step against concurrent first views of the same build.
+     * A fresh {@link ArtifactManagerArchiveSource} is created per HTTP request, but browsers
+     * fire many parallel asset requests, so several instances can race to materialize the same
+     * {@code <artifactsDir>/allure-report.zip}. Keyed by the destination path so unrelated builds
+     * never contend; entries are only ever added, which is fine for the small, bounded set of
+     * builds browsed in a session.
+     */
+    private static final ConcurrentHashMap<Path, Object> DOWNLOAD_LOCKS = new ConcurrentHashMap<>();
+
+    private final Run<?, ?> run;
     private VirtualFile artifactRoot;
+    private ZipFile localZipFile;
 
     public ArtifactManagerArchiveSource(final Run<?, ?> run) {
         this.run = run;
@@ -57,7 +80,14 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource") // zip is the cached, long-lived localZipFile, closed in close()
     public InputStream openEntry(final String entryPath) throws IOException, InterruptedException {
+        final String runId = run.getExternalizableId();
+
+        final InputStream cached = ReportEntryCache.getInstance().get(runId, entryPath);
+        if (cached != null) {
+            return cached;
+        }
 
         final VirtualFile root = getArtifactRoot();
         if (root == null) {
@@ -71,13 +101,28 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
 
         final VirtualFile zipBlob = root.child(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
         if (!zipBlob.exists()) {
-            throw new NoSuchElementException("allure-report.zip not found in artifact store for run: "
-                    + run.getFullDisplayName());
+            throw new NoSuchElementException(
+                    "allure-report.zip not found in artifact store for run: " + run.getFullDisplayName());
         }
+
+        if (isLocalCacheApplicable(zipBlob)) {
+            final ZipFile zip = getOrDownloadToArtifactsDir(zipBlob);
+            final ZipEntry entry = zip.getEntry(entryPath);
+            if (entry == null) {
+                throw new NoSuchElementException("Entry not found in archive: " + entryPath);
+            }
+            try (InputStream is = zip.getInputStream(entry)) {
+                final byte[] data = is.readAllBytes();
+                ReportEntryCache.getInstance().put(runId, entryPath, data);
+                return new ByteArrayInputStream(data);
+            }
+        }
+
         return ZipEntryInputStream.open(zipBlob.open(), entryPath);
     }
 
     @Override
+    @SuppressWarnings("PMD.CloseResource") // zip is the cached, long-lived localZipFile, closed in close()
     public List<String> listEntries(final String prefix) throws IOException, InterruptedException {
         final VirtualFile root = getArtifactRoot();
         if (root == null) {
@@ -95,12 +140,81 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
         if (!zipBlob.exists()) {
             return new ArrayList<>();
         }
+
+        if (isLocalCacheApplicable(zipBlob)) {
+            final ZipFile zip = getOrDownloadToArtifactsDir(zipBlob);
+            final List<String> result = new ArrayList<>();
+            final Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                final ZipEntry entry = entries.nextElement();
+                if (entry.getName().startsWith(prefix) && !entry.isDirectory()) {
+                    result.add(entry.getName());
+                }
+            }
+            return result;
+        }
+
         return ZipEntryInputStream.listEntries(zipBlob.open(), prefix);
     }
 
     @Override
-    @SuppressWarnings("PMD.UncommentedEmptyMethodBody")
-    public void close() {
+    public void close() throws IOException {
+        if (localZipFile != null) {
+            localZipFile.close();
+            localZipFile = null;
+        }
+    }
+
+    private boolean isLocalCacheApplicable(final VirtualFile zipBlob) throws IOException {
+        final Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null) {
+            return false;
+        }
+        final AllureReportPublisherDescriptor descriptor =
+                jenkins.getDescriptorByType(AllureReportPublisherDescriptor.class);
+        if (descriptor == null || !descriptor.isLocalCacheEnabled()) {
+            return false;
+        }
+        final long thresholdBytes = descriptor.getLocalCacheThresholdMb() * 1024L * 1024L;
+        return zipBlob.length() >= thresholdBytes;
+    }
+
+    @SuppressWarnings("PMD.CloseResource")
+    private ZipFile getOrDownloadToArtifactsDir(final VirtualFile zipBlob)
+            throws IOException, InterruptedException {
+        // This instance is confined to a single request, but multiple instances (one per
+        // parallel asset request) can target the same file; serialize per destination path.
+        if (localZipFile != null) {
+            return localZipFile;
+        }
+
+        final Path localPath = run.getArtifactsDir().toPath()
+                .resolve(AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP);
+
+        synchronized (DOWNLOAD_LOCKS.computeIfAbsent(localPath.toAbsolutePath(), k -> new Object())) {
+            if (localZipFile != null) {
+                return localZipFile;
+            }
+            if (Files.exists(localPath)) {
+                LOGGER.log(Level.FINE, "Using existing local copy at {0}", localPath);
+                localZipFile = new ZipFile(localPath.toFile());
+                return localZipFile;
+            }
+
+            LOGGER.log(Level.INFO, "Downloading allure-report.zip from remote storage to {0} for run {1}",
+                    new Object[]{localPath, run.getExternalizableId()});
+
+            Files.createDirectories(localPath.getParent());
+            final Path tmpFile = Files.createTempFile(localPath.getParent(), "allure-report-", ".zip.tmp");
+            try (InputStream is = zipBlob.open()) {
+                Files.copy(is, tmpFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.move(tmpFile, localPath, StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+
+            localZipFile = new ZipFile(localPath.toFile());
+            return localZipFile;
+        }
     }
 
     private VirtualFile getArtifactRoot() {
