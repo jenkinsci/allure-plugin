@@ -38,7 +38,7 @@ import org.allurereport.jenkins.tools.AllureCommandlineDirectInstaller;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureVersionService;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
