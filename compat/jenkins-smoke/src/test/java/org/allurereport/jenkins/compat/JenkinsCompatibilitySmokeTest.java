@@ -44,9 +44,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -126,7 +129,8 @@ class JenkinsCompatibilitySmokeTest {
     @AfterAll
     void tearDown() throws Exception {
         final String logs = JENKINS.isRunning() ? JENKINS.getLogs() : "Jenkins container did not start.";
-        writeTextFile(config.artifactRoot().resolve("jenkins.log"), logs);
+        final Path jenkinsLog = writeTextFile(config.artifactRoot().resolve("jenkins.log"), logs);
+        writeGlobalAttachments(jenkinsLog);
     }
 
     @Test
@@ -706,6 +710,64 @@ class JenkinsCompatibilitySmokeTest {
         try (var writer = Files.newBufferedWriter(resultsDir.resolve("environment.properties"), StandardCharsets.UTF_8)) {
             environment.store(writer, "Jenkins compatibility smoke");
         }
+    }
+
+    private void writeGlobalAttachments(final Path jenkinsLog) throws IOException {
+        final Path resultsDir = Files.createDirectories(config.artifactRoot().resolve("allure-results"));
+        final List<Map<String, String>> attachments = new ArrayList<>();
+
+        addGlobalAttachment(resultsDir, attachments, jenkinsLog, "jenkins.log", "text/plain");
+        addGlobalAttachment(
+                resultsDir,
+                attachments,
+                generatedDir.resolve(JENKINS_INIT_FILE),
+                JENKINS_INIT_FILE,
+                "text/x-groovy"
+        );
+        addGlobalAttachment(
+                resultsDir,
+                attachments,
+                generatedDir.resolve("setup.groovy"),
+                "setup.groovy",
+                "text/x-groovy"
+        );
+        addGlobalAttachment(
+                resultsDir,
+                attachments,
+                generatedDir.resolve("plugins.txt"),
+                "plugins.txt",
+                "text/plain"
+        );
+
+        final Map<String, Object> globals = Map.of(
+                "attachments", attachments,
+                "errors", List.of()
+        );
+        writeTextFile(
+                resultsDir.resolve(UUID.randomUUID() + "-globals.json"),
+                OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(globals)
+        );
+    }
+
+    private static void addGlobalAttachment(final Path resultsDir,
+                                            final List<Map<String, String>> attachments,
+                                            final Path artifact,
+                                            final String name,
+                                            final String type) throws IOException {
+        if (Files.notExists(artifact)) {
+            return;
+        }
+
+        final String artifactFileName = artifact.getFileName().toString();
+        final int extensionIndex = artifactFileName.lastIndexOf('.');
+        final String extension = extensionIndex >= 0 ? artifactFileName.substring(extensionIndex) : "";
+        final String source = UUID.randomUUID() + "-attachment" + extension;
+        Files.copy(artifact, resultsDir.resolve(source));
+        attachments.add(Map.of(
+                "name", name,
+                "type", type,
+                "source", source
+        ));
     }
 
     private static Path writeTextFile(final Path path, final String content) throws IOException {

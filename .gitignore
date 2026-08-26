@@ -18,6 +18,7 @@ build
 # Work
 work
 compat-artifacts
+allure-dumps
 
 # Mac OS
 .DS_Store
