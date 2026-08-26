@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-  This plugin integrates Allure reporting tool into Jenkins.
+  Generate and publish Allure reports from Jenkins builds.
 </div>
