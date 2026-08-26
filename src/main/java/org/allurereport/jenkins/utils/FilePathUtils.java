@@ -19,7 +19,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.FilePath;
+import hudson.Util;
 import hudson.model.AbstractBuild;
+import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Run;
 import jenkins.util.VirtualFile;
 
@@ -27,18 +29,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-@SuppressWarnings("PMD.GodClass")
+@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -60,8 +66,111 @@ public final class FilePathUtils {
     private static final String SUMMARY_ARTIFACT_NAME = "allure-summary.json";
     private static final int EXPECTED_HISTORY_ENTRY_COUNT = 1;
     private static final String HISTORY_JSON_SUFFIX = "/history/history.json";
+    private static final String SLASH = "/";
+    private static final String BACKSLASH = "\\";
+    private static final String PARENT_DIRECTORY = "..";
+    private static final Pattern TMPDIR_PATTERN = Pattern.compile(".+@tmp/.*");
 
     private FilePathUtils() {
+    }
+
+    public static boolean isPathInsideDirectory(final FilePath directory, final String path)
+            throws IOException, InterruptedException {
+        if (!isSafeRelativePath(path)) {
+            return false;
+        }
+        try {
+            return directory.isDescendant(path);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Mirrors the request-path guard in Jenkins core {@link DirectoryBrowserSupport}.
+     *
+     * <p>Reference:
+     * https://github.com/jenkinsci/jenkins/blob/jenkins-2.462.1/
+     * core/src/main/java/hudson/model/DirectoryBrowserSupport.java#L197-L203
+     * and #L249-L258.
+     */
+    public static boolean isSafeRelativePath(final String path) {
+        if (path == null) {
+            return false;
+        }
+
+        final String portablePath = path.replace(BACKSLASH, SLASH);
+        return !hasParentDirectorySegment(portablePath) && Util.isRelativePath(portablePath);
+    }
+
+    /**
+     * Uses the same symlink and temporary-directory display toggles as
+     * {@link DirectoryBrowserSupport}.
+     *
+     * <p>Reference:
+     * https://github.com/jenkinsci/jenkins/blob/jenkins-2.462.1/
+     * core/src/main/java/hudson/model/DirectoryBrowserSupport.java#L653-L661
+     */
+    public static OpenOption[] getReportOpenOptions() {
+        final List<OpenOption> options = new ArrayList<>();
+        if (!DirectoryBrowserSupport.ALLOW_SYMLINK_ESCAPE) {
+            options.add(LinkOption.NOFOLLOW_LINKS);
+        }
+        if (!DirectoryBrowserSupport.ALLOW_TMP_DISPLAY) {
+            options.add(FilePath.DisplayOption.IGNORE_TMP_DIRS);
+        }
+        return options.toArray(new OpenOption[0]);
+    }
+
+    /**
+     * Mirrors the {@link DirectoryBrowserSupport} check that hides symlink escapes
+     * and temporary directories from directory browsing.
+     *
+     * <p>Reference:
+     * https://github.com/jenkinsci/jenkins/blob/jenkins-2.462.1/
+     * core/src/main/java/hudson/model/DirectoryBrowserSupport.java#L258-L260
+     * and #L422-L427.
+     */
+    public static boolean isBlockedReportPath(final FilePath root,
+                                              final FilePath file,
+                                              final String relativePath)
+            throws IOException, InterruptedException {
+        final OpenOption[] openOptions = getReportOpenOptions();
+        return file.hasSymlink(root, openOptions) || isTmpDirPath(file, relativePath, openOptions);
+    }
+
+    /**
+     * Applies the {@code @tmp} hiding part of {@link DirectoryBrowserSupport}
+     * to archive entry paths, where there is no filesystem symlink to follow.
+     *
+     * <p>Reference:
+     * https://github.com/jenkinsci/jenkins/blob/jenkins-2.462.1/
+     * core/src/main/java/hudson/model/DirectoryBrowserSupport.java#L422-L427
+     */
+    public static boolean isBlockedTmpDirPath(final String relativePath) {
+        final OpenOption[] openOptions = getReportOpenOptions();
+        final String portablePath = relativePath.replace(BACKSLASH, SLASH);
+        final int fileNameStart = portablePath.lastIndexOf(SLASH) + 1;
+        final String fileName = portablePath.substring(fileNameStart);
+        return FilePath.isTmpDir(fileName, openOptions)
+                || FilePath.isIgnoreTmpDirs(openOptions) && TMPDIR_PATTERN.matcher(portablePath).matches();
+    }
+
+    private static boolean hasParentDirectorySegment(final String path) {
+        for (final String segment : path.split(SLASH, -1)) {
+            if (PARENT_DIRECTORY.equals(segment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isTmpDirPath(final FilePath file,
+                                        final String relativePath,
+                                        final OpenOption... openOptions) {
+        final String portablePath = relativePath.replace(BACKSLASH, SLASH);
+        return FilePath.isTmpDir(file.getName(), openOptions)
+                || FilePath.isIgnoreTmpDirs(openOptions) && TMPDIR_PATTERN.matcher(portablePath).matches();
     }
 
     @SuppressWarnings("PMD.AvoidCatchingGenericException")
@@ -296,4 +405,5 @@ public final class FilePathUtils {
         }
         return AllureSummaryExtractor.extract(run, reportPath, isAllure3);
     }
+
 }

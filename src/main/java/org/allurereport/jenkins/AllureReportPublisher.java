@@ -96,6 +96,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private static final String DIR_EXPORT = "export";
     private static final String FILE_SUMMARY_JSON = "summary.json";
     private static final String SLASH = "/";
+    private static final String REPORT_FIELD = "report";
+    private static final String CONFIG_PATH_FIELD = "configPath";
+    private static final String INVALID_WORKSPACE_PATH =
+            "Allure %s path must be a relative path inside the workspace: %s";
 
     private static final String NOT_FOUND_MESSAGE =
             "Can not find allure commandline installation for given environment.";
@@ -457,6 +461,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
+        validatePublisherPaths(workspace);
+
         final List<ResultsConfig> resultsConfigs = getResults();
         if (resultsConfigs == null) {
             throw new AllurePluginException("The property 'Results' have to be specified!"
@@ -515,6 +521,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return new MatrixAggregator(build, launcher, listener) {
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
+                validatePublisherPaths(workspace);
+
                 final List<FilePath> resultsPaths = new ArrayList<>();
                 for (FilePath directory : workspace.listDirectories()) {
                     if (directory.getName().startsWith(ALLURE_PREFIX) && directory.getName().contains(ALLURE_SUFFIX)) {
@@ -604,6 +612,23 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         buildAction.setSingleFile(outcome.isSingleFileGenerated());
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
+    }
+
+    private void validatePublisherPaths(final FilePath workspace) throws IOException, InterruptedException {
+        validateWorkspaceRelativePath(workspace, getReport(), REPORT_FIELD);
+        final String config = getConfigPath();
+        if (config != null) {
+            validateWorkspaceRelativePath(workspace, config, CONFIG_PATH_FIELD);
+        }
+    }
+
+    private static void validateWorkspaceRelativePath(final FilePath workspace,
+                                                      final String path,
+                                                      final String field)
+            throws IOException, InterruptedException {
+        if (StringUtils.isBlank(path) || !FilePathUtils.isPathInsideDirectory(workspace, path)) {
+            throw new AllurePluginException(String.format(INVALID_WORKSPACE_PATH, field, path));
+        }
     }
 
     private void cleanReportDirIfNeeded(final FilePath reportDirectoryInWorkspace,

@@ -17,6 +17,7 @@ package org.allurereport.jenkins;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hudson.FilePath;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Result;
@@ -32,7 +33,11 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -51,6 +56,22 @@ public class AllureReportPublisherIT {
     private static final String KEY_ITEMS = "items";
     private static final String KEY_REPORT_URL = "reportUrl";
     private static final String DISPLAY_REDIRECT = "display/redirect";
+    private static final String CUSTOM_REPORT = "custom-report";
+    private static final String CUSTOM_REPORT_INDEX = CUSTOM_REPORT + "/index.html";
+    private static final String TARGET_PATH = "target/";
+    private static final String PARENT_PATH = "../";
+    private static final String DEFAULT_ALLURE_CONFIG = String.join("\n",
+            "plugins:",
+            "  - junit-xml-plugin",
+            "  - xunit-xml-plugin",
+            "  - trx-plugin",
+            "  - behaviors-plugin",
+            "  - packages-plugin",
+            "  - screen-diff-plugin",
+            "  - xctest-plugin",
+            "  - jira-plugin",
+            "  - xray-plugin",
+            "");
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -99,15 +120,97 @@ public class AllureReportPublisherIT {
     public void shouldArchiveCustomReportPathUsingLeafDirectoryName() throws Exception {
         final FreeStyleProject project = createProject(SAMPLE_PASSED);
         final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
-        publisher.setReport("target/custom-report");
+        publisher.setReport(TARGET_PATH + CUSTOM_REPORT);
         project.getPublishersList().add(publisher);
 
         final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
 
         try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(build)) {
-            final List<String> entries = source.listEntries("custom-report");
-            assertThat(entries).contains("custom-report/index.html");
+            final List<String> entries = source.listEntries(CUSTOM_REPORT);
+            assertThat(entries).contains(CUSTOM_REPORT_INDEX);
         }
+    }
+
+    @Test
+    public void shouldRejectReportPathThatNormalizesInsideWorkspace() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setReport(TARGET_PATH + PARENT_PATH + CUSTOM_REPORT);
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
+    }
+
+    @Test
+    public void shouldRejectAbsoluteReportPath() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final File outsideReport = new File(folder.getRoot(), "outside-absolute-report");
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setReport(outsideReport.getAbsolutePath());
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
+        assertThat(outsideReport).doesNotExist();
+    }
+
+    @Test
+    public void shouldRejectTraversalReportPath() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final File outsideReport = outsideWorkspaceFile(project, "outside-traversal-report");
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setReport(PARENT_PATH + outsideReport.getName());
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
+        assertThat(outsideReport).doesNotExist();
+    }
+
+    @Test
+    public void shouldRejectTraversalReportPathThatStartsInsideWorkspace() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final File outsideReport = outsideWorkspaceFile(project, "outside-nested-traversal-report");
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setReport(TARGET_PATH + PARENT_PATH + PARENT_PATH + outsideReport.getName());
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
+        assertThat(outsideReport).doesNotExist();
+    }
+
+    @Test
+    public void shouldRejectAbsoluteConfigPath() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final File outsideConfig = new File(folder.getRoot(), "outside-absolute-config.yml");
+        writeAllureConfig(outsideConfig);
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setConfigPath(outsideConfig.getAbsolutePath());
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
+    }
+
+    @Test
+    public void shouldRejectTraversalConfigPath() throws Exception {
+        final FreeStyleProject project = createProject(SAMPLE_PASSED);
+        final File outsideConfig = outsideWorkspaceFile(project, "outside-traversal-config.yml");
+        writeAllureConfig(outsideConfig);
+        final AllureReportPublisher publisher = createAllurePublisher(jdk, commandline, RESULTS_DIR);
+        publisher.setConfigPath(PARENT_PATH + outsideConfig.getName());
+        project.getPublishersList().add(publisher);
+
+        final FreeStyleBuild build = jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        assertThat(build.getAction(AllureReportBuildAction.class)).isNull();
     }
 
     @Test
@@ -161,6 +264,18 @@ public class AllureReportPublisherIT {
         final FreeStyleProject project = jRule.createFreeStyleProject();
         project.setScm(getSimpleFileScm(resourceName, RESULTS_DIR + "/sample-testsuite.xml"));
         return project;
+    }
+
+    private File outsideWorkspaceFile(final FreeStyleProject project, final String name)
+            throws IOException, InterruptedException {
+        final FilePath workspace = jRule.jenkins.getWorkspaceFor(project);
+        final File workspaceDir = new File(workspace.getRemote());
+        return new File(workspaceDir.getParentFile(), name);
+    }
+
+    private void writeAllureConfig(final File config) throws Exception {
+        Files.createDirectories(config.toPath().getParent());
+        Files.writeString(config.toPath(), DEFAULT_ALLURE_CONFIG, StandardCharsets.UTF_8);
     }
 
     private JsonNode archivedJson(final FreeStyleBuild build, final String entryName) throws Exception {

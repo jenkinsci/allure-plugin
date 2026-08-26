@@ -39,6 +39,13 @@ public class FilePathUtilsTest {
 
     private static final String REPORT_PATH = "allure-report";
     private static final String HISTORY_ENTRY = "allure-report/history/history.json";
+    private static final String TARGET_PATH = "target/";
+    private static final String PARENT_PATH = "../";
+    private static final String OUTSIDE_REPORT = "outside-report";
+    private static final String WINDOWS_ABSOLUTE_REPORT = "C:\\outside-report";
+    private static final String WINDOWS_ROOT_RELATIVE_REPORT = "\\outside-report";
+    private static final String WINDOWS_TARGET_PATH = "target\\";
+    private static final String WINDOWS_PARENT_PATH = "..\\";
 
     @Rule
     public JenkinsRule jRule = new JenkinsRule();
@@ -111,6 +118,55 @@ public class FilePathUtilsTest {
         assertThat(previous).isNull();
     }
 
+    @Test
+    public void pathInsideDirectoryRejectsPathThatNormalizesInsideBase() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FilePath workspace = workspace(project);
+
+        assertThat(FilePathUtils.isPathInsideDirectory(
+                workspace,
+                TARGET_PATH + PARENT_PATH + OUTSIDE_REPORT
+        )).isFalse();
+    }
+
+    @Test
+    public void pathInsideDirectoryRejectsTraversalThatStartsInsideBase() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FilePath workspace = workspace(project);
+
+        assertThat(FilePathUtils.isPathInsideDirectory(
+                workspace,
+                TARGET_PATH + PARENT_PATH + PARENT_PATH + OUTSIDE_REPORT
+        )).isFalse();
+    }
+
+    @Test
+    public void pathInsideDirectoryRejectsWindowsAbsolutePath() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FilePath workspace = workspace(project);
+
+        assertThat(FilePathUtils.isPathInsideDirectory(workspace, WINDOWS_ABSOLUTE_REPORT)).isFalse();
+    }
+
+    @Test
+    public void pathInsideDirectoryRejectsWindowsRootRelativePath() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FilePath workspace = workspace(project);
+
+        assertThat(FilePathUtils.isPathInsideDirectory(workspace, WINDOWS_ROOT_RELATIVE_REPORT)).isFalse();
+    }
+
+    @Test
+    public void pathInsideDirectoryRejectsWindowsTraversalThatStartsInsideBase() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FilePath workspace = workspace(project);
+
+        assertThat(FilePathUtils.isPathInsideDirectory(
+                workspace,
+                WINDOWS_TARGET_PATH + WINDOWS_PARENT_PATH + WINDOWS_PARENT_PATH + OUTSIDE_REPORT
+        )).isFalse();
+    }
+
     private void archive(final FreeStyleProject project,
                          final FreeStyleBuild build,
                          final Map<String, String> artifacts,
@@ -143,6 +199,12 @@ public class FilePathUtilsTest {
         );
         final Launcher launcher = new Launcher.LocalLauncher(listener);
         build.pickArtifactManager().archive(workspace, launcher, listener, archivedPaths);
+    }
+
+    private FilePath workspace(final FreeStyleProject project) throws Exception {
+        final FilePath workspace = Objects.requireNonNull(jRule.jenkins.getWorkspaceFor(project));
+        workspace.mkdirs();
+        return workspace;
     }
 
     private void writeFile(final FilePath target, final String content) throws Exception {
