@@ -56,6 +56,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Starts a real Jenkins in Docker, installs the plugin under test, configures smoke jobs,
@@ -76,25 +78,36 @@ class JenkinsCompatibilitySmokeTest {
     private static final String PASSED_SAMPLE_RESOURCE = "src/test/resources/sample-testsuite.xml";
     private static final String PLUGIN_FILE_IN_IMAGE = "allure-jenkins-plugin.jpi";
     private static final String JENKINS_INIT_FILE = "compat-init.groovy";
+    private static final String WITH_MATRIX_PROFILE = "with-matrix";
+    private static final String WITHOUT_MATRIX_PROFILE = "without-matrix";
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(10);
     private static final Duration READY_TIMEOUT = Duration.ofMinutes(5);
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration SMOKE_CHECK_TIMEOUT = Duration.ofMinutes(10);
     private static final long POLL_DELAY_MS = 5_000L;
 
-    private static final List<String> REQUIRED_PLUGINS = List.of(
+    private static final List<String> REQUIRED_PLUGINS_WITHOUT_MATRIX = List.of(
             "bouncycastle-api:2.30.1.78.1-248.ve27176eb_46cb_",
             "commons-lang3-api:3.17.0-84.vb_b_938040b_078",
             "jackson2-api:2.17.0-389.va_5c7e45cd806",
-            "display-url-api:2.204.vf6fddd8a_8b_e9",
-            "matrix-project:839.vff91cd7e3a_b_2",
-            "workflow-basic-steps:1058.vcb_fc1e3a_21a_9",
-            "workflow-cps:4009.v0089238351a_9",
-            "workflow-durable-task-step:1378.v6a_3e903058a_3",
-            "workflow-job:1436.vfa_244484591f"
+            "display-url-api:2.204.vf6fddd8a_8b_e9"
     );
 
-    private static final TestHarness TEST_HARNESS = createTestHarness();
+    private static final List<String> REQUIRED_PLUGINS_WITH_MATRIX = Stream.concat(
+            REQUIRED_PLUGINS_WITHOUT_MATRIX.stream(),
+            Stream.of(
+                    "matrix-project:839.vff91cd7e3a_b_2",
+                    "workflow-basic-steps:1058.vcb_fc1e3a_21a_9",
+                    "workflow-cps:4009.v0089238351a_9",
+                    "workflow-durable-task-step:1378.v6a_3e903058a_3",
+                    "workflow-job:1436.vfa_244484591f"
+            )
+    ).toList();
+
+    private static final TestHarness TEST_HARNESS =
+            createTestHarness(WITH_MATRIX_PROFILE, REQUIRED_PLUGINS_WITH_MATRIX);
+    private static final TestHarness WITHOUT_MATRIX_TEST_HARNESS =
+            createTestHarness(WITHOUT_MATRIX_PROFILE, REQUIRED_PLUGINS_WITHOUT_MATRIX);
 
     @Container
     private static final GenericContainer<?> JENKINS = TEST_HARNESS.createContainer();
@@ -157,29 +170,120 @@ class JenkinsCompatibilitySmokeTest {
         runWithAllure(new SmokeCheck("compat-matrix", "SUCCESS", 2, 0, true));
     }
 
-    private void runWithAllure(final SmokeCheck check) throws Exception {
-        addAllureParameters(check);
+    @Test
+    @DisplayName("Allure publishes a report without matrix-project")
+    @Story("Optional matrix-project dependency")
+    @Description("Starts Jenkins without matrix-project, verifies Allure remains active, and publishes a freestyle report.")
+    void shouldGenerateFreestyleReportWithoutMatrixProject() throws Exception {
+        final TestHarness harness = WITHOUT_MATRIX_TEST_HARNESS;
+        final GenericContainer<?> jenkinsWithoutMatrix = harness.createContainer();
+        final Path pluginsFile = harness.generatedDir().resolve("plugins.txt");
+
+        Allure.parameter("matrix-project expected state", "absent");
+
         try {
-            runSmokeCheck(check);
+            Allure.step("Start Jenkins without matrix-project", jenkinsWithoutMatrix::start);
+
+            final String withoutMatrixBaseUrl = "http://" + jenkinsWithoutMatrix.getHost()
+                    + ":" + jenkinsWithoutMatrix.getMappedPort(8080) + "/";
+            final SmokeRuntime runtime = new SmokeRuntime(
+                    harness.profile(),
+                    withoutMatrixBaseUrl,
+                    harness.generatedDir(),
+                    harness.artifactRoot(),
+                    jenkinsWithoutMatrix
+            );
+            Allure.step("Wait for Jenkins without matrix-project to become ready",
+                    () -> waitForScriptConsole(withoutMatrixBaseUrl));
+
+            final String setupScript = buildWithoutMatrixSetupScript(allureCliVersion);
+            final Path setupScriptPath = writeTextFile(
+                    harness.generatedDir().resolve("setup.groovy"),
+                    setupScript
+            );
+            final JsonNode pluginState = Allure.step(
+                    "Verify matrix-project is absent and configure a freestyle job",
+                    () -> {
+                        Allure.addAttachment(
+                                "Explicit plugin list without matrix-project",
+                                "text/plain",
+                                Files.readString(pluginsFile, StandardCharsets.UTF_8),
+                                ".txt"
+                        );
+                        Allure.addAttachment(
+                                "Jenkins setup without matrix-project",
+                                "text/x-groovy",
+                                setupScript,
+                                ".groovy"
+                        );
+                        final JsonNode state = executeScriptForJson(withoutMatrixBaseUrl, setupScript);
+                        Allure.addAttachment(
+                                "Jenkins plugin state without matrix-project",
+                                "application/json",
+                                OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(state),
+                                ".json"
+                        );
+                        assertFalse(state.path("matrixProjectInstalled").asBoolean(true),
+                                "matrix-project must not be installed");
+                        assertTrue(state.path("allurePluginActive").asBoolean(false),
+                                "Allure plugin must be active without matrix-project");
+                        assertEquals("allure-jenkins-plugin", state.path("allurePluginShortName").asText());
+                        return state;
+                    }
+            );
+            Allure.parameter("matrix-project installed", pluginState.path("matrixProjectInstalled").asBoolean());
+            Allure.parameter("Allure plugin active", pluginState.path("allurePluginActive").asBoolean());
+            Allure.parameter("Groovy setup script", setupScriptPath.toString());
+
+            runWithAllure(
+                    new SmokeCheck("compat-without-matrix", "SUCCESS", 1, 0, false),
+                    runtime
+            );
+        } finally {
+            final String logs = jenkinsWithoutMatrix.isRunning()
+                    ? jenkinsWithoutMatrix.getLogs()
+                    : "Jenkins without matrix-project did not start.";
+            Allure.addAttachment("Jenkins controller log without matrix-project", "text/plain", logs, ".log");
+            writeTextFile(harness.artifactRoot().resolve("jenkins.log"), logs);
+            if (jenkinsWithoutMatrix.isRunning()) {
+                jenkinsWithoutMatrix.stop();
+            }
+        }
+    }
+
+    private void runWithAllure(final SmokeCheck check) throws Exception {
+        runWithAllure(check, new SmokeRuntime(
+                TEST_HARNESS.profile(),
+                baseUrl,
+                generatedDir,
+                config.artifactRoot(),
+                JENKINS
+        ));
+    }
+
+    private void runWithAllure(final SmokeCheck check, final SmokeRuntime runtime) throws Exception {
+        addAllureParameters(check, runtime);
+        try {
+            runSmokeCheck(check, runtime);
         } catch (Exception exception) {
-            attachJenkinsControllerLog();
+            attachJenkinsControllerLog(runtime);
             throw exception;
         } catch (AssertionError error) {
-            attachJenkinsControllerLog();
+            attachJenkinsControllerLog(runtime);
             throw error;
         }
     }
 
-    private void runSmokeCheck(final SmokeCheck check) throws Exception {
+    private void runSmokeCheck(final SmokeCheck check, final SmokeRuntime runtime) throws Exception {
         final String script = buildCheckScript(check);
         final Path scriptPath = writeTextFile(
-                generatedDir.resolve(sanitizeFileName(check.jobName()) + ".groovy"),
+                runtime.generatedDir().resolve(sanitizeFileName(check.jobName()) + ".groovy"),
                 script
         );
         Allure.parameter("Groovy check script", scriptPath.toString());
         final JsonNode node = Allure.step("Run " + check.jobName() + " and verify its Allure summary", () -> {
             Allure.addAttachment(check.jobName() + " Groovy check", "text/x-groovy", script, ".groovy");
-            final JsonNode response = executeScriptForJson(script);
+            final JsonNode response = executeScriptForJson(runtime.baseUrl(), script);
             Allure.addAttachment(
                     check.jobName() + " Jenkins smoke response",
                     "application/json",
@@ -191,12 +295,12 @@ class JenkinsCompatibilitySmokeTest {
 
         final String buildUrl = node.path("buildUrl").asText();
         final String actionUrlName = node.path("actionUrlName").asText();
-        final String absoluteBuildUrl = joinUrl(baseUrl, buildUrl);
-        final String reportUrl = joinUrl(baseUrl, buildUrl + actionUrlName + "/");
-        final String consoleUrl = joinUrl(baseUrl, buildUrl + "consoleText");
+        final String absoluteBuildUrl = joinUrl(runtime.baseUrl(), buildUrl);
+        final String reportUrl = joinUrl(runtime.baseUrl(), buildUrl + actionUrlName + "/");
+        final String consoleUrl = joinUrl(runtime.baseUrl(), buildUrl + "consoleText");
         Allure.link(check.jobName() + " Jenkins build", absoluteBuildUrl);
         Allure.link(check.jobName() + " Allure report", reportUrl);
-        addChildReportLinks(check, node);
+        addChildReportLinks(check, node, runtime.baseUrl());
 
         final HttpTextResponse reportPage = Allure.step(
                 "Verify the published Allure report for " + check.jobName(),
@@ -219,16 +323,17 @@ class JenkinsCompatibilitySmokeTest {
                 }
         );
         final String baseFileName = sanitizeFileName(check.jobName());
-        writeTextFile(config.artifactRoot().resolve(baseFileName + "-report.html"), reportPage.body());
-        writeTextFile(config.artifactRoot().resolve(baseFileName + "-console.log"), consoleText.body());
+        writeTextFile(runtime.artifactRoot().resolve(baseFileName + "-report.html"), reportPage.body());
+        writeTextFile(runtime.artifactRoot().resolve(baseFileName + "-console.log"), consoleText.body());
     }
 
-    private void addAllureParameters(final SmokeCheck check) {
+    private void addAllureParameters(final SmokeCheck check, final SmokeRuntime runtime) {
         Allure.parameter("Jenkins requested version", config.requestedVersion());
         Allure.parameter("Jenkins Docker tag", config.normalizedImageTag());
-        Allure.parameter("Jenkins base URL", baseUrl);
+        Allure.parameter("Jenkins base URL", runtime.baseUrl());
         Allure.parameter("Plugin artifact", pluginArtifact.toString());
         Allure.parameter("Allure CLI version", allureCliVersion);
+        Allure.parameter("Compatibility profile", runtime.profile());
         Allure.parameter("Smoke job", check.jobName());
         Allure.parameter("Expected build result", check.expectedResult());
         Allure.parameter("Expected passed tests", check.expectedPassed());
@@ -250,28 +355,37 @@ class JenkinsCompatibilitySmokeTest {
         Allure.parameter("Unknown tests", node.path("summary").path("unknown").asInt());
     }
 
-    private void addChildReportLinks(final SmokeCheck check, final JsonNode node) {
+    private void addChildReportLinks(final SmokeCheck check, final JsonNode node, final String runtimeBaseUrl) {
         for (JsonNode child : node.path("children")) {
             final String childReportUrl = joinUrl(
-                    baseUrl,
+                    runtimeBaseUrl,
                     child.path("url").asText() + child.path("actionUrlName").asText() + "/"
             );
             Allure.link(check.jobName() + " child " + child.path("url").asText(), childReportUrl);
         }
     }
 
-    private void attachJenkinsControllerLog() {
-        if (JENKINS.isRunning()) {
-            Allure.addAttachment("Jenkins controller log", "text/plain", JENKINS.getLogs(), ".log");
+    private void attachJenkinsControllerLog(final SmokeRuntime runtime) {
+        if (runtime.container().isRunning()) {
+            Allure.addAttachment(
+                    "Jenkins controller log (" + runtime.profile() + ")",
+                    "text/plain",
+                    runtime.container().getLogs(),
+                    ".log"
+            );
         }
     }
 
     private void waitForScriptConsole() throws Exception {
+        waitForScriptConsole(baseUrl);
+    }
+
+    private void waitForScriptConsole(final String runtimeBaseUrl) throws Exception {
         final Instant deadline = Instant.now().plus(READY_TIMEOUT);
         Exception lastFailure = null;
         while (Instant.now().isBefore(deadline)) {
             try {
-                final String response = executeScript("println('ready')");
+                final String response = executeScript(runtimeBaseUrl, "println('ready')", HTTP_TIMEOUT);
                 if ("ready".equals(response.trim())) {
                     return;
                 }
@@ -291,8 +405,8 @@ class JenkinsCompatibilitySmokeTest {
         }
     }
 
-    private JsonNode executeScriptForJson(final String script) throws Exception {
-        final String response = executeScript(script, SMOKE_CHECK_TIMEOUT).trim();
+    private JsonNode executeScriptForJson(final String runtimeBaseUrl, final String script) throws Exception {
+        final String response = executeScript(runtimeBaseUrl, script, SMOKE_CHECK_TIMEOUT).trim();
         try {
             return OBJECT_MAPPER.readTree(response);
         } catch (IOException exception) {
@@ -302,12 +416,14 @@ class JenkinsCompatibilitySmokeTest {
     }
 
     private String executeScript(final String script) throws Exception {
-        return executeScript(script, HTTP_TIMEOUT);
+        return executeScript(baseUrl, script, HTTP_TIMEOUT);
     }
 
-    private String executeScript(final String script, final Duration timeout) throws Exception {
+    private String executeScript(final String runtimeBaseUrl,
+                                 final String script,
+                                 final Duration timeout) throws Exception {
         final String payload = "script=" + URLEncoder.encode(script, StandardCharsets.UTF_8);
-        final HttpRequest request = HttpRequest.newBuilder(URI.create(joinUrl(baseUrl, "scriptText")))
+        final HttpRequest request = HttpRequest.newBuilder(URI.create(joinUrl(runtimeBaseUrl, "scriptText")))
                 .timeout(timeout)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
@@ -332,32 +448,47 @@ class JenkinsCompatibilitySmokeTest {
         return new HttpTextResponse(response.statusCode(), response.body());
     }
 
-    private static TestHarness createTestHarness() {
+    private static TestHarness createTestHarness(final String profile, final List<String> requiredPlugins) {
         try {
             final Configuration config = Configuration.fromSystemProperties();
             Files.createDirectories(config.artifactRoot());
-            final Path generatedDir = Files.createDirectories(config.artifactRoot().resolve("generated"));
+            final Path artifactRoot = WITH_MATRIX_PROFILE.equals(profile)
+                    ? config.artifactRoot()
+                    : Files.createDirectories(config.artifactRoot().resolve(profile));
+            final Path generatedDir = Files.createDirectories(artifactRoot.resolve("generated"));
             final Path pluginArtifact = locatePluginArtifact(config.rootDir());
             final Path passedSample = config.rootDir().resolve(PASSED_SAMPLE_RESOURCE);
             assertFileExists(passedSample, "sample passed results");
             final String allureCliVersion = resolveAllureCliVersion(config.rootDir());
-            final Path pluginsTxt = writeTextFile(generatedDir.resolve("plugins.txt"), buildPluginsFile());
+            final Path pluginsTxt = writeTextFile(
+                    generatedDir.resolve("plugins.txt"),
+                    buildPluginsFile(requiredPlugins)
+            );
             final Path initGroovy = writeTextFile(generatedDir.resolve(JENKINS_INIT_FILE), buildInitScript());
             final ImageFromDockerfile image =
-                    createImage(config, pluginArtifact, passedSample, pluginsTxt, initGroovy);
+                    createImage(profile, config, pluginArtifact, passedSample, pluginsTxt, initGroovy);
 
-            return new TestHarness(config, generatedDir, pluginArtifact, allureCliVersion, image);
+            return new TestHarness(
+                    profile,
+                    config,
+                    artifactRoot,
+                    generatedDir,
+                    pluginArtifact,
+                    allureCliVersion,
+                    image
+            );
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to initialize Jenkins compatibility test harness", exception);
         }
     }
 
-    private static ImageFromDockerfile createImage(final Configuration config,
+    private static ImageFromDockerfile createImage(final String profile,
+                                                   final Configuration config,
                                                    final Path pluginArtifact,
                                                    final Path passedSample,
                                                    final Path pluginsTxt,
                                                    final Path initGroovy) {
-        final String imageName = "allure-jenkins-compat-"
+        final String imageName = "allure-jenkins-compat-" + profile + "-"
                 + Integer.toHexString(config.normalizedImageTag().hashCode()).toLowerCase(Locale.ROOT);
 
         return new ImageFromDockerfile(imageName, false)
@@ -416,8 +547,9 @@ class JenkinsCompatibilitySmokeTest {
         throw new IllegalStateException("Unable to resolve allureCommandline.version from root pom.xml");
     }
 
-    private static String buildPluginsFile() {
-        return REQUIRED_PLUGINS.stream().collect(Collectors.joining(System.lineSeparator())) + System.lineSeparator();
+    private static String buildPluginsFile(final List<String> requiredPlugins) {
+        return requiredPlugins.stream().collect(Collectors.joining(System.lineSeparator()))
+                + System.lineSeparator();
     }
 
     private static String buildInitScript() {
@@ -541,6 +673,73 @@ class JenkinsCompatibilitySmokeTest {
                 passedSampleLiteral,
                 passedSampleLiteral
         );
+    }
+
+    private String buildWithoutMatrixSetupScript(final String allureCliVersion) {
+        final String allureVersionLiteral = groovyStringLiteral(allureCliVersion);
+        final String passedSampleLiteral = groovyStringLiteral(SMOKE_DATA_DIR + "/sample-testsuite.xml");
+
+        return """
+                import groovy.json.JsonOutput
+                import hudson.model.FreeStyleProject
+                import hudson.tasks.Shell
+                import hudson.tools.InstallSourceProperty
+                import jenkins.model.Jenkins
+                import org.allurereport.jenkins.AllureReportPublisher
+                import org.allurereport.jenkins.config.ResultsConfig
+                import org.allurereport.jenkins.tools.AllureCommandlineDirectInstaller
+                import org.allurereport.jenkins.tools.AllureCommandlineInstallation
+
+                def jenkins = Jenkins.get()
+                def pluginManager = jenkins.pluginManager
+                def matrixPlugin = pluginManager.getPlugin('matrix-project')
+                if (matrixPlugin != null) {
+                    throw new IllegalStateException('matrix-project must not be installed')
+                }
+
+                def allurePlugin = pluginManager.getPlugin('allure-jenkins-plugin')
+                if (allurePlugin == null || !allurePlugin.isActive()) {
+                    throw new IllegalStateException('Allure plugin must be active without matrix-project')
+                }
+
+                def allureVersion = %s
+                def passedSample = %s
+                def toolDescriptor = jenkins.getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class)
+                if (toolDescriptor.installations.length == 0) {
+                    def installer = new AllureCommandlineDirectInstaller(allureVersion)
+                    def installation = new AllureCommandlineInstallation(
+                        "Allure " + allureVersion,
+                        "",
+                        [new InstallSourceProperty([installer])]
+                    )
+                    toolDescriptor.setInstallations(installation)
+                    toolDescriptor.save()
+                }
+
+                def job = jenkins.getItem('compat-without-matrix')
+                if (!(job instanceof FreeStyleProject)) {
+                    if (job != null) {
+                        job.delete()
+                    }
+                    job = jenkins.createProject(FreeStyleProject, 'compat-without-matrix')
+                }
+                job.buildersList.clear()
+                job.publishersList.clear()
+                job.buildersList.add(new Shell(\"\"\"#!/bin/bash -e
+                mkdir -p allure-results
+                cp ${passedSample} allure-results/sample-testsuite.xml
+                \"\"\".stripIndent()))
+                job.publishersList.add(new AllureReportPublisher(ResultsConfig.convertPaths(['allure-results'])))
+                job.save()
+                jenkins.save()
+
+                println(JsonOutput.toJson([
+                    matrixProjectInstalled: matrixPlugin != null,
+                    allurePluginActive: allurePlugin.isActive(),
+                    allurePluginShortName: allurePlugin.getShortName(),
+                    installedPluginShortNames: pluginManager.plugins.collect { it.shortName }.sort()
+                ]))
+                """.formatted(allureVersionLiteral, passedSampleLiteral);
     }
 
     private String buildCheckScript(final SmokeCheck check) {
@@ -835,7 +1034,16 @@ class JenkinsCompatibilitySmokeTest {
                               boolean matrix) {
     }
 
-    private record TestHarness(Configuration config,
+    private record SmokeRuntime(String profile,
+                                String baseUrl,
+                                Path generatedDir,
+                                Path artifactRoot,
+                                GenericContainer<?> container) {
+    }
+
+    private record TestHarness(String profile,
+                               Configuration config,
+                               Path artifactRoot,
                                Path generatedDir,
                                Path pluginArtifact,
                                String allureCliVersion,
