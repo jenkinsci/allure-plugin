@@ -20,7 +20,7 @@ jobs:
       ALLURE_DUMP_NAME: allure-results-build
       ALLURE_ENVIRONMENT: ubuntu-jdk-11
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - uses: actions/setup-java@v5
