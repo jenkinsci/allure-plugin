@@ -51,6 +51,7 @@
   </issueManagement>
 
   <properties>
+    <allure.version>2.35.3</allure.version>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
     <spotless.skip>false</spotless.skip>
     <spotless.check.skip>false</spotless.check.skip>
@@ -67,6 +68,13 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.qameta.allure</groupId>
+        <artifactId>allure-bom</artifactId>
+        <version>${allure.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
@@ -153,6 +161,11 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.qameta.allure</groupId>
+      <artifactId>allure-junit-platform</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
