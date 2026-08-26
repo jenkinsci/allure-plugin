@@ -66,6 +66,7 @@ jobs:
         package-manager-cache: false
     - name: Download Allure dumps
       uses: actions/download-artifact@v4
+      continue-on-error: true
       with:
         pattern: allure-results-*
         path: ./
@@ -73,6 +74,7 @@ jobs:
     - name: Generate Allure report
       run: >-
         npx --yes allure@3 generate
+        --config ./allurerc.mjs
         --dump="allure-results-*.zip"
         --output=./build/allure-report
     - name: Upload Allure report

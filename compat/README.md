@@ -30,7 +30,7 @@ You need Docker available locally. Build the plugin first so the runner can pick
 
 By default, a bare Jenkins version such as `2.462.1` is normalized to the Docker image tag `2.462.1-lts-jdk17`. If you want to test an exact Docker tag, pass that tag directly via `-Dcompat.version=...`.
 
-The main local test output lives in `compat-artifacts/<version>/allure-results`. To reproduce the CI artifact locally, run the suite through the pinned Allure 3 CLI (Node.js and npm are required):
+The main local test output lives in `compat-artifacts/<version>/allure-results`. To reproduce the CI artifact locally, run the suite through the latest Allure 3 CLI from npm (Node.js and npm are required):
 
 ```bash
 export COMPAT_ARTIFACT_ROOT="$(pwd)/compat-artifacts/2.462.1"
@@ -49,5 +49,6 @@ This creates `allure-dumps/compat-2.462.1.zip`. Generate a report from a downloa
 
 ```bash
 npx --yes allure@3 generate \
+  --config ./allurerc.mjs \
   --dump=allure-dumps/compat-2.462.1.zip
 ```

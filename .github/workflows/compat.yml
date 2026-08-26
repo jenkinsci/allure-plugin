@@ -103,7 +103,7 @@ jobs:
             echo "- Allure 3 dump: \`${DUMP_PATH}\` (${DUMP_SIZE})" >> "$GITHUB_STEP_SUMMARY"
             echo "- Workflow artifact: \`compat-${JENKINS_VERSION}-allure3-dump\`" >> "$GITHUB_STEP_SUMMARY"
             echo "- Global evidence: Jenkins controller log, shared Jenkins setup inputs, and Maven process logs" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Generate a report: \`npx --yes allure@3 generate --dump=${DUMP_PATH}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Generate a report: \`npx --yes allure@3 generate --config ./allurerc.mjs --dump=${DUMP_PATH}\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- Compatibility smoke did not produce an Allure 3 dump." >> "$GITHUB_STEP_SUMMARY"
           fi
