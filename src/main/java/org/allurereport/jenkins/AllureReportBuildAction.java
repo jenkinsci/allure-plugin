@@ -34,6 +34,7 @@ import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
 import org.allurereport.jenkins.utils.ChartUtils;
 import org.allurereport.jenkins.utils.FilePathUtils;
+import org.allurereport.jenkins.utils.ReportContentSecurityPolicy;
 import org.jfree.chart.JFreeChart;
 import org.jfree.data.category.CategoryDataset;
 import org.kohsuke.stapler.HttpResponse;
@@ -81,7 +82,6 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String INDEX_HTML = "index.html";
     private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final String SLASH = "/";
-    private static final String PATH_TRAVERSAL = "..";
     private static final String ILLEGAL_PATH = "Illegal path";
 
     private Run<?, ?> run;
@@ -335,8 +335,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         response.sendError(HttpServletResponse.SC_NOT_FOUND, "Allure index.html not found");
     }
 
-    private static String decodeAndValidatePath(final String path,
-                                                final StaplerResponse response) throws IOException {
+    private static String decodePath(final String path,
+                                     final StaplerResponse response) throws IOException {
         final String decodedPath;
         try {
             decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
@@ -345,13 +345,52 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
             return null;
         }
 
-        if (decodedPath.contains(PATH_TRAVERSAL)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
-            return null;
-        }
         return decodedPath;
     }
 
+    private static String toRelativeRestOfPath(final String path,
+                                               final StaplerResponse response) throws IOException {
+        String rest = path == null ? "" : path;
+        rest = decodePath(rest, response);
+        if (rest == null) {
+            return null;
+        }
+        if (rest.isEmpty() || SLASH.equals(rest)) {
+            return "";
+        }
+        if (rest.startsWith(SLASH)) {
+            rest = rest.substring(1);
+        }
+        if (rest.startsWith(SLASH) || !FilePathUtils.isSafeRelativePath(rest)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+            return null;
+        }
+        return rest.replace('\\', '/');
+    }
+
+    private static String normalizeArchiveEntryPath(final String path,
+                                                    final StaplerResponse response) throws IOException {
+        return toRelativeRestOfPath(path, response);
+    }
+
+    private static void setReportFileHeaders(final StaplerResponse response,
+                                             final String relativePath) {
+        response.setHeader(HEADER_CONTENT_SECURITY_POLICY, ReportContentSecurityPolicy.forPath(relativePath));
+        response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
+    }
+
+    /**
+     * Serves directory-backed reports.
+     *
+     * <p>This intentionally mirrors the path hardening used by
+     * {@link hudson.model.DirectoryBrowserSupport}: requests are decoded to a
+     * relative path, parent-directory segments and absolute paths are rejected,
+     * and symlink or {@code @tmp} entries are hidden. We keep a custom browser
+     * instead of delegating to {@code DirectoryBrowserSupport} because Allure
+     * reports need plugin-specific headers, including the relaxed CSP required
+     * by embedded report assets such as Playwright traces, and the same route
+     * must stay consistent with the archive-backed report browser.
+     */
     private static final class DirectoryReportBrowser implements HttpResponse {
 
         private final FilePath baseDirectory;
@@ -365,7 +404,6 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                                      final StaplerResponse response,
                                      final Object node) throws IOException, ServletException {
 
-            response.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
             response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
 
             final String rest = normalizeRestOfPath(request, response);
@@ -373,7 +411,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                 return;
             }
 
-            final FilePath fileToServe = resolveFileToServe(request, response, rest);
+            final ServedReportFile fileToServe = resolveFileToServe(request, response, rest);
             if (fileToServe == null) {
                 return;
             }
@@ -383,57 +421,65 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         private String normalizeRestOfPath(final StaplerRequest request,
                                            final StaplerResponse response) throws IOException {
-            String rest = request.getRestOfPath();
-            if (rest == null) {
-                rest = "";
-            }
-            rest = decodeAndValidatePath(rest, response);
+            String rest = toRelativeRestOfPath(request.getRestOfPath(), response);
             if (rest == null) {
                 return null;
             }
             if (rest.isEmpty() || SLASH.equals(rest)) {
                 rest = INDEX_HTML;
-            } else if (rest.startsWith(SLASH)) {
-                rest = rest.substring(1);
             }
             return rest;
         }
 
-        private FilePath resolveFileToServe(final StaplerRequest request,
-                                            final StaplerResponse response,
-                                            final String rest) throws IOException {
-            FilePath fileToServe = baseDirectory.child(rest);
+        private ServedReportFile resolveFileToServe(final StaplerRequest request,
+                                                    final StaplerResponse response,
+                                                    final String rest) throws IOException {
             try {
-                fileToServe = redirectOrIndexIfDirectory(request, response, fileToServe);
-                if (fileToServe == null) {
+                if (!FilePathUtils.isSafeRelativePath(rest)) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
                     return null;
                 }
-                if (!fileToServe.exists()) {
+
+                final FilePath fileToServe = baseDirectory.child(rest);
+                if (FilePathUtils.isBlockedReportPath(baseDirectory, fileToServe, rest)) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return null;
+                }
+                if (!FilePathUtils.isPathInsideDirectory(baseDirectory, rest)) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
+                    return null;
+                }
+                final ServedReportFile servedFile = redirectOrIndexIfDirectory(request, response, rest, fileToServe);
+                if (servedFile == null) {
+                    return null;
+                }
+                if (!servedFile.file.exists()) {
                     return redirectOr404(request, response);
                 }
-                return fileToServe;
+                return servedFile;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while checking report file existence", interrupted);
             }
         }
 
-        private FilePath redirectOrIndexIfDirectory(final StaplerRequest request,
-                                                    final StaplerResponse response,
-                                                    final FilePath fileToServe)
+        private ServedReportFile redirectOrIndexIfDirectory(final StaplerRequest request,
+                                                            final StaplerResponse response,
+                                                            final String rest,
+                                                            final FilePath fileToServe)
                 throws IOException, InterruptedException {
             if (!fileToServe.exists() || !fileToServe.isDirectory()) {
-                return fileToServe;
+                return new ServedReportFile(fileToServe, rest);
             }
             if (!request.getRequestURI().endsWith(SLASH)) {
                 response.sendRedirect2(request.getRequestURI() + SLASH);
                 return null;
             }
-            return fileToServe.child(INDEX_HTML);
+            return new ServedReportFile(fileToServe.child(INDEX_HTML), childPath(rest, INDEX_HTML));
         }
 
-        private FilePath redirectOr404(final StaplerRequest request,
-                                       final StaplerResponse response) throws IOException {
+        private ServedReportFile redirectOr404(final StaplerRequest request,
+                                               final StaplerResponse response) throws IOException {
             if (!request.getRequestURI().endsWith(SLASH)) {
                 response.sendRedirect2(request.getRequestURI() + SLASH);
                 return null;
@@ -444,12 +490,34 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         private void serveFile(final StaplerRequest request,
                                final StaplerResponse response,
-                               final FilePath fileToServe) throws IOException, ServletException {
-            try (InputStream inputStream = fileToServe.read()) {
-                response.serveFile(request, inputStream, -1L, -1L, -1L, fileToServe.getName());
+                               final ServedReportFile servedFile) throws IOException, ServletException {
+            final InputStream inputStream;
+            try {
+                inputStream = servedFile.file.read(baseDirectory, FilePathUtils.getReportOpenOptions());
+            } catch (IOException missingOrBlocked) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while reading report file", interrupted);
+            }
+            try (InputStream in = inputStream) {
+                setReportFileHeaders(response, servedFile.relativePath);
+                response.serveFile(request, in, -1L, -1L, -1L, servedFile.file.getName());
+            }
+        }
+
+        private String childPath(final String parent, final String child) {
+            return parent.endsWith(SLASH) ? parent + child : parent + SLASH + child;
+        }
+
+        private static final class ServedReportFile {
+            private final FilePath file;
+            private final String relativePath;
+
+            ServedReportFile(final FilePath file, final String relativePath) {
+                this.file = file;
+                this.relativePath = relativePath;
             }
         }
     }
@@ -487,7 +555,6 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                     return;
                 }
 
-                rsp.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
                 rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
                 rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
                 rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
@@ -518,18 +585,15 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         private String normalizeRestOfPath(final StaplerRequest req,
                                            final StaplerResponse rsp) throws IOException {
-            String rest = req.getRestOfPath();
-            if (rest == null) {
-                rest = "";
-            }
-            rest = decodeAndValidatePath(rest, rsp);
+            final String rest = normalizeArchiveEntryPath(req.getRestOfPath(), rsp);
             if (rest == null) {
                 return null;
             }
-            if (!rest.isEmpty() && !rest.startsWith(SLASH)) {
-                rest = SLASH + rest;
+            if (FilePathUtils.isBlockedTmpDirPath(rest)) {
+                rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return null;
             }
-            return rest;
+            return rest.isEmpty() ? "" : SLASH + rest;
         }
 
         private boolean tryServeEntry(final StaplerRequest req,
@@ -539,6 +603,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                 throws IOException, InterruptedException, ServletException {
             final String entryPath = reportPath + path;
             try (InputStream is = sourceToRead.openEntry(entryPath)) {
+                setReportFileHeaders(rsp, path);
                 rsp.serveFile(req, is, -1L, -1L, -1L, fileName(path));
                 return true;
             } catch (NoSuchElementException ignored) {
