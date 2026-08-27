@@ -12,6 +12,7 @@
     <properties>
         <allure.junit5.version>2.29.1</allure.junit5.version>
         <compat.rootDir>${project.basedir}/../..</compat.rootDir>
+        <compat.s3.enabled>false</compat.s3.enabled>
         <compat.version>2.462.1</compat.version>
         <compat.artifactRoot>${compat.rootDir}/compat-artifacts/${compat.version}</compat.artifactRoot>
         <jackson.version>2.18.2</jackson.version>
@@ -85,6 +86,7 @@
                         <allure.results.directory>${compat.artifactRoot}/allure-results</allure.results.directory>
                         <compat.artifactRoot>${compat.artifactRoot}</compat.artifactRoot>
                         <compat.rootDir>${compat.rootDir}</compat.rootDir>
+                        <compat.s3.enabled>${compat.s3.enabled}</compat.s3.enabled>
                         <compat.version>${compat.version}</compat.version>
                     </systemPropertyVariables>
                 </configuration>
@@ -98,4 +100,14 @@
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
     </repositories>
+
+    <profiles>
+        <profile>
+            <id>s3-compat</id>
+            <properties>
+                <compat.s3.enabled>true</compat.s3.enabled>
+                <compat.version>2.528.3</compat.version>
+            </properties>
+        </profile>
+    </profiles>
 </project>

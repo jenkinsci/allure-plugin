@@ -22,21 +22,30 @@ import jenkins.util.VirtualFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link AllureReportArchiveSource} implementation that reads from an artifact stored via
  * Jenkins {@link ArtifactManager} / {@link VirtualFile}.
  *
  * <p>This implementation does <em>not</em> require the archive to be present as a local
- * file on the master node Ã¢ it delegates all I/O to the {@link VirtualFile} API, which
+ * file on the Jenkins controller—it delegates all I/O to the {@link VirtualFile} API, which
  * may transparently read from S3, Azure Blob Storage, or any other pluggable back-end.
  *
  * <p>Because {@link VirtualFile} streams are opened on demand and closed by the caller,
  * this class itself holds no persistent resources and {@link #close()} is a no-op.
  */
 public final class ArtifactManagerArchiveSource implements AllureReportArchiveSource {
+
+    private static final Logger LOGGER = Logger.getLogger(ArtifactManagerArchiveSource.class.getName());
+    private static final int MAX_WARNED_FALLBACKS = 256;
+    private static final Map<String, Boolean> WARNED_FALLBACKS =
+            new LinkedHashMap<>(MAX_WARNED_FALLBACKS, 0.75F, true);
 
     private final Run<?, ?> run;
 
@@ -74,7 +83,12 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
             throw new NoSuchElementException("allure-report.zip not found in artifact store for run: "
                     + run.getFullDisplayName());
         }
-        return ZipEntryInputStream.open(zipBlob.open(), entryPath);
+        try {
+            return RemoteZipArchive.openEntry(zipBlob, run.getExternalizableId(), entryPath);
+        } catch (RemoteZipAccessException exception) {
+            warnAboutSequentialFallback(exception);
+            return ZipEntryInputStream.open(zipBlob.open(), entryPath);
+        }
     }
 
     @Override
@@ -95,7 +109,12 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
         if (!zipBlob.exists()) {
             return new ArrayList<>();
         }
-        return ZipEntryInputStream.listEntries(zipBlob.open(), prefix);
+        try {
+            return RemoteZipArchive.listEntries(zipBlob, run.getExternalizableId(), prefix);
+        } catch (RemoteZipAccessException exception) {
+            warnAboutSequentialFallback(exception);
+            return ZipEntryInputStream.listEntries(zipBlob.open(), prefix);
+        }
     }
 
     @Override
@@ -105,13 +124,53 @@ public final class ArtifactManagerArchiveSource implements AllureReportArchiveSo
 
     private VirtualFile getArtifactRoot() {
         if (artifactRoot == null) {
-            final ArtifactManager manager = run.getArtifactManager();
-            if (manager == null) {
-                return null;
-            }
-            artifactRoot = manager.root();
+            artifactRoot = run.getArtifactManager().root();
         }
         return artifactRoot;
+    }
+
+    private void warnAboutSequentialFallback(final RemoteZipAccessException exception) {
+        final String reason = safeFailureReason(exception);
+        final String warningKey = run.getRootDir().getAbsolutePath()
+                + '\n' + run.getStartTimeInMillis() + '\n' + reason;
+        if (!markFallbackWarning(warningKey)) {
+            return;
+        }
+
+        LOGGER.log(Level.WARNING, "[Allure] Cannot use HTTP byte ranges for allure-report.zip of build "
+                + run.getExternalizableId() + ": " + reason
+                + ". Falling back to sequential ZIP streaming. Each report asset request may read the archive "
+                + "from the beginning, so the report can load slowly. Verify that the artifact storage and any "
+                + "reverse proxy return HTTP 206 and a valid Content-Range header for Range requests. This warning "
+                + "is logged once per build and failure reason.");
+    }
+
+    private static boolean markFallbackWarning(final String warningKey) {
+        synchronized (WARNED_FALLBACKS) {
+            if (WARNED_FALLBACKS.get(warningKey) != null) {
+                return false;
+            }
+            WARNED_FALLBACKS.put(warningKey, Boolean.TRUE);
+            if (WARNED_FALLBACKS.size() > MAX_WARNED_FALLBACKS) {
+                final String oldestKey = WARNED_FALLBACKS.keySet().iterator().next();
+                WARNED_FALLBACKS.remove(oldestKey);
+            }
+            return true;
+        }
+    }
+
+    private static String safeFailureReason(final RemoteZipAccessException exception) {
+        String reason = null;
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof RemoteZipAccessException
+                    && cause.getMessage() != null
+                    && !cause.getMessage().isBlank()) {
+                reason = cause.getMessage();
+            }
+            cause = cause.getCause();
+        }
+        return reason == null || reason.isBlank() ? "unknown byte-range access error" : reason;
     }
 
     private static void collectEntries(final VirtualFile dir,

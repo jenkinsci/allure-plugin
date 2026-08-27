@@ -91,11 +91,15 @@
       <artifactId>commons-lang3-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+    </dependency>
+    <dependency>
       <groupId>de.schlichtherle.truezip</groupId>
       <artifactId>truezip-driver-zip</artifactId>
       <version>${truezip.version}</version>
       <exclusions>
-        <!-- Provided by Jenkins core -->
+        <!-- Supplied directly so the remote ZIP reader can use it from the plugin class loader. -->
         <exclusion>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-compress</artifactId>
