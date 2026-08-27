@@ -68,11 +68,8 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     private static final String ALLURE_REPORT = "allure-report";
     private static final String CACHE_CONTROL = "Cache-Control";
-    private static final String CACHE_CONTROL_NO_CACHE = "no-cache, no-store, must-revalidate";
-    private static final String CACHE_CONTROL_POST_CHECK = "post-check=0, pre-check=0";
-    private static final String HEADER_PRAGMA = "Pragma";
-    private static final String HEADER_PRAGMA_NO_CACHE = "no-cache";
-    private static final String HEADER_EXPIRES = "Expires";
+    private static final String CACHE_CONTROL_IMMUTABLE = "private, max-age=31536000, immutable";
+    private static final String CACHE_CONTROL_REVALIDATE = "private, no-cache";
     private static final String HASH_404 = "#404";
     private static final String WAS_ATTACHED_TO_BOTH = "%s was attached to both %s and %s";
     private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
@@ -282,7 +279,13 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
         final AllureReportArchiveSource archiveSource = AllureReportArchiveSourceFactory.forRun(run);
         if (archiveSource.exists()) {
-            return new ArchiveReportBrowser(archiveSource, reportDirName, reportDirectoryUnderBuild.getRemote());
+            final boolean buildScopedUrl = request.findAncestorObject(Run.class) != null;
+            return new ArchiveReportBrowser(
+                    archiveSource,
+                    reportDirName,
+                    reportDirectoryUnderBuild.getRemote(),
+                    buildScopedUrl
+            );
         }
         archiveSource.close();
 
@@ -531,13 +534,16 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
         private final AllureReportArchiveSource source;
         private final String reportPath;
         private final String reportDirectoryPath;
+        private final boolean buildScopedUrl;
 
         ArchiveReportBrowser(final AllureReportArchiveSource source,
                              final String reportPath,
-                             final String reportDirectoryPath) {
+                             final String reportDirectoryPath,
+                             final boolean buildScopedUrl) {
             this.source = source;
             this.reportPath = reportPath;
             this.reportDirectoryPath = reportDirectoryPath;
+            this.buildScopedUrl = buildScopedUrl;
         }
 
         @Override
@@ -556,10 +562,10 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
                 }
 
                 rsp.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
-                rsp.setHeader(CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-                rsp.addHeader(CACHE_CONTROL, CACHE_CONTROL_POST_CHECK);
-                rsp.setHeader(HEADER_PRAGMA, HEADER_PRAGMA_NO_CACHE);
-                rsp.setDateHeader(HEADER_EXPIRES, 0);
+                rsp.setHeader(
+                        CACHE_CONTROL,
+                        buildScopedUrl ? CACHE_CONTROL_IMMUTABLE : CACHE_CONTROL_REVALIDATE
+                );
 
                 final String rest = normalizeRestOfPath(req, rsp);
                 if (rest == null) {

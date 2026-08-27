@@ -1,0 +1,24 @@
+{
+  "uuid": "s3-latency-result",
+  "historyId": "s3-latency-result",
+  "testCaseId": "s3-latency-result",
+  "fullName": "compatibility.s3.remote archive latency",
+  "labels": [
+    {
+      "name": "suite",
+      "value": "S3 compatibility"
+    }
+  ],
+  "name": "remote archive latency fixture",
+  "status": "passed",
+  "stage": "finished",
+  "start": 1704067200000,
+  "stop": 1704067201000,
+  "attachments": [
+    {
+      "name": "large incompressible payload",
+      "source": "large-attachment.bin",
+      "type": "application/octet-stream"
+    }
+  ]
+}

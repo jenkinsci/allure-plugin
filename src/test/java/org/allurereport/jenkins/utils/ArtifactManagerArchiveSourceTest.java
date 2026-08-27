@@ -24,6 +24,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +49,8 @@ public class ArtifactManagerArchiveSourceTest {
     private static final String ZIP_HISTORY = "{\"zip\":true}";
     private static final String EMPTY_OBJECT = "{}";
     private static final String EMPTY_ARRAY = "[]";
+    private static final String LARGE_ENTRY = "allure-report/data/large-prefix.bin";
+    private static final int LARGE_ENTRY_SIZE = 2 * 1024 * 1024;
 
     @Rule
     public JenkinsRule jRule = new JenkinsRule();
@@ -75,6 +78,76 @@ public class ArtifactManagerArchiveSourceTest {
              InputStream inputStream = source.openEntry(HISTORY_ENTRY)) {
             assertThat(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8))
                     .isEqualTo(ZIP_HISTORY);
+        }
+    }
+
+    @Test
+    public void openEntryUsesByteRangesInsteadOfScanningLargeArchivePrefix() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+        final byte[] archive = largeRemoteArchive();
+
+        try (RangeAwareArtifactManager manager = new RangeAwareArtifactManager(archive, true)) {
+            manager.install(build);
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build);
+                 InputStream inputStream = source.openEntry(HISTORY_ENTRY)) {
+                assertThat(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8))
+                        .isEqualTo(ZIP_HISTORY);
+            }
+
+            assertThat(manager.getFullStreamBytesRead())
+                    .as("bytes consumed from the remote full-object stream")
+                    .isZero();
+            assertThat(manager.getRangeBytesServed())
+                    .as("bytes transferred through HTTP ranges")
+                    .isLessThan(manager.getArchiveSize() / 4L);
+        }
+    }
+
+    @Test
+    public void listEntriesReusesRangeBackedIndexAcrossSourceInstances() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        try (RangeAwareArtifactManager manager = new RangeAwareArtifactManager(largeRemoteArchive(), true)) {
+            manager.install(build);
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build)) {
+                assertThat(source.listEntries(HISTORY_PREFIX)).containsExactly(HISTORY_ENTRY);
+            }
+            final int requestsAfterFirstList = manager.getRangeRequests();
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build)) {
+                assertThat(source.listEntries(HISTORY_PREFIX)).containsExactly(HISTORY_ENTRY);
+            }
+
+            assertThat(requestsAfterFirstList).isPositive();
+            assertThat(manager.getRangeRequests())
+                    .as("range requests after reusing the cached central directory")
+                    .isEqualTo(requestsAfterFirstList);
+            assertThat(manager.getFullStreamBytesRead()).isZero();
+            assertThat(manager.getRangeBytesServed()).isLessThan(manager.getArchiveSize() / 4L);
+        }
+    }
+
+    @Test
+    public void openEntryFallsBackWhenArtifactStorageDoesNotSupportRanges() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        try (RangeAwareArtifactManager manager = new RangeAwareArtifactManager(largeRemoteArchive(), false)) {
+            manager.install(build);
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build);
+                 InputStream inputStream = source.openEntry(HISTORY_ENTRY)) {
+                assertThat(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8))
+                        .isEqualTo(ZIP_HISTORY);
+            }
+
+            assertThat(manager.getRangeRequests()).isPositive();
+            assertThat(manager.getFullStreamBytesRead()).isGreaterThan(LARGE_ENTRY_SIZE);
+            assertThat(manager.getRangeBytesServed()).isZero();
         }
     }
 
@@ -198,6 +271,15 @@ public class ArtifactManagerArchiveSourceTest {
                         AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP,
                         AllureReportArchiveSourceFactory.ALLURE_REPORT_ZIP
                 )
+        );
+    }
+
+    private byte[] largeRemoteArchive() throws IOException {
+        return ZipTestArchive.createWithLargeLeadingEntry(
+                LARGE_ENTRY,
+                LARGE_ENTRY_SIZE,
+                HISTORY_ENTRY,
+                ZIP_HISTORY
         );
     }
 

@@ -56,12 +56,14 @@ public class AllureReportBuildActionIT {
     private static final String SLASH = "/";
     private static final String INDEX_FILE = "index.html";
     private static final String ALLURE_PATH = "allure/";
+    private static final String HEADER_CACHE_CONTROL = "Cache-Control";
     private static final String HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
     private static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
     private static final String CONTENT_DISPOSITION_ATTACHMENT = "attachment";
     private static final String INDEX_ENTRY = REPORT_DIR + SLASH + INDEX_FILE;
     private static final String INDEX_PATH = ALLURE_PATH + INDEX_FILE;
     private static final String ENCODED_ASSET_ENTRY = REPORT_DIR + "/data/space file.txt";
+    private static final String ENCODED_ASSET_PATH = "data/space%20file.txt";
     private static final String ENCODED_ASSET_CONTENT = "decoded asset";
     private static final String HTML_ATTACHMENT_PATH = "data/attachments/foo.html";
     private static final String PLUGIN_ENTRYPOINT_PATH = "awesome/index.html";
@@ -87,6 +89,12 @@ public class AllureReportBuildActionIT {
     private static final String CSP_BASE_URI_NONE = "base-uri 'none'";
     private static final String CSP_FORM_ACTION_NONE = "form-action 'none'";
     private static final String CSP_OBJECT_SRC_NONE = "object-src 'none'";
+    private static final String CACHE_PRIVATE = "private";
+    private static final String CACHE_IMMUTABLE = "immutable";
+    private static final String CACHE_ONE_YEAR = "max-age=31536000";
+    private static final String CACHE_NO_CACHE = "no-cache";
+    private static final String CACHE_NO_STORE = "no-store";
+    private static final String CACHE_PUBLIC = "public";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -124,6 +132,41 @@ public class AllureReportBuildActionIT {
     }
 
     @Test
+    public void shouldCacheReportAssetsAtNumberedBuildUrls() throws Exception {
+        final FreeStyleBuild build = buildArchivedReportWithEntries(Map.of(
+                INDEX_ENTRY, EMPTY_INDEX_CONTENT,
+                ENCODED_ASSET_ENTRY, ENCODED_ASSET_CONTENT
+        ), jRule, REPORT_DIR);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+
+        final WebResponse response = webClient.loadWebResponse(
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + ENCODED_ASSET_PATH))
+        );
+
+        assertThat(response.getResponseHeaderValue(HEADER_CACHE_CONTROL))
+                .contains(CACHE_PRIVATE, CACHE_ONE_YEAR, CACHE_IMMUTABLE)
+                .doesNotContain(CACHE_NO_CACHE, CACHE_NO_STORE, CACHE_PUBLIC);
+    }
+
+    @Test
+    public void shouldRevalidateReportAssetsAtMovingProjectUrls() throws Exception {
+        final FreeStyleBuild build = buildArchivedReportWithEntries(Map.of(
+                INDEX_ENTRY, EMPTY_INDEX_CONTENT,
+                ENCODED_ASSET_ENTRY, ENCODED_ASSET_CONTENT
+        ), jRule, REPORT_DIR);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+
+        final WebResponse response = webClient.loadWebResponse(new WebRequest(new URL(
+                jRule.getURL(),
+                build.getProject().getUrl() + ALLURE_PATH + ENCODED_ASSET_PATH
+        )));
+
+        assertThat(response.getResponseHeaderValue(HEADER_CACHE_CONTROL))
+                .contains(CACHE_PRIVATE, CACHE_NO_CACHE)
+                .doesNotContain(CACHE_ONE_YEAR, CACHE_IMMUTABLE, CACHE_NO_STORE, CACHE_PUBLIC);
+    }
+
+    @Test
     public void shouldDownloadIndexFromArchivedZip() throws Exception {
         final FreeStyleBuild build = buildSingleReportBuild();
         final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
@@ -147,7 +190,7 @@ public class AllureReportBuildActionIT {
         final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
 
         final WebResponse response = webClient.loadWebResponse(
-                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + "data/space%20file.txt"))
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + ENCODED_ASSET_PATH))
         );
 
         assertThat(response.getStatusCode()).isEqualTo(200);
