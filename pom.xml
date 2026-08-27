@@ -14,7 +14,8 @@
   <version>2.37-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
-  <name>Allure Jenkins Plugin</name>
+  <name>Allure</name>
+  <description>Generate and publish Allure reports from Jenkins builds.</description>
   <url>https://github.com/jenkinsci/allure-plugin</url>
 
   <licenses>

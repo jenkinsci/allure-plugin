@@ -1,11 +1,11 @@
-# Allure Jenkins Plugin
+# Allure
 
 [![release](https://img.shields.io/github/v/release/jenkinsci/allure-plugin?style=flat)](https://github.com/jenkinsci/allure-plugin/releases/latest)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jenkinsci/allure-plugin/build.yml?branch=main&style=flat)](https://github.com/jenkinsci/allure-plugin/actions/workflows/build.yml?query=branch%3Amain)
 
-> This repository contains the source code of the Allure plugin for Jenkins.
+> Generate and publish Allure reports from Jenkins builds.
 
-[<img src="https://allurereport.org/public/img/allure-report.svg" height="85px" alt="Allure Report logo" align="right" />](https://allurereport.org "Allure Report")
+[<img src="src/main/webapp/img/icon.png" height="76px" alt="Allure Report logo" align="right" />](https://allurereport.org "Allure Report")
 
 - Learn more about Allure Report at [https://allurereport.org](https://allurereport.org)
 - 📚 [Documentation](https://allurereport.org/docs/) – discover official documentation for Allure Report
@@ -19,6 +19,8 @@
 This plugin allows you to create Allure reports as part of your Jenkins builds. You can then view the generated report directly in Jenkins or download it to your machine.
 
 To learn more, please visit [the official documentation](https://allurereport.org/docs/integrations-jenkins/).
+
+![Allure Report dashboard](img/allure-report.png)
 
 ### Advanced Threshold Policies
 
