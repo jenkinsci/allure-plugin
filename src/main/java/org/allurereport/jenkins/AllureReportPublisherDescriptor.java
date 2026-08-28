@@ -32,6 +32,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.allurereport.jenkins.config.PropertyConfig;
 import org.allurereport.jenkins.config.ReportBuildPolicy;
+import org.allurereport.jenkins.config.ReportStorage;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineDirectInstaller;
@@ -59,10 +60,12 @@ import java.util.stream.Collectors;
 public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
     private static final String PROPERTIES = "properties";
+    private static final String REPORT_STORAGE = "reportStorage";
     private static final String NEWLINE = "\n";
     private static final int SINGLE_INSTALLATION = 1;
     private final Object quickSetupLock = new Object();
     private List<PropertyConfig> properties;
+    private ReportStorage reportStorage;
 
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
@@ -82,6 +85,19 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     public void setProperties(final List<PropertyConfig> properties) {
         this.properties = properties;
+    }
+
+    public ReportStorage getReportStorage() {
+        return reportStorage == null ? ReportStorage.ARTIFACT_MANAGER : reportStorage;
+    }
+
+    public void setReportStorage(final ReportStorage reportStorage) {
+        this.reportStorage = reportStorage;
+    }
+
+    @SuppressWarnings("unused")
+    public ReportStorage[] getReportStorages() {
+        return ReportStorage.values();
     }
 
     @Override
@@ -113,6 +129,11 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     public boolean configure(final StaplerRequest req,
         final JSONObject json) throws FormException {
         try {
+            final String reportStorageValue = json.optString(
+                REPORT_STORAGE, ReportStorage.ARTIFACT_MANAGER.getValue()
+            );
+            final ReportStorage submittedReportStorage = ReportStorage.valueOf(reportStorageValue);
+
             if (json.has(PROPERTIES)) {
                 final String jsonProperties = JSONObject.fromObject(json).get(PROPERTIES).toString();
                 final ObjectMapper mapper = new ObjectMapper()
@@ -121,9 +142,10 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                 final List<PropertyConfig> properties = mapper.readValue(jsonProperties,
                     new TypeReference<List<PropertyConfig>>() { });
                 setProperties(properties);
-                save();
             }
-        } catch (IOException e) {
+            setReportStorage(submittedReportStorage);
+            save();
+        } catch (IOException | IllegalArgumentException e) {
             return false;
         }
         return true;
