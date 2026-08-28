@@ -20,6 +20,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import static org.allurereport.jenkins.config.ReportStorage.ARTIFACT_MANAGER;
+import static org.allurereport.jenkins.config.ReportStorage.LOCAL_ON_CONTROLLER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AllureReportPublisherDescriptorTest {
@@ -69,6 +71,20 @@ public class AllureReportPublisherDescriptorTest {
                 .setInstallations(installation(FIRST), installation(SECOND));
 
         assertThat(descriptor.getDefaultCommandlineInstallation()).isNull();
+    }
+
+    @Test
+    public void reportStorageDefaultsToArtifactManager() {
+        assertThat(descriptor().getReportStorage()).isEqualTo(ARTIFACT_MANAGER);
+    }
+
+    @Test
+    public void localReportStorageSurvivesGlobalConfigRoundtrip() throws Exception {
+        descriptor().setReportStorage(LOCAL_ON_CONTROLLER);
+
+        jRule.configRoundtrip();
+
+        assertThat(descriptor().getReportStorage()).isEqualTo(LOCAL_ON_CONTROLLER);
     }
 
     private AllureReportPublisherDescriptor descriptor() {

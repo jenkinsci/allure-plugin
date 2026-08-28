@@ -41,6 +41,7 @@ import org.allurereport.jenkins.callables.FindByGlob;
 import org.allurereport.jenkins.config.AllureReportConfig;
 import org.allurereport.jenkins.config.PropertyConfig;
 import org.allurereport.jenkins.config.ReportBuildPolicy;
+import org.allurereport.jenkins.config.ReportStorage;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.config.ResultsConfig;
 import org.allurereport.jenkins.exception.AllurePluginException;
@@ -660,8 +661,6 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                                     final FilePath workspace,
                                     final TaskListener listener,
                                     final Launcher launcher) throws IOException, InterruptedException {
-        listener.getLogger().println("Archiving Allure report via ArtifactManager…");
-
         final String reportDirPath = getReport();
         final FilePath reportPathWs = workspace.child(reportDirPath);
 
@@ -692,11 +691,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             artifacts.put(SUMMARY_ARTIFACT_NAME, SUMMARY_ARTIFACT_NAME);
         }
 
-        final BuildListener buildListener =
-            (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
-
-        run.pickArtifactManager().archive(workspace, launcher, buildListener, artifacts);
-        listener.getLogger().println("Allure artifact archived via ArtifactManager.");
+        if (ReportStorage.LOCAL_ON_CONTROLLER.equals(getDescriptor().getReportStorage())) {
+            storeAllureArtifactLocally(workspace, archiveDir, artifacts, listener);
+        } else {
+            archiveAllureArtifact(run, workspace, launcher, artifacts, listener);
+        }
 
         final FilePath zipPath = workspace.child(REPORT_ARCHIVE_NAME);
         if (zipPath.exists()) {
@@ -707,6 +706,31 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         if (summaryPath.exists()) {
             summaryPath.delete();
         }
+    }
+
+    private void storeAllureArtifactLocally(final FilePath workspace,
+                                            final FilePath archiveDir,
+                                            final Map<String, String> artifacts,
+                                            final TaskListener listener) throws IOException, InterruptedException {
+        listener.getLogger().println("Storing Allure report locally on Jenkins controller…");
+        archiveDir.mkdirs();
+        for (Map.Entry<String, String> artifact : artifacts.entrySet()) {
+            workspace.child(artifact.getValue()).copyTo(archiveDir.child(artifact.getKey()));
+        }
+        listener.getLogger().println("Allure report stored locally on Jenkins controller.");
+    }
+
+    private void archiveAllureArtifact(final Run<?, ?> run,
+                                       final FilePath workspace,
+                                       final Launcher launcher,
+                                       final Map<String, String> artifacts,
+                                       final TaskListener listener) throws IOException, InterruptedException {
+        listener.getLogger().println("Archiving Allure report via ArtifactManager…");
+        final BuildListener buildListener =
+            (listener instanceof BuildListener) ? (BuildListener) listener : new BuildListenerAdapter(listener);
+
+        run.pickArtifactManager().archive(workspace, launcher, buildListener, artifacts);
+        listener.getLogger().println("Allure artifact archived via ArtifactManager.");
     }
 
     private void createSummaryJson(final FilePath workspace,

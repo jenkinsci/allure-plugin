@@ -1,0 +1,16 @@
+<div>
+    <p>
+        <strong>Artifact Manager</strong> is the default and stores the Allure report using the Artifact Manager
+        configured for the build.
+    </p>
+    <p>
+        <strong>Local on Jenkins controller</strong> disables Artifact Manager use for Allure reports and keeps them
+        only in the build directory on the Jenkins controller node. This can be used with Artifact Managers that do
+        not preserve artifacts across multiple archive operations. Other build artifacts continue using the configured
+        Artifact Manager.
+    </p>
+    <p>
+        Local storage consumes disk space on the Jenkins controller. When a remote Artifact Manager is active,
+        artifact-only cleanup might not remove the locally stored Allure report; deleting the build removes it.
+    </p>
+</div>

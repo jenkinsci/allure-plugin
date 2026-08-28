@@ -4,6 +4,16 @@
 
     <f:section title="Allure Report">
 
+        <f:entry title="Allure report storage" field="reportStorage"
+                 description="Artifact Manager is used by default. Selecting Local on Jenkins controller disables Artifact Manager use for Allure reports and keeps them only on the Jenkins controller node. Other build artifacts continue using the configured Artifact Manager.">
+            <select class="setting-input" name="reportStorage">
+                <j:forEach var="storage" items="${descriptor.getReportStorages()}">
+                    <f:option selected="${storage.equals(descriptor.getReportStorage())}"
+                              value="${storage.getValue()}">${storage.getTitle()}</f:option>
+                </j:forEach>
+            </select>
+        </f:entry>
+
         <f:entry title="${%Properties}" field="properties">
             <f:repeatable var="properties" items="${descriptor.getProperties()}">
                 <table>
