@@ -105,10 +105,13 @@ class S3ArtifactManagerCompatibilityTest {
     private static final long POLL_DELAY_MILLIS = 2_000L;
 
     private static final List<String> REQUIRED_PLUGINS = List.of(
-            "bouncycastle-api:2.30.1.79-254.vfdb_814e7791e",
-            "commons-lang3-api:3.17.0-84.vb_b_938040b_078",
-            "jackson2-api:2.17.0-389.va_5c7e45cd806",
-            "display-url-api:2.204.vf6fddd8a_8b_e9",
+            "bouncycastle-api:2.30.1.84-291.v9f17b_21896e2",
+            "commons-lang3-api:3.20.0-109.ve43756e2d2b_4",
+            "jackson2-api:2.22.2-445.vdc613f1d8012",
+            "display-url-api:2.217.va_6b_de84cc74b_",
+            "workflow-step-api:724.v538c2362b_dfb_",
+            "script-security:1412.v7737b_3405f86",
+            "structs:362.va_b_695ef4fdf9",
             "artifact-manager-s3:" + ARTIFACT_MANAGER_S3_VERSION
     );
 
@@ -774,7 +777,7 @@ class S3ArtifactManagerCompatibilityTest {
             final Path rootDir = Path.of(System.getProperty("compat.rootDir", "."))
                     .toAbsolutePath()
                     .normalize();
-            final String requestedVersion = System.getProperty("compat.version", "2.528.3").trim();
+            final String requestedVersion = System.getProperty("compat.version", "2.541.3").trim();
             final String normalizedImageTag = normalizeJenkinsImageTag(requestedVersion);
             final Path artifactRoot = Path.of(System.getProperty(
                     "compat.artifactRoot",

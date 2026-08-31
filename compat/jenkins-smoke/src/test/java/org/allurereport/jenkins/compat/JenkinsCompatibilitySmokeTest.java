@@ -87,20 +87,23 @@ class JenkinsCompatibilitySmokeTest {
     private static final long POLL_DELAY_MS = 5_000L;
 
     private static final List<String> REQUIRED_PLUGINS_WITHOUT_MATRIX = List.of(
-            "bouncycastle-api:2.30.1.78.1-248.ve27176eb_46cb_",
-            "commons-lang3-api:3.17.0-84.vb_b_938040b_078",
-            "jackson2-api:2.17.0-389.va_5c7e45cd806",
-            "display-url-api:2.204.vf6fddd8a_8b_e9"
+            "bouncycastle-api:2.30.1.84-291.v9f17b_21896e2",
+            "commons-lang3-api:3.20.0-109.ve43756e2d2b_4",
+            "jackson2-api:2.22.2-445.vdc613f1d8012",
+            "display-url-api:2.217.va_6b_de84cc74b_"
     );
 
     private static final List<String> REQUIRED_PLUGINS_WITH_MATRIX = Stream.concat(
             REQUIRED_PLUGINS_WITHOUT_MATRIX.stream(),
             Stream.of(
-                    "matrix-project:839.vff91cd7e3a_b_2",
-                    "workflow-basic-steps:1058.vcb_fc1e3a_21a_9",
-                    "workflow-cps:4009.v0089238351a_9",
-                    "workflow-durable-task-step:1378.v6a_3e903058a_3",
-                    "workflow-job:1436.vfa_244484591f"
+                    "matrix-project:905.vcc6831e8760a_",
+                    "workflow-basic-steps:1098.v808b_fd7f8cf4",
+                    "workflow-cps:4370.v49a_6937566b_6",
+                    "workflow-durable-task-step:1479.v56e587f413a_7",
+                    "workflow-job:1571.1580.v18e46842c125",
+                    "workflow-step-api:724.v538c2362b_dfb_",
+                    "script-security:1412.v7737b_3405f86",
+                    "structs:362.va_b_695ef4fdf9"
             )
     ).toList();
 
@@ -1004,7 +1007,7 @@ class JenkinsCompatibilitySmokeTest {
 
         private static Configuration fromSystemProperties() {
             final Path rootDir = Path.of(System.getProperty("compat.rootDir", ".")).toAbsolutePath().normalize();
-            final String requestedVersion = System.getProperty("compat.version", "2.462.1").trim();
+            final String requestedVersion = System.getProperty("compat.version", "2.541.3").trim();
             final String normalizedImageTag = normalizeJenkinsImageTag(requestedVersion);
             final Path artifactRoot = Path.of(System.getProperty(
                     "compat.artifactRoot",

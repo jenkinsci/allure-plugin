@@ -13,7 +13,7 @@
         <allure.junit5.version>2.29.1</allure.junit5.version>
         <compat.rootDir>${project.basedir}/../..</compat.rootDir>
         <compat.s3.enabled>false</compat.s3.enabled>
-        <compat.version>2.462.1</compat.version>
+        <compat.version>2.541.3</compat.version>
         <compat.artifactRoot>${compat.rootDir}/compat-artifacts/${compat.version}</compat.artifactRoot>
         <jackson.version>2.18.2</jackson.version>
         <junit.jupiter.version>5.11.4</junit.jupiter.version>
@@ -106,7 +106,7 @@
             <id>s3-compat</id>
             <properties>
                 <compat.s3.enabled>true</compat.s3.enabled>
-                <compat.version>2.528.3</compat.version>
+                <compat.version>2.541.3</compat.version>
             </properties>
         </profile>
     </profiles>

@@ -20,7 +20,7 @@ on:
       jenkins_version:
         description: Jenkins Docker tag or core version to test
         required: true
-        default: '2.462.1'
+        default: '2.541.3'
         type: string
 
 concurrency:
@@ -53,7 +53,7 @@ jobs:
     needs: build-plugin
     timeout-minutes: 45
     env:
-      JENKINS_VERSION: ${{ inputs.jenkins_version || '2.462.1' }}
+      JENKINS_VERSION: ${{ inputs.jenkins_version || '2.541.3' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
@@ -113,8 +113,8 @@ jobs:
     needs: build-plugin
     timeout-minutes: 45
     env:
-      JENKINS_VERSION: '2.528.3'
-      COMPAT_ID: '2.528.3-s3'
+      JENKINS_VERSION: '2.541.3'
+      COMPAT_ID: '2.541.3-s3'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5

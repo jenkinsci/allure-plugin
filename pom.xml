@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.74</version>
+    <version>6.2221.va_045130417c9</version>
     <relativePath />
   </parent>
 
@@ -53,6 +53,7 @@
 
   <properties>
     <allure.version>2.35.3</allure.version>
+    <commons-compress.version>1.28.0</commons-compress.version>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
     <spotless.skip>false</spotless.skip>
     <spotless.check.skip>false</spotless.check.skip>
@@ -60,11 +61,10 @@
     <spotless.ratchetFrom>origin/main</spotless.ratchetFrom>
     <gitHubRepo>jenkinsci/allure-plugin</gitHubRepo>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.462</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.baseline>2.541</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <allureCommandline.version>2.35.1</allureCommandline.version>
     <truezip.version>7.7.10</truezip.version>
-    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
 
   <dependencyManagement>
@@ -79,7 +79,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>4228.v0a_71308d905b_</version>
+        <version>6931.vea_a_b_c6fd017d</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -94,6 +94,7 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
+      <version>${commons-compress.version}</version>
     </dependency>
     <dependency>
       <groupId>de.schlichtherle.truezip</groupId>
