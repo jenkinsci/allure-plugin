@@ -1,0 +1,19 @@
+/* Builds card: in-progress row packs 104px .app-progress-bar + cancel + badges
+   with justify-content:start, so icons sit against the bar after wrap.
+   Grow the bar; keep Allure marks on the trailing edge like completed rows. */
+.app-builds-container__item__inner__controls:has(.app-progress-bar) {
+  flex: 1 1 auto;
+}
+
+.app-builds-container__item__inner__controls:has(.app-progress-bar) .app-progress-bar {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 104px;
+}
+
+.allure-report-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  line-height: 0;
+}
