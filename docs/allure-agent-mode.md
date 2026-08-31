@@ -32,7 +32,7 @@ The `allure@3` selector intentionally floats to the newest Allure 3 release publ
 | Regular unit tests | Maven Surefire + JUnit 4 | `src/test/java/**/*Test.java` | `target/allure-results` | Java and Maven wrapper |
 | Regular integration tests | Maven Failsafe + JUnit 4 | `src/test/java/**/*IT.java` | `target/allure-results` | Jenkins test harness; the build downloads an Allure commandline fixture |
 | Jenkins compatibility smoke | Maven Surefire + JUnit 5/Testcontainers | `compat/jenkins-smoke/src/test/java` | `compat-artifacts/<jenkins-version>/allure-results` | Docker, Java 17, and a built plugin HPI |
-| S3 Artifact Manager compatibility | Maven Surefire + JUnit 5/Testcontainers | `S3ArtifactManagerCompatibilityTest` | `compat-artifacts/2.528.3-s3/allure-results` | Docker, Java 17, a built plugin HPI, and the `s3-compat` profile; MinIO and Toxiproxy images are pulled automatically |
+| S3 Artifact Manager compatibility | Maven Surefire + JUnit 5/Testcontainers | `S3ArtifactManagerCompatibilityTest` | `compat-artifacts/2.541.3-s3/allure-results` | Docker, Java 17, a built plugin HPI, and the `s3-compat` profile; MinIO and Toxiproxy images are pulled automatically |
 
 The regular test adapter is configured in `pom.xml`; its stable result path is configured in `src/test/resources/allure.properties`. The compatibility runner has its own adapter and result path in `compat/jenkins-smoke/pom.xml`.
 
@@ -72,12 +72,12 @@ Build the HPI first, then follow `compat/README.md` for the version-specific Mav
 
 ```bash
 npx --yes allure@3 agent \
-  --results-dir "$PWD/compat-artifacts/2.462.1/allure-results" \
+  --results-dir "$PWD/compat-artifacts/2.541.3/allure-results" \
   --goal "Confirm Jenkins compatibility for the selected Jenkins version" \
   -- ./mvnw -B -e -ntp -f compat/jenkins-smoke/pom.xml \
     -Dcompat.rootDir="$PWD" \
-    -Dcompat.version=2.462.1 \
-    -Dcompat.artifactRoot="$PWD/compat-artifacts/2.462.1" \
+    -Dcompat.version=2.541.3 \
+    -Dcompat.artifactRoot="$PWD/compat-artifacts/2.541.3" \
     test
 ```
 
@@ -117,7 +117,7 @@ npx --yes allure@3 agent --rerun-latest --rerun-preset unsuccessful \
 
 ## Inspecting CI Evidence
 
-The build workflow retains `allure-results-build` as an Allure dump and generates the `allure-report` artifact in an always-run report job. Report plugins, grouping, and conditional Allure Service access are configured in `allurerc.mjs`. When the `ALLURE_SERVICE_TOKEN` GitHub Actions secret is available, the same report generation command also publishes the report to Allure Service. Fork pull requests, where repository secrets are unavailable, still retain the downloadable dump and report artifacts. Compatibility jobs retain `compat-<version>-allure3-dump`; the dedicated S3 job retains `compat-2.528.3-s3-allure3-dump`.
+The build workflow retains `allure-results-build` as an Allure dump and generates the `allure-report` artifact in an always-run report job. Report plugins, grouping, and conditional Allure Service access are configured in `allurerc.mjs`. When the `ALLURE_SERVICE_TOKEN` GitHub Actions secret is available, the same report generation command also publishes the report to Allure Service. Fork pull requests, where repository secrets are unavailable, still retain the downloadable dump and report artifacts. Compatibility jobs retain `compat-<version>-allure3-dump`; the dedicated S3 job retains `compat-2.541.3-s3-allure3-dump`.
 
 Inspect downloaded artifacts before trying to reproduce a CI-only failure:
 
