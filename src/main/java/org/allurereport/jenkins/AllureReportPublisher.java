@@ -48,6 +48,7 @@ import org.allurereport.jenkins.exception.AllurePluginException;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureInstallation;
+import org.allurereport.jenkins.tools.AllureVersionService;
 import org.allurereport.jenkins.utils.AllureReportArchiveSource;
 import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
@@ -100,9 +101,18 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             "Allure %s path must be a relative path inside the workspace: %s";
 
     private static final String NOT_FOUND_MESSAGE =
-            "Can not find allure commandline installation for given environment.";
+            "Can not find allure %s installation for given environment.";
+    private static final String COMMANDLINE = "commandline";
     private static final String SEPARATOR = ", ";
     private static final String NEWLINE = "\n";
+    private static final String SELECTED_ALLURE_INSTALLATIONS = "Selected Allure installation '%s' not found.\n"
+            + "Available installations: %s\nPlease check Global Tool Configuration.";
+    private static final String MULTIPLE_ALLURE_INSTALLATIONS = "Multiple Allure %s installations found,"
+            + " please select one in job configuration.\nAvailable installations: %s\n"
+            + "Configure in: Job Configuration → Post-build Actions - Allure Report - Allure %s";
+    private static final String ALLURE_SELECTED_INSTALLATION = "[Allure] Using selected installation: %s";
+    private static final String NO_INSTALLATION_SELECTED = "[Allure] No installation selected,"
+            + " using the only available: %s";
     private static final String AVAILABLE_INSTALLATIONS = "Available installations: ";
     private static final String MATRIX_RUN_CLASS_NAME = "hudson.matrix.MatrixRun";
     private AllureReportConfig config;
@@ -257,8 +267,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     public String getAllureVersion() {
-        // Default to "2" for backward compatibility
-        return this.allureVersion == null ? "2" : this.allureVersion;
+        if (allureVersion == null) {
+            final List<Allure3Installation> installations = getDescriptor().getAllure3Installations();
+            if (!installations.isEmpty()) {
+                allureVersion = AllureVersionService.VERSION_3;
+            } else {
+                allureVersion = AllureVersionService.VERSION_2;
+            }
+        }
+        return allureVersion;
     }
 
     /**
@@ -267,7 +284,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
      * @return true if Allure 3 is selected
      */
     public boolean isAllure3() {
-        return "3".equals(getAllureVersion());
+        return AllureVersionService.VERSION_3.equals(getAllureVersion());
     }
 
     private AllureInstallation getAllureInstallation(
@@ -289,20 +306,53 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull EnvVars env)
         throws IOException, InterruptedException {
 
-        // Get Allure 3 installation from descriptor
-        final Allure3Installation installation = getDescriptor().getAllure3Installation();
+        // Get Allure 3 installation from descriptors
+        final List<Allure3Installation> installations = getDescriptor().getAllure3Installations();
 
-        if (installation == null) {
+        if (installations.isEmpty()) {
             throw new AllurePluginException("Can not find Allure 3 installation. "
-                + "Please ensure 'allure' is installed and available in PATH (npm install -g allure).");
+                + "Please configure Allure 3 in Jenkins: Manage Jenkins - Tools - Allure 3");
         }
 
-        // Configure for the node
-        final Allure3Installation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
-        if (tool == null) {
-            throw new AllurePluginException("Can not find Allure 3 installation for given environment.");
+        if (StringUtils.isNotBlank(getCommandline())) {
+            final Allure3Installation installation =
+                    getDescriptor().getAllure3Installation(getCommandline());
+
+            if (installation == null) {
+                final String installationsList = installations.stream()
+                        .map(AllureInstallation::getName)
+                        .collect(Collectors.joining(SEPARATOR));
+                throw new AllurePluginException(
+                        String.format(SELECTED_ALLURE_INSTALLATIONS, getCommandline(), installationsList)
+                );
+            }
+
+            listener.getLogger().println(String.format(ALLURE_SELECTED_INSTALLATION, installation.getName()));
+
+            final Allure3Installation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(String.format(NOT_FOUND_MESSAGE, AllureVersionService.VERSION_3));
+            }
+            return tool;
         }
-        return tool;
+
+        final Allure3Installation defaultInstallation =
+                getDescriptor().getDefaultAllure3Installation();
+        if (defaultInstallation != null) {
+            listener.getLogger().println(String.format(NO_INSTALLATION_SELECTED, defaultInstallation.getName()));
+
+            final Allure3Installation tool =
+                    BuildUtils.setUpTool(defaultInstallation, launcher, listener, env);
+            if (tool == null) {
+                throw new AllurePluginException(String.format(NOT_FOUND_MESSAGE, AllureVersionService.VERSION_3));
+            }
+            return tool;
+        }
+
+        final String installationsList = installations.stream()
+                .map(Allure3Installation::getName)
+                .collect(Collectors.joining(SEPARATOR));
+        throw new AllurePluginException(String.format(MULTIPLE_ALLURE_INSTALLATIONS, 3, installationsList, 3));
     }
 
     private AllureCommandlineInstallation getAllure2Installation(
@@ -331,16 +381,15 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                     .map(AllureCommandlineInstallation::getName)
                     .collect(Collectors.joining(SEPARATOR));
                 throw new AllurePluginException(
-                    "Selected Allure installation '" + getCommandline() + "' not found."
-                    + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
-                    + NEWLINE + "Please check Global Tool Configuration.");
+                        String.format(SELECTED_ALLURE_INSTALLATIONS, getCommandline(), installationsList)
+                );
             }
 
-            listener.getLogger().println("[Allure] Using selected installation: " + installation.getName());
+            listener.getLogger().println(String.format(ALLURE_SELECTED_INSTALLATION, installation.getName()));
 
             final AllureCommandlineInstallation tool = BuildUtils.setUpTool(installation, launcher, listener, env);
             if (tool == null) {
-                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+                throw new AllurePluginException(String.format(NOT_FOUND_MESSAGE, COMMANDLINE));
             }
             return tool;
         }
@@ -348,13 +397,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final AllureCommandlineInstallation defaultInstallation =
                 getDescriptor().getDefaultCommandlineInstallation();
         if (defaultInstallation != null) {
-            listener.getLogger().println(
-                "[Allure] No installation selected, using the only available: " + defaultInstallation.getName());
+            listener.getLogger().println(String.format(NO_INSTALLATION_SELECTED, defaultInstallation.getName()));
 
             final AllureCommandlineInstallation tool =
                 BuildUtils.setUpTool(defaultInstallation, launcher, listener, env);
             if (tool == null) {
-                throw new AllurePluginException(NOT_FOUND_MESSAGE);
+                throw new AllurePluginException(String.format(NOT_FOUND_MESSAGE, COMMANDLINE));
             }
             return tool;
         }
@@ -362,10 +410,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final String installationsList = installations.stream()
             .map(AllureCommandlineInstallation::getName)
             .collect(Collectors.joining(SEPARATOR));
-        throw new AllurePluginException(
-            "Multiple Allure CLI installations found, please select one in job configuration."
-            + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
-            + NEWLINE + "Configure in: Job Configuration → Post-build Actions - Allure Report - Commandline");
+        throw new AllurePluginException(String.format(MULTIPLE_ALLURE_INSTALLATIONS, "CLI", installationsList,
+                "Commandline"));
     }
 
     @DataBoundSetter

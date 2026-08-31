@@ -36,7 +36,7 @@ public interface AllureInstallation {
     String getExecutable(@NonNull Launcher launcher) throws InterruptedException, IOException;
 
     /**
-     * Get the major version of Allure (e.g., "1", "2", or "3").
+     * Get the major version of Allure (e.g., "2", or "3").
      *
      * @param launcher the launcher to use for remote execution
      * @return the major version string

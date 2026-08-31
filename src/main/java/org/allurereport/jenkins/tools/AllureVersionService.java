@@ -39,6 +39,8 @@ public final class AllureVersionService {
     private static final String GITHUB_API =
             "https://api.github.com/repos/allure-framework/allure2/releases/latest";
 
+    public static final String VERSION_2 = "2";
+    public static final String VERSION_3 = "3";
     public static final String FALLBACK_VERSION = "2.30.0";
     
     private static final Duration CACHE_DURATION = Duration.ofHours(24);
