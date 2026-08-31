@@ -11,9 +11,15 @@
   min-width: 104px;
 }
 
-.allure-report-badge {
+/* Report badges and TestOps (bare <a><img>, allure-jenkins/logo.png): kill the
+   inline-anchor strut so the PNG does not sit on the text baseline below SVGs. */
+.app-builds-container__item__inner__controls > a:has(> img) {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   line-height: 0;
+}
+
+.app-builds-container__item__inner__controls > a:has(> img) > img {
+  display: block;
 }
