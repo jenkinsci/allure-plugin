@@ -31,7 +31,7 @@ jobs:
   build-plugin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: actions/setup-java@v5
@@ -55,7 +55,7 @@ jobs:
     env:
       JENKINS_VERSION: ${{ inputs.jenkins_version || '2.541.3' }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -116,7 +116,7 @@ jobs:
       JENKINS_VERSION: '2.541.3'
       COMPAT_ID: '2.541.3-s3'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
