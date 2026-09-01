@@ -41,7 +41,7 @@ jobs:
         -- ./mvnw -B -ntp verify
     - name: Upload Allure dump
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.ALLURE_DUMP_NAME }}
         path: ./${{ env.ALLURE_DUMP_NAME }}.zip
@@ -79,7 +79,7 @@ jobs:
         --output=./build/allure-report
     - name: Upload Allure report
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: allure-report
         path: ./build/allure-report
