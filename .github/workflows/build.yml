@@ -65,7 +65,7 @@ jobs:
         node-version: '24'
         package-manager-cache: false
     - name: Download Allure dumps
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       continue-on-error: true
       with:
         pattern: allure-results-*
