@@ -1,0 +1,10 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
+  <j:set var="allureIcon" value="${action.getCompactIconFileName()}"/>
+  <j:if test="${allureIcon != null}">
+    <l:task icon="${allureIcon}"
+            title="${action.getDisplayName()}"
+            href="${h.getActionUrl(it.url, action)}"
+            contextMenu="${h.isContextMenuVisible(action)}"/>
+  </j:if>
+</j:jelly>

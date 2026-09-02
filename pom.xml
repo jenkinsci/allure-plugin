@@ -53,7 +53,13 @@
 
   <properties>
     <allure.version>2.35.3</allure.version>
+    <allure2.recommended.version>2.46.0</allure2.recommended.version>
+    <allure2.recommended.sha256>22f99aac74817bc0299a0022f1442a750f454df3e2431b1b98f8a34c0d3f260a</allure2.recommended.sha256>
+    <allure3.recommended.version>3.16.0</allure3.recommended.version>
+    <allure3.node.version>24.14.1</allure3.node.version>
+    <allure3.npm.version>11.6.2</allure3.npm.version>
     <commons-compress.version>1.28.0</commons-compress.version>
+    <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
     <spotless.skip>false</spotless.skip>
     <spotless.check.skip>false</spotless.check.skip>
@@ -63,7 +69,6 @@
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.541</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
-    <allureCommandline.version>2.35.1</allureCommandline.version>
     <truezip.version>7.7.10</truezip.version>
   </properties>
 
@@ -245,6 +250,87 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>prepare-allure3-runtime</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/allure3-runtime</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/main/allure3-runtime</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <version>${frontend-maven-plugin.version}</version>
+        <configuration>
+          <installDirectory>${project.build.directory}/allure3-build-node</installDirectory>
+          <workingDirectory>${project.build.directory}/allure3-runtime</workingDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install-node-for-allure3-runtime</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <configuration>
+              <nodeVersion>v${allure3.node.version}</nodeVersion>
+              <npmVersion>${allure3.npm.version}</npmVersion>
+            </configuration>
+          </execution>
+          <execution>
+            <id>install-allure3-runtime</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>ci --omit=dev --ignore-scripts --no-audit --no-fund</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bundle-allure3-runtime</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <mkdir dir="${project.build.outputDirectory}/org/allurereport/jenkins/tools/runtime" />
+                <zip destfile="${project.build.outputDirectory}/org/allurereport/jenkins/tools/runtime/allure-${allure3.recommended.version}.zip"
+                     modificationtime="2000-01-01T00:00:00Z">
+                  <zipfileset dir="${project.build.directory}/allure3-runtime">
+                    <include name="package.json" />
+                    <include name="package-lock.json" />
+                    <include name="node_modules/**" />
+                    <exclude name="node_modules/.bin/**" />
+                  </zipfileset>
+                </zip>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <inherited>false</inherited>
@@ -376,9 +462,12 @@
         <artifactId>download-maven-plugin</artifactId>
         <version>1.10.0</version>
         <configuration>
-          <url>https://repo1.maven.org/maven2/io/qameta/allure/allure-commandline/${allureCommandline.version}/allure-commandline-${allureCommandline.version}.zip</url>
+          <url>https://repo1.maven.org/maven2/io/qameta/allure/allure-commandline/${allure2.recommended.version}/allure-commandline-${allure2.recommended.version}.zip</url>
+          <sha256>${allure2.recommended.sha256}</sha256>
+          <alwaysVerifyChecksum>true</alwaysVerifyChecksum>
+          <skipCache>true</skipCache>
           <outputFileName>allure-commandline.zip</outputFileName>
-          <outputDirectory>${project.build.directory}/resources/test</outputDirectory>
+          <outputDirectory>${project.build.directory}/resources/test/${allure2.recommended.version}</outputDirectory>
         </configuration>
         <executions>
           <execution>
@@ -401,7 +490,7 @@
             </goals>
             <configuration>
               <additionalClasspathElements>
-                <element>${project.build.directory}/resources/test</element>
+                <element>${project.build.directory}/resources/test/${allure2.recommended.version}</element>
               </additionalClasspathElements>
             </configuration>
           </execution>

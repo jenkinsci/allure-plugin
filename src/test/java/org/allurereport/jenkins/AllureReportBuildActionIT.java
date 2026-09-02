@@ -121,6 +121,13 @@ public class AllureReportBuildActionIT {
 
         final HtmlPage buildPage = webClient.getPage(build);
         assertThat(buildPage.getByXPath("//a[contains(@href, '/allure')]")).isNotEmpty();
+        assertThat(buildPage.getByXPath("//img[contains(@src, '/img/icon.png')]")).hasSize(1);
+        assertThat(buildPage.getByXPath("//img[contains(@src, '/img/icon-compact.png')]")).hasSize(1);
+        final HtmlPage buildHistory = webClient.goTo(build.getProject().getUrl() + "buildHistory/ajax");
+        assertThat(buildHistory.getByXPath(
+                "//img[@width='16' and @height='16' and @title='Allure Report'"
+                        + " and contains(@src, '/img/icon-compact.png')]"
+        )).hasSize(1);
         assertThat(new File(build.getRootDir(), REPORT_DIR)).doesNotExist();
 
         final WebResponse response = webClient.loadWebResponse(

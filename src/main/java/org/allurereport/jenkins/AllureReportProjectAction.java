@@ -39,7 +39,11 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     @Override
     public String getIconFileName() {
-        return AllureReportPlugin.getIconFilename();
+        return getTarget() == null ? null : AllureReportPlugin.getIconFilename();
+    }
+
+    public String getCompactIconFileName() {
+        return getTarget() == null ? null : AllureReportPlugin.getCompactIconFilename();
     }
 
     @Override
@@ -49,8 +53,7 @@ public class AllureReportProjectAction implements ProminentProjectAction, Staple
 
     @Override
     public Object getTarget() {
-        final Run<?, ?> last = job.getLastCompletedBuild();
-        return last == null ? null : last.getAction(AllureReportBuildAction.class);
+        return getLastAllureBuildAction();
     }
 
     public boolean isCanBuildGraph() {
