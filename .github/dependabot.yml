@@ -3,8 +3,38 @@ updates:
 - package-ecosystem: maven
   directory: /
   schedule:
-    interval: monthly
+    interval: "daily"
+  cooldown:
+    default-days: 7
+  labels:
+  - "pr:dependencies"
+  commit-message:
+    prefix: "chore"
+    include: "scope"
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: monthly
+    interval: "daily"
+  cooldown:
+    default-days: 7
+  labels:
+  - "pr:dependencies"
+  commit-message:
+    prefix: "chore"
+    include: "scope"
+- package-ecosystem: npm
+  directory: /src/main/allure3-runtime
+  schedule:
+    interval: "weekly"
+  cooldown:
+    default-days: 7
+  labels:
+  - "pr:dependencies"
+  commit-message:
+    prefix: "chore"
+    include: "scope"
+  open-pull-requests-limit: 1
+  groups:
+    allure3-runtime:
+      patterns:
+      - "*"

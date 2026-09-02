@@ -48,6 +48,10 @@ public class AllureBuildAction implements BuildBadgeAction {
 
     @Override
     public String getIconFileName() {
+        return AllureReportPlugin.getCompactIconFilename();
+    }
+
+    public String getSummaryIconFileName() {
         return AllureReportPlugin.getIconFilename();
     }
 

@@ -15,10 +15,10 @@
  */
 package org.allurereport.jenkins;
 
+import org.allurereport.jenkins.config.ResultsConfig;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.allurereport.jenkins.config.ResultsConfig;
 
 import java.util.Collections;
 
@@ -44,6 +44,7 @@ public class Allure3ConfigTest {
 
         assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_2);
         assertThat(publisher.isAllure3()).isFalse();
+        assertThat(publisher.isLegacyAllure3Configuration()).isFalse();
     }
 
     @Test
@@ -55,6 +56,7 @@ public class Allure3ConfigTest {
 
         assertThat(publisher.getAllureVersion()).isEqualTo(VERSION_3);
         assertThat(publisher.isAllure3()).isTrue();
+        assertThat(publisher.isLegacyAllure3Configuration()).isTrue();
     }
 
     @Test

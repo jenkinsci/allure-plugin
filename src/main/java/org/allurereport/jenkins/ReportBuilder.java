@@ -25,6 +25,7 @@ import org.allurereport.jenkins.tools.AllureInstallation;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +54,8 @@ public class ReportBuilder {
 
     private final AllureInstallation commandline;
 
+    private final String resolvedVersion;
+
     private FilePath configFilePath;
 
     private boolean singleFile;
@@ -62,11 +65,21 @@ public class ReportBuilder {
                          final @NonNull FilePath workspace,
                          final @NonNull EnvVars envVars,
                          final @NonNull AllureInstallation commandline) {
+        this(launcher, listener, workspace, envVars, commandline, null);
+    }
+
+    public ReportBuilder(final @NonNull Launcher launcher,
+                         final @NonNull TaskListener listener,
+                         final @NonNull FilePath workspace,
+                         final @NonNull EnvVars envVars,
+                         final @NonNull AllureInstallation commandline,
+                         final String resolvedVersion) {
         this.workspace = workspace;
         this.launcher = launcher;
         this.listener = listener;
         this.envVars = envVars;
         this.commandline = commandline;
+        this.resolvedVersion = resolvedVersion;
     }
 
     public void setConfigFilePath(final FilePath configFilePath) {
@@ -80,26 +93,49 @@ public class ReportBuilder {
     public int build(final @NonNull List<FilePath> resultsPaths,
                      final @NonNull FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
-        final String version = commandline.getMajorVersion(launcher);
-        listener.getLogger().println("Using Allure CLI: " + commandline.getExecutable(launcher));
-        final ArgumentListBuilder arguments = getArguments(version, resultsPaths, reportPath);
+        final String version = resolvedVersion == null
+                ? commandline.getVersion(launcher)
+                : resolvedVersion;
+        final List<String> commandPrefix = commandline.getCommandPrefix(launcher);
+        listener.getLogger().println("Using Allure CLI: " + String.join(" ", commandPrefix));
+        final ArgumentListBuilder arguments = getArguments(
+                version,
+                resultsPaths,
+                reportPath,
+                commandPrefix
+        );
 
         return launcher.launch().cmds(arguments)
                 .envs(envVars).stdout(listener).pwd(workspace).join();
     }
 
+    ArgumentListBuilder getArguments(final String version,
+                                     final @NonNull List<FilePath> resultsPaths,
+                                     final @NonNull FilePath reportPath)
+            throws IOException, InterruptedException {
+        return getArguments(version, resultsPaths, reportPath, commandline.getCommandPrefix(launcher));
+    }
+
     private ArgumentListBuilder getArguments(final String version,
                                              final @NonNull List<FilePath> resultsPaths,
-                                             final @NonNull FilePath reportPath)
-            throws IOException, InterruptedException {
+                                             final @NonNull FilePath reportPath,
+                                             final List<String> commandPrefix) {
+        if (commandPrefix.isEmpty()) {
+            throw new IllegalArgumentException("Allure command prefix must not be empty");
+        }
+        final ArgumentListBuilder arguments = new ArgumentListBuilder();
+        for (String argument : commandPrefix) {
+            arguments.add(argument);
+        }
         final int major = parseMajor(version);
         if (major >= ALLURE_MAJOR_VERSION_3) {
-            return getAllure3Arguments(resultsPaths, reportPath);
+            appendAllure3Arguments(arguments, resultsPaths, reportPath);
+        } else if (major == ALLURE_MAJOR_VERSION_2) {
+            appendAllure2Arguments(arguments, resultsPaths, reportPath);
+        } else {
+            appendAllure1Arguments(arguments, resultsPaths, reportPath);
         }
-        if (major == ALLURE_MAJOR_VERSION_2) {
-            return getAllure2Arguments(resultsPaths, reportPath);
-        }
-        return getAllure1Arguments(resultsPaths, reportPath);
+        return protectWindowsBatchCommand(arguments, commandPrefix.get(0), launcher.isUnix());
     }
 
     private static int parseMajor(final String version) {
@@ -117,11 +153,9 @@ public class ReportBuilder {
         }
     }
 
-    private ArgumentListBuilder getAllure3Arguments(final @NonNull List<FilePath> resultsPaths,
-                                                    final @NonNull FilePath reportPath) //NOSONAR
-            throws IOException, InterruptedException {
-        final ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(commandline.getExecutable(launcher));
+    private void appendAllure3Arguments(final ArgumentListBuilder arguments,
+                                        final @NonNull List<FilePath> resultsPaths,
+                                        final @NonNull FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.add(resultsPath.getRemote());
@@ -135,14 +169,11 @@ public class ReportBuilder {
         if (singleFile) {
             arguments.add(SINGLE_FILE_OPTION);
         }
-        return arguments;
     }
 
-    private ArgumentListBuilder getAllure2Arguments(final @NonNull List<FilePath> resultsPaths,
-                                                    final @NonNull FilePath reportPath) //NOSONAR
-            throws IOException, InterruptedException {
-        final ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(commandline.getExecutable(launcher));
+    private void appendAllure2Arguments(final ArgumentListBuilder arguments,
+                                        final @NonNull List<FilePath> resultsPaths,
+                                        final @NonNull FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.add(resultsPath.getRemote());
@@ -157,20 +188,30 @@ public class ReportBuilder {
         if (singleFile) {
             arguments.add(SINGLE_FILE_OPTION);
         }
-        return arguments;
     }
 
-    private ArgumentListBuilder getAllure1Arguments(final @NonNull List<FilePath> resultsPaths,
-                                                    final @NonNull FilePath reportPath) //NOSONAR
-            throws IOException, InterruptedException {
-        final ArgumentListBuilder arguments = new ArgumentListBuilder();
-        arguments.add(commandline.getExecutable(launcher));
+    private void appendAllure1Arguments(final ArgumentListBuilder arguments,
+                                        final @NonNull List<FilePath> resultsPaths,
+                                        final @NonNull FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.addQuoted(resultsPath.getRemote());
         }
         arguments.add(OUTPUT_DIR_OPTION);
         arguments.addQuoted(reportPath.getRemote());
+    }
+
+    private static boolean isBatchFile(final String executable) {
+        final String normalized = executable.toLowerCase(Locale.ENGLISH);
+        return normalized.endsWith(".cmd") || normalized.endsWith(".bat");
+    }
+
+    static ArgumentListBuilder protectWindowsBatchCommand(final ArgumentListBuilder arguments,
+                                                          final String executable,
+                                                          final boolean unix) {
+        if (!unix && isBatchFile(executable)) {
+            return arguments.toWindowsCommand();
+        }
         return arguments;
     }
 
