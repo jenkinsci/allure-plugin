@@ -68,8 +68,8 @@ class S3ArtifactManagerCompatibilityTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final Pattern ALLURE_CLI_VERSION_PATTERN =
-            Pattern.compile("<allureCommandline\\.version>([^<]+)</allureCommandline\\.version>");
+    private static final Pattern ALLURE_2_RECOMMENDED_VERSION_PATTERN =
+            Pattern.compile("<allure2\\.recommended\\.version>([^<]+)</allure2\\.recommended\\.version>");
     private static final Pattern URL_QUERY_PATTERN = Pattern.compile("(https?://[^\\s?]+)\\?[^\\s]+", Pattern.CASE_INSENSITIVE);
 
     private static final String ISSUE_URL = "https://github.com/jenkinsci/allure-plugin/issues/454";
@@ -501,11 +501,11 @@ class S3ArtifactManagerCompatibilityTest {
             return override.trim();
         }
         final String pom = Files.readString(rootDir.resolve("pom.xml"), StandardCharsets.UTF_8);
-        final Matcher matcher = ALLURE_CLI_VERSION_PATTERN.matcher(pom);
+        final Matcher matcher = ALLURE_2_RECOMMENDED_VERSION_PATTERN.matcher(pom);
         if (matcher.find()) {
             return matcher.group(1).trim();
         }
-        throw new IllegalStateException("Unable to resolve allureCommandline.version from root pom.xml");
+        throw new IllegalStateException("Unable to resolve allure2.recommended.version from root pom.xml");
     }
 
     private static String buildInitScript() {

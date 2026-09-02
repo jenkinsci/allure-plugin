@@ -71,8 +71,8 @@ class JenkinsCompatibilitySmokeTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    private static final Pattern ALLURE_CLI_VERSION_PATTERN =
-            Pattern.compile("<allureCommandline\\.version>([^<]+)</allureCommandline\\.version>");
+    private static final Pattern ALLURE_2_RECOMMENDED_VERSION_PATTERN =
+            Pattern.compile("<allure2\\.recommended\\.version>([^<]+)</allure2\\.recommended\\.version>");
 
     private static final String SMOKE_DATA_DIR = "/usr/share/jenkins/ref/smoke-data";
     private static final String PASSED_SAMPLE_RESOURCE = "src/test/resources/sample-testsuite.xml";
@@ -542,12 +542,12 @@ class JenkinsCompatibilitySmokeTest {
         }
 
         final String pom = Files.readString(rootDir.resolve("pom.xml"), StandardCharsets.UTF_8);
-        final Matcher matcher = ALLURE_CLI_VERSION_PATTERN.matcher(pom);
+        final Matcher matcher = ALLURE_2_RECOMMENDED_VERSION_PATTERN.matcher(pom);
         if (matcher.find()) {
             return matcher.group(1).trim();
         }
 
-        throw new IllegalStateException("Unable to resolve allureCommandline.version from root pom.xml");
+        throw new IllegalStateException("Unable to resolve allure2.recommended.version from root pom.xml");
     }
 
     private static String buildPluginsFile(final List<String> requiredPlugins) {
