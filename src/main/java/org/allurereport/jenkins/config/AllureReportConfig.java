@@ -48,6 +48,8 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties = Boolean.TRUE;
 
+    private Boolean includeHistory = Boolean.TRUE;
+
     @SuppressWarnings({"unused", "PMD.SingularField"})
     private String configPath = "";
 
@@ -114,6 +116,15 @@ public class AllureReportConfig implements Serializable {
 
     public Boolean getIncludeProperties() {
         return includeProperties;
+    }
+
+    @DataBoundSetter
+    public void setIncludeHistory(final Boolean includeHistory) {
+        this.includeHistory = includeHistory;
+    }
+
+    public Boolean getIncludeHistory() {
+        return includeHistory;
     }
 
     public static AllureReportConfig newInstance(final List<String> results) {
