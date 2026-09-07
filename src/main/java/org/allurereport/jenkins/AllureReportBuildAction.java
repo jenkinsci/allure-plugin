@@ -184,6 +184,10 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     @Override
     public String getIconFileName() {
+        return AllureReportPlugin.getCompactIconFilename();
+    }
+
+    public String getSummaryIconFileName() {
         return AllureReportPlugin.getIconFilename();
     }
 

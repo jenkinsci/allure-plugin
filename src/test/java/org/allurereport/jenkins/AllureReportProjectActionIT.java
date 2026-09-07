@@ -17,12 +17,16 @@ package org.allurereport.jenkins;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import org.allurereport.jenkins.testdata.TestUtils;
+import org.allurereport.jenkins.utils.BuildSummary;
+import org.htmlunit.html.HtmlPage;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.FailureBuilder;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.allurereport.jenkins.testdata.TestUtils.createAllurePublisher;
@@ -32,6 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AllureReportProjectActionIT {
 
     private static final String RESULTS_DIR = "allure-results";
+    private static final String PADDED_ICON_XPATH = "//img[contains(@src, '/img/icon.png')]";
+    private static final String COMPACT_ICON_XPATH = "//img[contains(@src, '/img/icon-compact.png')]";
 
     @ClassRule
     public static BuildWatcher buildWatcher = new BuildWatcher();
@@ -52,16 +58,59 @@ public class AllureReportProjectActionIT {
     }
 
     @Test
+    public void shouldHideAllureActionBeforeFirstReport() throws Exception {
+        final FreeStyleProject project = createProject();
+        final AllureReportProjectAction action = new AllureReportProjectAction(project);
+
+        assertThat(action.getTarget()).isNull();
+        assertThat(action.getIconFileName()).isNull();
+
+        final HtmlPage page = jRule.createWebClient().withJavaScriptEnabled(false).getPage(project);
+        assertThat(page.getByXPath(PADDED_ICON_XPATH)).isEmpty();
+        assertThat(page.getByXPath(COMPACT_ICON_XPATH)).isEmpty();
+    }
+
+    @Test
     public void shouldNotBuildGraphWithSingleAllureBuild() throws Exception {
         final FreeStyleProject project = createProject();
         project.getPublishersList().add(createAllurePublisher(jdk, commandline, RESULTS_DIR));
 
         final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
         final AllureReportProjectAction action = new AllureReportProjectAction(project);
+        final AllureReportBuildAction buildAction = build.getAction(AllureReportBuildAction.class);
 
-        assertThat(action.getLastAllureBuildAction()).isNotNull();
+        assertThat(buildAction).isNotNull();
+        assertThat(action.getTarget()).isSameAs(buildAction);
+        assertThat(action.getIconFileName()).isNotBlank();
         assertThat(action.getLastAllureBuildAction().getBuildNumber()).isEqualTo(build.getId());
         assertThat(action.isCanBuildGraph()).isFalse();
+    }
+
+    @Test
+    public void shouldUseContextAppropriateIconsOnProjectPage() throws Exception {
+        final FreeStyleProject project = createProject();
+        project.getPublishersList().add(createAllurePublisher(jdk, commandline, RESULTS_DIR));
+        jRule.buildAndAssertSuccess(project);
+
+        final HtmlPage page = jRule.createWebClient().withJavaScriptEnabled(false).getPage(project);
+
+        assertThat(page.getByXPath(PADDED_ICON_XPATH)).hasSize(1);
+        assertThat(page.getByXPath(COMPACT_ICON_XPATH)).hasSize(1);
+    }
+
+    @Test
+    public void shouldTargetLastAllureReportWhenLatestBuildHasNoReport() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleBuild allureBuild = jRule.buildAndAssertSuccess(project);
+        final AllureReportBuildAction buildAction = new AllureReportBuildAction(new BuildSummary(), false);
+        allureBuild.addAction(buildAction);
+        allureBuild.save();
+
+        project.getBuildersList().add(new FailureBuilder());
+        jRule.assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0));
+
+        final AllureReportProjectAction action = new AllureReportProjectAction(project);
+        assertThat(action.getTarget()).isSameAs(buildAction);
     }
 
     @Test

@@ -25,13 +25,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("ClassDataAbstractionCoupling")
 public class ReportBuilderTest {
 
     private static final String VERSION_3 = "3.1.0";
@@ -42,6 +45,9 @@ public class ReportBuilderTest {
     private static final String CONFIG = "--config";
     private static final String SINGLE_FILE = "--single-file";
     private static final String QUOTE = "\"";
+    private static final String WINDOWS_NODE = "C:\\tools\\node.exe";
+    private static final String WINDOWS_CLI = "C:\\tools\\allure\\cli.js";
+    private static final String WINDOWS_BATCH = "C:\\tools\\allure.cmd";
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -112,6 +118,48 @@ public class ReportBuilderTest {
     }
 
     @Test
+    public void managedAllure3UsesNodeAndCliAsSeparateArguments() throws Exception {
+        final File resultsDirectory = folder.newFolder("results&whoami&");
+        final File reportDirectory = new File(folder.getRoot(), "report&whoami&");
+        final FilePath results = new FilePath(resultsDirectory);
+        final FilePath report = new FilePath(reportDirectory);
+
+        final ArgumentListBuilder arguments = invokeArguments(
+                VERSION_3,
+                Collections.singletonList(results),
+                report,
+                null,
+                false,
+                new FakeAllureInstallation(VERSION_3, Arrays.asList(WINDOWS_NODE, WINDOWS_CLI))
+        );
+
+        assertThat(arguments.toList()).containsExactly(
+                WINDOWS_NODE,
+                WINDOWS_CLI,
+                GENERATE,
+                results.getRemote(),
+                OUTPUT,
+                report.getRemote()
+        );
+    }
+
+    @Test
+    public void windowsBatchArgumentsEscapeCommandMetacharacters() {
+        final ArgumentListBuilder raw = new ArgumentListBuilder();
+        raw.add(WINDOWS_BATCH, GENERATE, "C:\\workspace\\results&whoami&");
+
+        final ArgumentListBuilder escaped = ReportBuilder.protectWindowsBatchCommand(
+                raw,
+                WINDOWS_BATCH,
+                false
+        );
+
+        assertThat(escaped.toList()).startsWith("cmd.exe", "/C");
+        assertThat(String.join(" ", escaped.toList()))
+                .contains("\"C:\\workspace\\results&whoami&\"");
+    }
+
+    @Test
     public void allure1ArgumentsQuotePathsWithSpaces() throws Exception {
         final FilePath results = new FilePath(folder.newFolder("results with spaces"));
         final FilePath report = new FilePath(folder.newFolder("report with spaces"));
@@ -163,24 +211,54 @@ public class ReportBuilderTest {
         }
         builder.setSingleFile(singleFile);
 
-        final Method method = ReportBuilder.class.getDeclaredMethod(
-                "getArguments", String.class, List.class, FilePath.class
+        return builder.getArguments(version, resultsPaths, reportPath);
+    }
+
+    private ArgumentListBuilder invokeArguments(final String version,
+                                                final List<FilePath> resultsPaths,
+                                                final FilePath reportPath,
+                                                final FilePath configFilePath,
+                                                final boolean singleFile,
+                                                final AllureInstallation installation) throws Exception {
+        final StreamTaskListener listener = new StreamTaskListener(System.out, StandardCharsets.UTF_8);
+        final Launcher launcher = new Launcher.LocalLauncher(listener);
+        final FilePath workspace = new FilePath(folder.newFolder("workspace-prefix"));
+        final ReportBuilder builder = new ReportBuilder(
+                launcher,
+                listener,
+                workspace,
+                new EnvVars(),
+                installation
         );
-        method.setAccessible(true);
-        return (ArgumentListBuilder) method.invoke(builder, version, resultsPaths, reportPath);
+        if (configFilePath != null) {
+            builder.setConfigFilePath(configFilePath);
+        }
+        builder.setSingleFile(singleFile);
+        return builder.getArguments(version, resultsPaths, reportPath);
     }
 
     private static final class FakeAllureInstallation implements AllureInstallation {
 
         private final String version;
+        private final List<String> commandPrefix;
 
         private FakeAllureInstallation(final String version) {
+            this(version, Collections.singletonList(EXECUTABLE));
+        }
+
+        private FakeAllureInstallation(final String version, final List<String> commandPrefix) {
             this.version = version;
+            this.commandPrefix = commandPrefix;
         }
 
         @Override
         public String getExecutable(final Launcher launcher) {
             return EXECUTABLE;
+        }
+
+        @Override
+        public List<String> getCommandPrefix(final Launcher launcher) {
+            return commandPrefix;
         }
 
         @Override

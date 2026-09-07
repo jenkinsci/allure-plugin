@@ -5,16 +5,6 @@
     <f:entry title="${%Disabled}" field="disabled">
         <f:checkbox checked="${instance.isDisabled()}"/>
     </f:entry>
-    <f:entry title="${%AllureVersion}" field="allureVersion" description="${%AllureVersionDescription}">
-        <select class="setting-input" style="width: 90%" name="allureVersion" id="allureVersionSelect">
-            <f:option selected="${instance.getAllureVersion() == '2'}" value="2">
-                ${%Allure2Option}
-            </f:option>
-            <f:option selected="${instance.getAllureVersion() == '3'}" value="3">
-                ${%Allure3Option}
-            </f:option>
-        </select>
-    </f:entry>
     <f:entry title="${%Results}:" field="results" description="${%ResultsDescription}">
         <f:repeatable var="results" items="${instance.getResults()}" minimum="1">
             <table width="90%">
@@ -46,31 +36,28 @@
         </f:repeatable>
     </f:entry>
     <j:set var="installations" value="${descriptor.getCommandlineInstallations()}"/>
-    
-    <j:set var="isAllure2" value="${instance.getAllureVersion() == '2' or instance.getAllureVersion() == null}"/>
-    <j:set var="showQuickSetup" value="${empty(installations) and isAllure2 and app.hasPermission(app.ADMINISTER)}"/>
-    
+    <j:set var="legacyAllure3" value="${instance.isLegacyAllure3Configuration()}"/>
+    <j:set var="showQuickSetup" value="${empty(installations) and app.hasPermission(app.ADMINISTER)}"/>
+
     <f:entry>
-        <j:if test="${empty(installations) and isAllure2}">
+        <j:if test="${empty(installations)}">
             <div class="alert alert-warning" id="allure2Warning" style="padding: 15px; margin: 10px 0; border: 1px solid #f0ad4e; border-radius: 4px; background-color: #fcf8e3;">
                 <strong>⚠️ ${%QuickSetupWarningTitle}</strong>
                 <p>${%CommandlineMissingError(rootURL)}</p>
-                
+
                 <j:if test="${showQuickSetup}">
                     <div style="margin-top: 10px;">
                         <f:validateButton
                             title="${%QuickSetupButton}"
                             progress="${%QuickSetupProgress}"
                             method="quickSetup"
-                            with="version"
                             style="margin-right: 10px;"/>
-                        <input type="hidden" name="version" value="latest"/>
                         <span style="color: #666; font-size: 0.9em;">
                             ${%QuickSetupHint}
                         </span>
                     </div>
                 </j:if>
-                
+
                 <div style="margin-top: 10px;">
                     <p style="margin: 5px 0;">${%AlternativeOptions}</p>
                     <ul style="margin: 5px 0; padding-left: 20px;">
@@ -89,15 +76,21 @@
             </div>
         </j:if>
     </f:entry>
-    
-    <j:if test="${installations.size() > 0 and isAllure2}">
+
+    <j:if test="${installations.size() > 0 or legacyAllure3}">
         <f:entry title="${%Commandline}" description="${%CommandlineDescription}">
             <select class="setting-input" style="width: 90%" name="commandline">
-                <j:if test="${installations.size() > 1 and empty(instance.getCommandline())}">
+                <j:if test="${installations.size() > 1 and empty(instance.getCommandline()) and not legacyAllure3}">
                     <option value="">${%SelectInstallation}</option>
                 </j:if>
+                <j:if test="${legacyAllure3}">
+                    <f:option selected="true"
+                              value="${instance.getLegacyAllure3PathSelection()}">
+                        ${%LegacyAllure3Path}
+                    </f:option>
+                </j:if>
                 <j:forEach var="inst" items="${installations}">
-                    <f:option selected="${inst.name==instance.getCommandline()}"
+                    <f:option selected="${not legacyAllure3 and (inst.name==instance.getCommandline() or (installations.size()==1 and empty(instance.getCommandline())))}"
                               value="${inst.name}">
                         ${inst.name}
                     </f:option>

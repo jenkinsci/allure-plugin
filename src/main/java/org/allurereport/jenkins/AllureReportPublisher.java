@@ -48,6 +48,7 @@ import org.allurereport.jenkins.exception.AllurePluginException;
 import org.allurereport.jenkins.tools.Allure3Installation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
 import org.allurereport.jenkins.tools.AllureInstallation;
+import org.allurereport.jenkins.tools.AllureRuntimeManifest;
 import org.allurereport.jenkins.utils.AllureReportArchiveSource;
 import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
 import org.allurereport.jenkins.utils.BuildSummary;
@@ -100,11 +101,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             "Allure %s path must be a relative path inside the workspace: %s";
 
     private static final String NOT_FOUND_MESSAGE =
-            "Can not find allure commandline installation for given environment.";
+            "Can not find Allure installation for given environment.";
     private static final String SEPARATOR = ", ";
     private static final String NEWLINE = "\n";
     private static final String AVAILABLE_INSTALLATIONS = "Available installations: ";
     private static final String MATRIX_RUN_CLASS_NAME = "hudson.matrix.MatrixRun";
+    private static final String LEGACY_ALLURE3_PATH_SELECTION = "__allure3_path__";
     private AllureReportConfig config;
 
     private String configPath;
@@ -270,17 +272,37 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return "3".equals(getAllureVersion());
     }
 
-    private AllureInstallation getAllureInstallation(
+    public boolean isLegacyAllure3Configuration() {
+        return isAllure3() || isLegacyAllure3PathSelected();
+    }
+
+    public boolean isLegacyAllure3PathSelected() {
+        return LEGACY_ALLURE3_PATH_SELECTION.equals(getCommandline());
+    }
+
+    public String getLegacyAllure3PathSelection() {
+        return LEGACY_ALLURE3_PATH_SELECTION;
+    }
+
+    private ResolvedAllureInstallation resolveAllureInstallation(
         final @NonNull Launcher launcher,
         final @NonNull TaskListener listener,
         final @NonNull EnvVars env)
         throws IOException, InterruptedException {
 
-        if (isAllure3()) {
-            return getAllure3Installation(launcher, listener, env);
+        final AllureInstallation installation;
+        if (isLegacyAllure3Configuration()) {
+            installation = getAllure3Installation(launcher, listener, env);
         } else {
-            return getAllure2Installation(launcher, listener, env);
+            installation = getConfiguredInstallation(launcher, listener, env);
         }
+
+        final String version = installation.getVersion(launcher);
+        final int majorVersion = AllureRuntimeManifest.majorVersion(version);
+        if (majorVersion == AllureRuntimeManifest.UNKNOWN_MAJOR_VERSION) {
+            throw new AllurePluginException("Cannot determine Allure CLI version from '" + version + "'");
+        }
+        return new ResolvedAllureInstallation(installation, version);
     }
 
     private Allure3Installation getAllure3Installation(
@@ -305,7 +327,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return tool;
     }
 
-    private AllureCommandlineInstallation getAllure2Installation(
+    private AllureCommandlineInstallation getConfiguredInstallation(
         final @NonNull Launcher launcher,
         final @NonNull TaskListener listener,
         final @NonNull EnvVars env)
@@ -316,9 +338,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         if (installations.isEmpty()) {
             throw new AllurePluginException(
-                "No Allure CLI installation found."
-                + NEWLINE + "Please configure Allure CLI in Jenkins:"
-                + NEWLINE + "  Manage Jenkins - Tools - Allure Commandline"
+                "No Allure installation found."
+                + NEWLINE + "Please configure Allure in Jenkins:"
+                + NEWLINE + "  Manage Jenkins - Tools - Allure"
                 + NEWLINE + "Or use 'Quick Setup' button in job configuration (admin only).");
         }
 
@@ -363,9 +385,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             .map(AllureCommandlineInstallation::getName)
             .collect(Collectors.joining(SEPARATOR));
         throw new AllurePluginException(
-            "Multiple Allure CLI installations found, please select one in job configuration."
+            "Multiple Allure installations found, please select one in job configuration."
             + NEWLINE + AVAILABLE_INSTALLATIONS + installationsList
-            + NEWLINE + "Configure in: Job Configuration → Post-build Actions - Allure Report - Commandline");
+            + NEWLINE + "Configure in: Job Configuration → Post-build Actions - Allure Report - Allure installation");
     }
 
     @DataBoundSetter
@@ -473,8 +495,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             final String expandedPath = env.expand(resultsConfig.getPath());
             results.addAll(workspace.act(new FindByGlob(expandedPath)));
         }
-        prepareResults(results, run, workspace, listener);
-        generateReport(results, run, workspace, env, launcher, listener);
+        if (!shouldGenerateReport(run, listener)) {
+            copyResultsToParentIfNeeded(results, run, listener);
+            return;
+        }
+        final ResolvedAllureInstallation resolved = resolveAllureInstallation(launcher, listener, env);
+        prepareResults(results, run, workspace, listener, resolved.allure3);
+        generateReport(results, run, workspace, env, launcher, listener, resolved);
         copyResultsToParentIfNeeded(results, run, listener);
     }
 
@@ -546,30 +573,51 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         final @NonNull Launcher launcher,
         final @NonNull TaskListener listener
     ) throws IOException, InterruptedException {
-        final ReportBuildPolicy reportBuildPolicy = getReportBuildPolicy();
-
-        if (!reportBuildPolicy.isNeedToBuildReport(run)) {
-            listener.getLogger().printf("Allure report generation reject by policy [%s]%n",
-                reportBuildPolicy.getTitle());
+        if (!shouldGenerateReport(run, listener)) {
             return;
         }
+        final ResolvedAllureInstallation resolved = resolveAllureInstallation(launcher, listener, env);
+        // Matrix children may have skipped report generation by policy and copied their
+        // unmodified results to the parent. Prepare the aggregate once more using the
+        // version that will actually generate the parent report.
+        prepareResults(resultsPaths, run, workspace, listener, resolved.allure3);
+        generateReport(resultsPaths, run, workspace, env, launcher, listener, resolved);
+    }
 
+    private void generateReport(
+        final @NonNull List<FilePath> resultsPaths,
+        final @NonNull Run<?, ?> run,
+        final @NonNull FilePath workspace,
+        final @NonNull EnvVars env,
+        final @NonNull Launcher launcher,
+        final @NonNull TaskListener listener,
+        final @NonNull ResolvedAllureInstallation resolved
+    ) throws IOException, InterruptedException {
         setAllureProperties(env);
 
-        // Only configure JDK for Allure 2 (Java-based), not for Allure 3 (Node.js-based)
-        if (!isAllure3()) {
+        if (!resolved.allure3) {
             configureJdk(launcher, listener, env);
         }
 
-        final AllureInstallation allureInstallation = getAllureInstallation(launcher, listener, env);
-        listener.getLogger().printf("Using Allure %s%n", getAllureVersion());
+        listener.getLogger().printf(
+                "Using Allure CLI %s from installation '%s'%n",
+                resolved.getVersion(),
+                resolved.getInstallation().getName()
+        );
 
         final String reportDirPath = getReport();
         final FilePath reportDirectoryInWorkspace = workspace.child(reportDirPath);
 
-        cleanReportDirIfNeeded(reportDirectoryInWorkspace, listener);
+        cleanReportDirIfNeeded(reportDirectoryInWorkspace, listener, resolved.allure3);
 
-        final ReportBuilder builder = new ReportBuilder(launcher, listener, workspace, env, allureInstallation);
+        final ReportBuilder builder = new ReportBuilder(
+                launcher,
+                listener,
+                workspace,
+                env,
+                resolved.getInstallation(),
+                resolved.getVersion()
+        );
         if (getConfigPath() != null && workspace.child(getConfigPath()).exists()) {
             final FilePath configFilePath = workspace.child(getConfigPath()).absolutize();
             listener.getLogger().println("Allure config file: " + configFilePath.absolutize());
@@ -597,18 +645,30 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
                     resultsPaths, reportDirectoryInWorkspace, listener.getLogger());
         }
 
-        saveAllureArtifact(run, workspace, listener, launcher);
+        saveAllureArtifact(run, workspace, listener, launcher, resolved.allure3);
 
         final String reportName = reportDirectoryInWorkspace.getName();
 
         final AllureReportBuildAction buildAction = new AllureReportBuildAction(
-            FilePathUtils.extractSummary(run, reportName, isAllure3()),
-                isAllure3()
+                FilePathUtils.extractSummary(run, reportName, resolved.allure3),
+                resolved.allure3
         );
         buildAction.setReportPath(reportDirectoryInWorkspace);
         buildAction.setSingleFile(outcome.isSingleFileGenerated());
         run.addAction(buildAction);
         applyResultStatus(run, buildAction.getBuildSummary());
+    }
+
+    private boolean shouldGenerateReport(final Run<?, ?> run, final TaskListener listener) {
+        final ReportBuildPolicy policy = getReportBuildPolicy();
+        if (policy.isNeedToBuildReport(run)) {
+            return true;
+        }
+        listener.getLogger().printf(
+                "Allure report generation rejected by policy [%s]%n",
+                policy.getTitle()
+        );
+        return false;
     }
 
     void validatePublisherPaths(final FilePath workspace) throws IOException, InterruptedException {
@@ -629,8 +689,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void cleanReportDirIfNeeded(final FilePath reportDirectoryInWorkspace,
-                                        final TaskListener listener) throws IOException {
-        if (!isAllure3()) {
+                                        final TaskListener listener,
+                                        final boolean allure3) throws IOException {
+        if (!allure3) {
             return;
         }
         try {
@@ -660,7 +721,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void saveAllureArtifact(final Run<?, ?> run,
                                     final FilePath workspace,
                                     final TaskListener listener,
-                                    final Launcher launcher) throws IOException, InterruptedException {
+                                    final Launcher launcher,
+                                    final boolean allure3) throws IOException, InterruptedException {
         final String reportDirPath = getReport();
         final FilePath reportPathWs = workspace.child(reportDirPath);
 
@@ -669,7 +731,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
             return;
         }
 
-        createSummaryJson(workspace, reportPathWs);
+        createSummaryJson(workspace, reportPathWs, allure3);
 
         workspace.act(new AllureReportArchive(reportDirPath, REPORT_ARCHIVE_NAME));
 
@@ -734,8 +796,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void createSummaryJson(final FilePath workspace,
-                                  final FilePath reportPathWs) throws IOException, InterruptedException {
-        final FilePath summarySource = findSummaryJsonInReport(reportPathWs);
+                                  final FilePath reportPathWs,
+                                  final boolean allure3) throws IOException, InterruptedException {
+        final FilePath summarySource = findSummaryJsonInReport(reportPathWs, allure3);
         if (summarySource != null && summarySource.exists()) {
             final FilePath summaryDest = workspace.child(SUMMARY_ARTIFACT_NAME);
             if (summaryDest.exists()) {
@@ -745,8 +808,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private FilePath findSummaryJsonInReport(final FilePath reportDir) throws IOException, InterruptedException {
-        if (isAllure3()) {
+    private FilePath findSummaryJsonInReport(final FilePath reportDir,
+                                             final boolean allure3) throws IOException, InterruptedException {
+        if (allure3) {
             final FilePath awesome = reportDir.child(DIR_AWESOME).child(DIR_WIDGETS).child(FILE_SUMMARY_JSON);
             if (awesome.exists()) {
                 return awesome;
@@ -794,10 +858,11 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     private void prepareResults(final @NonNull List<FilePath> resultsPaths,
         final @NonNull Run<?, ?> run,
         final @NonNull FilePath workspace,
-        final @NonNull TaskListener listener)
+        final @NonNull TaskListener listener,
+        final boolean allure3)
         throws IOException, InterruptedException {
         addHistory(resultsPaths, run, workspace, listener);
-        if (isAllure3()) {
+        if (allure3) {
             quarantineLegacyTestRunJson(resultsPaths);
             addEnvironmentInfo(resultsPaths, run);
         } else {
@@ -1004,6 +1069,27 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
 
         return new BuildOutcome(exitCode, singleFileGenerated);
+    }
+
+    private static final class ResolvedAllureInstallation {
+        private final AllureInstallation installation;
+        private final String version;
+        private final boolean allure3;
+
+        private ResolvedAllureInstallation(final AllureInstallation installation,
+                                           final String version) {
+            this.installation = installation;
+            this.version = version;
+            this.allure3 = AllureRuntimeManifest.isAllure3(version);
+        }
+
+        private AllureInstallation getInstallation() {
+            return installation;
+        }
+
+        private String getVersion() {
+            return version;
+        }
     }
 
     private static final class BuildOutcome {

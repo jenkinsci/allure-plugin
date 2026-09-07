@@ -35,15 +35,14 @@ import org.allurereport.jenkins.config.ReportBuildPolicy;
 import org.allurereport.jenkins.config.ReportStorage;
 import org.allurereport.jenkins.config.ResultPolicy;
 import org.allurereport.jenkins.tools.Allure3Installation;
-import org.allurereport.jenkins.tools.AllureCommandlineDirectInstaller;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
-import org.allurereport.jenkins.tools.AllureVersionService;
+import org.allurereport.jenkins.tools.AllureManagedInstaller;
+import org.allurereport.jenkins.tools.AllureRuntimeManifest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
@@ -210,7 +209,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public FormValidation doQuickSetup(@QueryParameter final String version) {
+    public FormValidation doQuickSetup() {
         Jenkins.get().checkPermission(Jenkins.ADMINISTER);
 
         synchronized (quickSetupLock) {
@@ -219,7 +218,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                     Jenkins.get().getDescriptorByType(AllureCommandlineInstallation.DescriptorImpl.class);
 
                 if (descriptor == null) {
-                    return FormValidation.error("Allure CLI descriptor not found");
+                    return FormValidation.error("Allure installation descriptor not found");
                 }
 
                 final AllureCommandlineInstallation[] existing = descriptor.getInstallations();
@@ -228,14 +227,13 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                         .map(AllureCommandlineInstallation::getName)
                         .collect(Collectors.joining(", "));
                     return FormValidation.ok(
-                        "Allure CLI already configured: "
+                        "Allure installation already configured: "
                         + existingNames);
                 }
 
-                final String targetVersion = determineVersion(version);
-
-                final AllureCommandlineDirectInstaller installer =
-                    new AllureCommandlineDirectInstaller(targetVersion);
+                final AllureManagedInstaller installer = new AllureManagedInstaller(
+                        AllureManagedInstaller.VERSION_POLICY_RECOMMENDED
+                );
 
                 final InstallSourceProperty installSource =
                     new InstallSourceProperty(Collections.singletonList(installer));
@@ -245,7 +243,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
 
                 final AllureCommandlineInstallation installation =
                     new AllureCommandlineInstallation(
-                        "Allure " + targetVersion,
+                        "Allure",
                         "",
                         properties
                     );
@@ -260,28 +258,20 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                 }
 
                 return FormValidation.ok(
-                    "✓ Successfully configured Allure CLI " + targetVersion
+                    "Successfully configured recommended Allure "
+                    + AllureRuntimeManifest.RECOMMENDED_ALLURE_VERSION
                     + NEWLINE + "Installation will be downloaded automatically on first use."
-                    + NEWLINE + "You can manage installations in: Manage Jenkins - Tools - Allure Commandline");
+                    + NEWLINE + "You can manage installations in: Manage Jenkins - Tools - Allure");
 
             } catch (Exception e) {
                 return FormValidation.error(
-                    "Failed to setup Allure CLI: " + e.getMessage()
+                    "Failed to set up Allure installation: " + e.getMessage()
                     + NEWLINE + "Please configure manually in Global Tool Configuration.");
             }
         }
     }
 
-    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
-    private String determineVersion(final String requestedVersion) {
-        final String latestKeyword = "latest";
-        if (latestKeyword.equals(requestedVersion) || StringUtils.isBlank(requestedVersion)) {
-            try {
-                return AllureVersionService.getLatestStableVersion();
-            } catch (Exception e) {
-                return AllureVersionService.FALLBACK_VERSION;
-            }
-        }
-        return requestedVersion;
+    public String getRecommendedVersion() {
+        return AllureRuntimeManifest.RECOMMENDED_ALLURE_VERSION;
     }
 }

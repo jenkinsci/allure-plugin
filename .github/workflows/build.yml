@@ -14,11 +14,21 @@ on:
 
 jobs:
   build:
-    name: Build and test
-    runs-on: ubuntu-latest
+    name: Build and test (${{ matrix.environment }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: ubuntu-latest
+          environment: ubuntu-jdk-17
+          maven_command: ./mvnw
+        - os: windows-latest
+          environment: windows-jdk-17
+          maven_command: .\mvnw.cmd
     env:
-      ALLURE_DUMP_NAME: allure-results-build
-      ALLURE_ENVIRONMENT: ubuntu-jdk-17
+      ALLURE_DUMP_NAME: allure-results-build-${{ matrix.environment }}
+      ALLURE_ENVIRONMENT: ${{ matrix.environment }}
     steps:
     - uses: actions/checkout@v7
       with:
@@ -35,10 +45,10 @@ jobs:
     - name: Build and test with Allure
       run: >-
         npx --yes allure@3 run
-        --environment="${ALLURE_ENVIRONMENT}"
-        --dump="${ALLURE_DUMP_NAME}"
+        --environment="${{ env.ALLURE_ENVIRONMENT }}"
+        --dump="${{ env.ALLURE_DUMP_NAME }}"
         --results-dir=target/allure-results
-        -- ./mvnw -B -ntp verify
+        -- ${{ matrix.maven_command }} -B -ntp verify
     - name: Upload Allure dump
       if: always()
       uses: actions/upload-artifact@v4

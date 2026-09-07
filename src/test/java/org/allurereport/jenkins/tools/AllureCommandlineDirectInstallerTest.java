@@ -15,9 +15,21 @@
  */
 package org.allurereport.jenkins.tools;
 
+import hudson.FilePath;
+import hudson.util.StreamTaskListener;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AllureCommandlineDirectInstallerTest {
 
@@ -34,6 +46,13 @@ public class AllureCommandlineDirectInstallerTest {
             MIRROR_URL + ARTIFACT_PATH_SUFFIX;
     private static final String EXPECTED_VERSION_FRAGMENT =
             "/2.35.1/allure-commandline-2.35.1.zip";
+    private static final String BIN_DIRECTORY = "bin";
+    private static final String LIB_DIRECTORY = "lib";
+    private static final String BIN_ALLURE = "bin/allure";
+    private static final String LEGACY_VERSION_JAR = "lib/allure-commandline-2.30.0.jar";
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
     public void buildDownloadUrlUsesDefaultBaseUrl() {
@@ -112,6 +131,7 @@ public class AllureCommandlineDirectInstallerTest {
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("10.0.0").matches()).isTrue();
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("1.0.0-alpha").matches()).isTrue();
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("1.0.0-alpha.1").matches()).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("1.0.0-rc-feature.1").matches()).isTrue();
     }
 
     @Test
@@ -121,6 +141,24 @@ public class AllureCommandlineDirectInstallerTest {
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("latest").matches()).isFalse();
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("v2.30.0").matches()).isFalse();
         assertThat(AllureCommandlineDirectInstaller.SEMVER_PATTERN.matcher("2.30.0.1").matches()).isFalse();
+    }
+
+    @Test
+    public void directInstallerRejectsVersionPathTraversalBeforeBuildingPaths() {
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller("2.35.1/../../outside");
+
+        assertThatThrownBy(installer::validatedVersion)
+                .isInstanceOf(java.io.IOException.class)
+                .hasMessageContaining("exact semantic version");
+    }
+
+    @Test
+    public void directInstallerNormalizesAnExactVersion() throws Exception {
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(" 2.35.1 ");
+
+        assertThat(installer.validatedVersion()).isEqualTo(VERSION_2_35_1);
     }
 
     @Test
@@ -135,7 +173,7 @@ public class AllureCommandlineDirectInstallerTest {
 
     @Test
     public void zipSlipAllowsNormalEntries() {
-        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("bin/allure")).isFalse();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry(BIN_ALLURE)).isFalse();
         assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("lib/allure.jar")).isFalse();
         assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("config/allure.yml")).isFalse();
     }
@@ -171,5 +209,143 @@ public class AllureCommandlineDirectInstallerTest {
     public void zipSlipDetectsWindowsUncAbsolutePath() {
         assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("\\\\server\\share\\file.txt"))
                 .isTrue();
+    }
+
+    @Test
+    public void zipSlipDetectsWindowsRootRelativePath() {
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("\\Windows\\System32\\file.txt"))
+                .isTrue();
+    }
+
+    @Test
+    public void zipSlipDetectsWindowsTrailingSpaceAndPeriodAliases() {
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry(".. /outside.txt")).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("../outside.txt")).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("folder./outside.txt")).isTrue();
+    }
+
+    @Test
+    public void zipSlipDetectsNtfsStreamsAndDeviceNames() {
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("bin/allure:payload")).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("lib/CON.txt")).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("lib/LPT1")).isTrue();
+        assertThat(AllureCommandlineDirectInstaller.isUnsafeZipEntry("lib/COM¹.txt")).isTrue();
+    }
+
+    @Test
+    public void extractionFailsBeforeWindowsAliasCanEscapeTarget() throws Exception {
+        final Path archive = folder.newFile("malicious.zip").toPath();
+        try (OutputStream output = Files.newOutputStream(archive);
+             ZipOutputStream zip = new ZipOutputStream(output)) {
+            writeEntry(zip, "allure-commandline-2.35.1/bin/allure", "fixture");
+            writeEntry(zip, "allure-commandline-2.35.1/.. /outside.txt", "escaped");
+        }
+        final FilePath target = new FilePath(folder.newFolder("extract-parent")).child("target");
+        final FilePath outside = target.getParent().child("outside.txt");
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(VERSION_2_35_1);
+
+        assertThatThrownBy(() -> installer.extractZip(
+                new FilePath(archive.toFile()),
+                target,
+                VERSION_2_35_1
+        )).isInstanceOf(java.io.IOException.class)
+                .hasMessageContaining("Refusing unsafe archive entry");
+        assertThat(outside.exists()).isFalse();
+    }
+
+    @Test
+    public void extractionCountsPayloadHiddenInDirectoryEntries() throws Exception {
+        final Path archive = folder.newFile("directory-payload.zip").toPath();
+        try (OutputStream output = Files.newOutputStream(archive);
+             ZipOutputStream zip = new ZipOutputStream(output)) {
+            writeEntry(zip, "allure-commandline-2.35.1/lib/", "hidden payload");
+        }
+        final FilePath target = new FilePath(folder.newFolder("directory-payload-target"));
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(VERSION_2_35_1);
+
+        assertThatThrownBy(() -> installer.extractZip(
+                new FilePath(archive.toFile()),
+                target,
+                VERSION_2_35_1,
+                8,
+                10
+        )).isInstanceOf(java.io.IOException.class)
+                .hasMessageContaining("exceeds the limit");
+    }
+
+    @Test
+    public void managedDownloadRequiresHttpsAndRejectsEmbeddedCredentials() {
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(VERSION_2_35_1);
+        installer.setRequireHttps(true);
+
+        assertThatThrownBy(() -> installer.validateDownloadUrl(
+                "http://mirror.example.test/allure-commandline.zip"
+        )).isInstanceOf(java.io.IOException.class)
+                .hasMessageContaining("must use https");
+        assertThatThrownBy(() -> installer.validateDownloadUrl(
+                "https://user:secret@mirror.example.test/allure-commandline.zip"
+        )).isInstanceOf(java.io.IOException.class)
+                .hasMessageContaining("must not contain credentials");
+    }
+
+    @Test
+    public void mirrorUrlRedactionRemovesCredentialsQueryAndFragment() {
+        assertThat(AllureCommandlineDirectInstaller.redactUrl(
+                "https://user:secret@mirror.example.test/maven2?token=secret#fragment"
+        )).isEqualTo("https://mirror.example.test/maven2");
+    }
+
+    @Test
+    public void matchingLegacyCacheIsAdoptedWithoutDownload() throws Exception {
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(VERSION_2_30_0);
+        final FilePath installation = new FilePath(folder.newFolder("matching-legacy"));
+        installation.child(BIN_DIRECTORY).mkdirs();
+        installation.child(LIB_DIRECTORY).mkdirs();
+        installation.child(BIN_ALLURE).write("", StandardCharsets.UTF_8.name());
+        installation.child(LEGACY_VERSION_JAR)
+                .write("", StandardCharsets.UTF_8.name());
+
+        final boolean cached = installer.isCachedInstallation(
+                installation,
+                VERSION_2_30_0,
+                new StreamTaskListener(System.out, StandardCharsets.UTF_8)
+        );
+
+        assertThat(cached).isTrue();
+        assertThat(installation.child(".allure-version").readToString().trim())
+                .isEqualTo(VERSION_2_30_0);
+    }
+
+    @Test
+    public void legacyCacheForDifferentVersionIsRejected() throws Exception {
+        final AllureCommandlineDirectInstaller installer =
+                new AllureCommandlineDirectInstaller(VERSION_2_35_1);
+        final FilePath installation = new FilePath(folder.newFolder("stale-legacy"));
+        installation.child(BIN_DIRECTORY).mkdirs();
+        installation.child(LIB_DIRECTORY).mkdirs();
+        installation.child(BIN_ALLURE).write("", StandardCharsets.UTF_8.name());
+        installation.child(LEGACY_VERSION_JAR)
+                .write("", StandardCharsets.UTF_8.name());
+
+        final boolean cached = installer.isCachedInstallation(
+                installation,
+                VERSION_2_35_1,
+                new StreamTaskListener(System.out, StandardCharsets.UTF_8)
+        );
+
+        assertThat(cached).isFalse();
+        assertThat(installation.exists()).isFalse();
+    }
+
+    private static void writeEntry(final ZipOutputStream zip,
+                                   final String name,
+                                   final String content) throws Exception {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(content.getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
     }
 }

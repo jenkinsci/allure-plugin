@@ -15,7 +15,10 @@
  */
 package org.allurereport.jenkins;
 
+import hudson.tools.InstallSourceProperty;
+import hudson.util.FormValidation;
 import org.allurereport.jenkins.tools.AllureCommandlineInstallation;
+import org.allurereport.jenkins.tools.AllureManagedInstaller;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -85,6 +88,34 @@ public class AllureReportPublisherDescriptorTest {
         jRule.configRoundtrip();
 
         assertThat(descriptor().getReportStorage()).isEqualTo(LOCAL_ON_CONTROLLER);
+    }
+
+    @Test
+    public void quickSetupCreatesRecommendedUnifiedInstallation() {
+        final FormValidation result = descriptor().doQuickSetup();
+
+        assertThat(result.kind).isEqualTo(FormValidation.Kind.OK);
+        assertThat(descriptor().getCommandlineInstallations()).singleElement().satisfies(installation -> {
+            assertThat(installation.getName()).isEqualTo("Allure");
+            final InstallSourceProperty source = installation.getProperties().get(InstallSourceProperty.class);
+            assertThat(source).isNotNull();
+            assertThat(source.installers).singleElement()
+                    .isInstanceOfSatisfying(AllureManagedInstaller.class, installer -> {
+                        assertThat(installer.isRecommended()).isTrue();
+                        assertThat(installer.getVersionPolicy())
+                                .isEqualTo(AllureManagedInstaller.VERSION_POLICY_RECOMMENDED);
+                    });
+        });
+    }
+
+    @Test
+    public void quickSetupDoesNotDuplicateExistingInstallation() {
+        descriptor().doQuickSetup();
+
+        final FormValidation secondResult = descriptor().doQuickSetup();
+
+        assertThat(secondResult.kind).isEqualTo(FormValidation.Kind.OK);
+        assertThat(descriptor().getCommandlineInstallations()).hasSize(1);
     }
 
     private AllureReportPublisherDescriptor descriptor() {

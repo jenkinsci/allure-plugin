@@ -117,7 +117,14 @@ npx --yes allure@3 agent --rerun-latest --rerun-preset unsuccessful \
 
 ## Inspecting CI Evidence
 
-The build workflow retains `allure-results-build` as an Allure dump and generates the `allure-report` artifact in an always-run report job. Report plugins, grouping, and conditional Allure Service access are configured in `allurerc.mjs`. When the `ALLURE_SERVICE_TOKEN` GitHub Actions secret is available, the same report generation command also publishes the report to Allure Service. Fork pull requests, where repository secrets are unavailable, still retain the downloadable dump and report artifacts. Compatibility jobs retain `compat-<version>-allure3-dump`; the dedicated S3 job retains `compat-2.541.3-s3-allure3-dump`.
+The build workflow runs on Ubuntu and Windows and retains one Allure dump per environment as
+`allure-results-build-<environment>`. Its always-run report job merges both dumps into the
+`allure-report` artifact. Report plugins, grouping, and conditional Allure Service access are
+configured in `allurerc.mjs`. When the `ALLURE_SERVICE_TOKEN` GitHub Actions secret is available,
+the same report generation command also publishes the report to Allure Service. Fork pull requests,
+where repository secrets are unavailable, still retain the downloadable dumps and report artifacts.
+Compatibility jobs retain `compat-<version>-allure3-dump`; the dedicated S3 job retains
+`compat-2.541.3-s3-allure3-dump`.
 
 Inspect downloaded artifacts before trying to reproduce a CI-only failure:
 

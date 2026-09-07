@@ -19,6 +19,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Launcher;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Common interface for Allure tool installations (both Allure 2 and Allure 3).
@@ -34,6 +36,34 @@ public interface AllureInstallation {
      * @throws IOException if an I/O error occurs
      */
     String getExecutable(@NonNull Launcher launcher) throws InterruptedException, IOException;
+
+    /**
+     * Get the command prefix used to invoke Allure. Most installations consist of one executable.
+     * Managed Allure 3 installations return the private Node.js executable and CLI script as
+     * separate arguments so Jenkins never has to forward workspace paths through a batch file.
+     *
+     * @param launcher the launcher to use for remote inspection
+     * @return command arguments that must precede Allure CLI arguments
+     * @throws InterruptedException if the operation is interrupted
+     * @throws IOException if an I/O error occurs
+     */
+    default List<String> getCommandPrefix(final @NonNull Launcher launcher)
+            throws InterruptedException, IOException {
+        return Collections.singletonList(getExecutable(launcher));
+    }
+
+    /**
+     * Get the resolved Allure version. Managed installations return an exact version;
+     * legacy installations may return only the detected major version.
+     *
+     * @param launcher the launcher to use for remote inspection
+     * @return the exact or best-known version
+     * @throws InterruptedException if the operation is interrupted
+     * @throws IOException if an I/O error occurs
+     */
+    default String getVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+        return getMajorVersion(launcher);
+    }
 
     /**
      * Get the major version of Allure (e.g., "1", "2", or "3").

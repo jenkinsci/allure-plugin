@@ -20,6 +20,8 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Launcher;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.EnvironmentSpecific;
 import hudson.model.Node;
 import hudson.model.TaskListener;
@@ -28,11 +30,12 @@ import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
 import hudson.tools.ToolProperty;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import jenkins.security.MasterToSlaveCallable;
+import org.allurereport.jenkins.Messages;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.allurereport.jenkins.Messages;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -80,7 +83,12 @@ public class Allure3Installation extends ToolInstallation
      */
     @Override
     public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
-        return launcher.getChannel().call(new GetMajorVersion());
+        return parseMajorVersion(getVersion(launcher));
+    }
+
+    @Override
+    public String getVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+        return launcher.getChannel().call(new GetVersion());
     }
 
     @Override
@@ -146,7 +154,7 @@ public class Allure3Installation extends ToolInstallation
     /**
      * Callable to get the major version on the remote node.
      */
-    private static final class GetMajorVersion extends MasterToSlaveCallable<String, IOException> {
+    private static final class GetVersion extends MasterToSlaveCallable<String, IOException> {
         @Override
         public String call() throws IOException {
             final String executable = getExecutableName();
@@ -167,14 +175,15 @@ public class Allure3Installation extends ToolInstallation
 
                 final int exitCode = process.waitFor();
                 if (exitCode == 0 && version != null) {
-                    // Extract major version from version string (e.g., "3.1.0" -> "3")
-                    return parseMajorVersion(version);
+                    return version;
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Failed to get Allure version", e);
+            } catch (IOException ignored) {
+                // Preserve the released PATH-based behavior when probing is unavailable.
             }
-            // Default to version 3 for Allure3Installation
+            // Preserve the released PATH-based behavior when version probing fails.
             return VERSION_3;
         }
     }
@@ -248,6 +257,17 @@ public class Allure3Installation extends ToolInstallation
                 return FormValidation.error("Cannot find allure in PATH. "
                         + "Please install Allure 3 via: npm install -g allure");
             }
+        }
+    }
+
+    /**
+     * Keeps the released PATH-based descriptor loadable without advertising a second Allure tool.
+     */
+    @Extension
+    public static class LegacyDescriptorVisibilityFilter extends DescriptorVisibilityFilter {
+        @Override
+        public boolean filter(final Object context, final Descriptor descriptor) {
+            return !(context instanceof Jenkins && descriptor instanceof DescriptorImpl);
         }
     }
 }

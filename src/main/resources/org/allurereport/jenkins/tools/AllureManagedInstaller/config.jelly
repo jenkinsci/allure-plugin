@@ -1,0 +1,46 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%VersionPolicy}" field="versionPolicy" description="${%VersionPolicyDescription}">
+        <select class="setting-input dropdownList" name="versionPolicy">
+            <f:option selected="${instance.versionPolicy == 'recommended-3'}" value="recommended-3">
+                ${%RecommendedVersion(descriptor.recommendedVersion)}
+            </f:option>
+            <f:option selected="${instance.versionPolicy == 'recommended-2'}" value="recommended-2">
+                ${%RecommendedAllure2Version(descriptor.recommendedAllure2Version)}
+            </f:option>
+            <f:option selected="${instance.versionPolicy == 'fixed'}" value="fixed">
+                ${%FixedVersion}
+            </f:option>
+        </select>
+    </f:entry>
+    <div class="dropdownList-container tr">
+        <div>
+            <div width="100%">
+                <!-- The groups correspond to the version-policy options above, in the same order. -->
+                <div class="dropdownList-start rowvg-start tr"></div>
+                <div class="dropdownList-end rowvg-end tr"></div>
+                <div class="dropdownList-start rowvg-start tr"></div>
+                <div class="dropdownList-end rowvg-end tr"></div>
+                <div class="dropdownList-start rowvg-start tr"></div>
+                <f:entry title="${%Version}" field="version" description="${%VersionDescription}">
+                    <f:textbox checkDependsOn="versionPolicy" />
+                </f:entry>
+                <div class="dropdownList-end rowvg-end tr"></div>
+            </div>
+        </div>
+    </div>
+    <f:advanced>
+        <f:entry title="${%Allure2BaseUrl}" field="allure2BaseUrl"
+                 description="${%Allure2BaseUrlDescription}">
+            <f:textbox value="${instance.allure2BaseUrl}" />
+        </f:entry>
+        <f:entry title="${%NodeDownloadBaseUrl}" field="nodeDownloadBaseUrl"
+                 description="${%NodeDownloadBaseUrlDescription}">
+            <f:textbox value="${instance.nodeDownloadBaseUrl}" />
+        </f:entry>
+        <f:entry title="${%NpmRegistry}" field="npmRegistry"
+                 description="${%NpmRegistryDescription}">
+            <f:textbox value="${instance.npmRegistry}" />
+        </f:entry>
+    </f:advanced>
+</j:jelly>

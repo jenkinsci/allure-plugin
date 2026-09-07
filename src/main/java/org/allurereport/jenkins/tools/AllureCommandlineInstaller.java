@@ -66,7 +66,9 @@ public class AllureCommandlineInstaller extends DownloadFromUrlInstaller {
 
         @Override
         public boolean isApplicable(final Class<? extends ToolInstallation> toolType) {
-            return toolType == AllureCommandlineInstallation.class;
+            // Kept for deserializing and running existing installations. New configurations
+            // use AllureManagedInstaller for both Allure 2 and Allure 3.
+            return false;
         }
 
         private List<? extends DownloadFromUrlInstaller.Installable> readInstallables(final String metadataId)

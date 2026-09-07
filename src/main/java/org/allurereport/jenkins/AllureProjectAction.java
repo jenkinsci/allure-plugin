@@ -43,6 +43,10 @@ public class AllureProjectAction implements ProminentProjectAction, StaplerProxy
         return this.getTarget() != null ? AllureReportPlugin.getIconFilename() : null;
     }
 
+    public String getCompactIconFileName() {
+        return this.getTarget() != null ? AllureReportPlugin.getCompactIconFilename() : null;
+    }
+
     @Override
     public String getUrlName() {
         return AllureReportPlugin.URL_PATH;
