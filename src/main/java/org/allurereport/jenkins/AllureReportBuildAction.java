@@ -309,8 +309,7 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     public void doDownloadIndex(final StaplerRequest request, final StaplerResponse response)
             throws IOException, InterruptedException, ServletException {
 
-        response.setHeader(HEADER_CONTENT_SECURITY_POLICY, "");
-        response.setHeader(HEADER_X_CONTENT_TYPE_OPTIONS, HEADER_NOSNIFF);
+        setReportFileHeaders(response, INDEX_HTML);
         response.setHeader(HEADER_CONTENT_DISPOSITION, "attachment; filename=\"" + INDEX_HTML + "\"");
 
         final FilePath runRootDir = new FilePath(run.getRootDir());

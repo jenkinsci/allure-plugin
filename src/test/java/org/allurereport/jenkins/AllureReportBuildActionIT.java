@@ -17,6 +17,7 @@ package org.allurereport.jenkins;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import io.qameta.allure.Allure;
 import org.allurereport.jenkins.testdata.TestUtils;
 import org.allurereport.jenkins.utils.AllureReportArchiveSource;
 import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
@@ -41,6 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.allurereport.jenkins.ArchivedReportTestSupport.buildArchivedReportWithEntries;
 import static org.allurereport.jenkins.ArchivedReportTestSupport.buildDirectoryReportWithEntries;
@@ -82,13 +84,14 @@ public class AllureReportBuildActionIT {
     private static final String LEGACY_INDEX_CONTENT = "<html>legacy</html>";
     private static final String SVG_SCRIPT =
             "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>";
-    private static final String CSP_REPORT_POLICY = "";
     private static final String CSP_SANDBOX = "sandbox";
     private static final String CSP_ALLOW_SCRIPTS = "allow-scripts";
     private static final String CSP_ALLOW_SAME_ORIGIN = "allow-same-origin";
     private static final String CSP_BASE_URI_NONE = "base-uri 'none'";
     private static final String CSP_FORM_ACTION_NONE = "form-action 'none'";
     private static final String CSP_OBJECT_SRC_NONE = "object-src 'none'";
+    private static final String DOWNLOAD_INDEX = "downloadIndex";
+    private static final String DOWNLOAD_INDEX_DISPOSITION = "attachment; filename=\"index.html\"";
     private static final String CACHE_PRIVATE = "private";
     private static final String CACHE_IMMUTABLE = "immutable";
     private static final String CACHE_ONE_YEAR = "max-age=31536000";
@@ -136,6 +139,7 @@ public class AllureReportBuildActionIT {
 
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getContentAsString()).isEqualTo(readArchivedEntry(build, INDEX_ENTRY));
+        assertReportContentSecurityPolicy(response);
     }
 
     @Test
@@ -179,13 +183,32 @@ public class AllureReportBuildActionIT {
         final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
 
         final WebResponse response = webClient.loadWebResponse(
-                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + "downloadIndex"))
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + DOWNLOAD_INDEX))
         );
 
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getResponseHeaderValue(HEADER_CONTENT_DISPOSITION))
-                .contains("attachment; filename=\"index.html\"");
+                .contains(DOWNLOAD_INDEX_DISPOSITION);
         assertThat(response.getContentAsString()).isEqualTo(readArchivedEntry(build, INDEX_ENTRY));
+        assertReportContentSecurityPolicy(response);
+    }
+
+    @Test
+    public void shouldDownloadIndexFromDirectoryBackedReportWithReportCsp() throws Exception {
+        final FreeStyleBuild build = buildDirectoryReportWithEntries(Map.of(
+                INDEX_FILE, LEGACY_INDEX_CONTENT
+        ), jRule, REPORT_DIR);
+        final JenkinsRule.WebClient webClient = jRule.createWebClient().withJavaScriptEnabled(false);
+
+        final WebResponse response = webClient.loadWebResponse(
+                new WebRequest(new URL(jRule.getURL(), build.getUrl() + ALLURE_PATH + DOWNLOAD_INDEX))
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(200);
+        assertThat(response.getResponseHeaderValue(HEADER_CONTENT_DISPOSITION))
+                .contains(DOWNLOAD_INDEX_DISPOSITION);
+        assertThat(response.getContentAsString()).isEqualTo(LEGACY_INDEX_CONTENT);
+        assertReportContentSecurityPolicy(response);
     }
 
     @Test
@@ -301,6 +324,7 @@ public class AllureReportBuildActionIT {
                 .doesNotExist();
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getContentAsString()).isEqualTo(readArchivedEntry(build, INDEX_ENTRY));
+        assertReportContentSecurityPolicy(response);
     }
 
     @Test
@@ -318,6 +342,7 @@ public class AllureReportBuildActionIT {
                 .doesNotExist();
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getContentAsString()).isEqualTo(LEGACY_INDEX_CONTENT);
+        assertReportContentSecurityPolicy(response);
     }
 
     @Test
@@ -578,7 +603,27 @@ public class AllureReportBuildActionIT {
                                                       final String expectedContent) {
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getContentAsString()).isEqualTo(expectedContent);
-        assertThat(response.getResponseHeaderValue(HEADER_CONTENT_SECURITY_POLICY)).isEqualTo(CSP_REPORT_POLICY);
+        assertReportContentSecurityPolicy(response);
+    }
+
+    private void assertReportContentSecurityPolicy(final WebResponse response) {
+        Allure.step("Verify report security headers", () -> {
+            Allure.addAttachment("Report response headers", "text/plain", response.getResponseHeaders().stream()
+                    .filter(header -> !"Set-Cookie".equalsIgnoreCase(header.getName()))
+                    .map(header -> header.getName() + ": " + header.getValue())
+                    .collect(Collectors.joining("\n")), ".txt");
+            final String policy = response.getResponseHeaderValue(HEADER_CONTENT_SECURITY_POLICY);
+            assertThat(policy).isNotBlank();
+            assertThat(policy.split(";\\s*"))
+                    .contains("default-src 'self'", CSP_OBJECT_SRC_NONE, "base-uri 'self'", CSP_FORM_ACTION_NONE,
+                            "frame-ancestors 'self'", "connect-src 'self' data:", "worker-src 'self' blob:",
+                            "frame-src 'self' data: blob: https://trace.playwright.dev",
+                            "img-src 'self' data: blob: https:", "media-src 'self' data: blob: https:",
+                            "font-src 'self' data: https:", "style-src 'self' 'unsafe-inline' https:",
+                            "script-src 'self' 'unsafe-inline' https: data:", "script-src-attr 'none'")
+                    .doesNotContain(CSP_SANDBOX);
+            assertThat(response.getResponseHeaderValue("X-Content-Type-Options")).isEqualTo("nosniff");
+        });
     }
 
     private void assertNoAttachmentContentDisposition(final WebResponse response) {

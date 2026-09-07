@@ -30,6 +30,24 @@ public final class ReportContentSecurityPolicy {
 
     private static final String INDEX_HTML = "index.html";
     private static final String SLASH = "/";
+    // Keep generated inline/data: bundles and embedded viewers usable. Same-origin
+    // framing is needed when one report entrypoint embeds another report or viewer.
+    // Allure 3 sets a same-origin base URL and fetches embedded data: resources.
+    // Playwright's viewer also uses data: frames for its empty snapshot document.
+    // This policy restricts report capabilities; it does not isolate report scripts
+    // from the Jenkins origin. Sanitizing untrusted report data remains necessary.
+    private static final String REPORT_CSP = "default-src 'self'; "
+            + "object-src 'none'; base-uri 'self'; form-action 'none'; "
+            + "frame-ancestors 'self'; "
+            + "img-src 'self' data: blob: https:; "
+            + "media-src 'self' data: blob: https:; "
+            + "font-src 'self' data: https:; "
+            + "connect-src 'self' data:; "
+            + "frame-src 'self' data: blob: https://trace.playwright.dev; "
+            + "worker-src 'self' blob:; "
+            + "script-src 'self' 'unsafe-inline' https: data:; "
+            + "script-src-attr 'none'; "
+            + "style-src 'self' 'unsafe-inline' https:";
     private static final String SANDBOXED_ACTIVE_CONTENT_CSP =
             "sandbox allow-scripts; base-uri 'none'; form-action 'none'; "
                     + "object-src 'none'";
@@ -42,7 +60,7 @@ public final class ReportContentSecurityPolicy {
     }
 
     public static String forPath(final String relativePath) {
-        return isSandboxedActiveContent(relativePath) ? SANDBOXED_ACTIVE_CONTENT_CSP : "";
+        return isSandboxedActiveContent(relativePath) ? SANDBOXED_ACTIVE_CONTENT_CSP : REPORT_CSP;
     }
 
     private static boolean isSandboxedActiveContent(final String relativePath) {
