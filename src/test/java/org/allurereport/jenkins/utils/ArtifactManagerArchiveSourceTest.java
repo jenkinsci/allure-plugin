@@ -106,6 +106,40 @@ public class ArtifactManagerArchiveSourceTest {
     }
 
     @Test
+    public void openEntryReusesArchiveMetadataAcrossSourceInstances() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+        final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);
+
+        try (RangeAwareArtifactManager manager = new RangeAwareArtifactManager(largeRemoteArchive(), true)) {
+            manager.install(build);
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build);
+                 InputStream inputStream = source.openEntry(HISTORY_ENTRY)) {
+                assertThat(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8))
+                        .isEqualTo(ZIP_HISTORY);
+            }
+            final int metadataCallsAfterFirstOpen = manager.getMetadataCalls();
+            final int rangeRequestsAfterFirstOpen = manager.getRangeRequests();
+
+            try (ArtifactManagerArchiveSource source = new ArtifactManagerArchiveSource(build)) {
+                assertThat(source.exists()).isTrue();
+                try (InputStream inputStream = source.openEntry(HISTORY_ENTRY)) {
+                    assertThat(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8))
+                            .isEqualTo(ZIP_HISTORY);
+                }
+            }
+
+            assertThat(manager.getMetadataCalls())
+                    .as("artifact storage metadata calls after the archive metadata is cached")
+                    .isEqualTo(metadataCallsAfterFirstOpen);
+            assertThat(manager.getRangeRequests() - rangeRequestsAfterFirstOpen)
+                    .as("range requests to read a cached entry")
+                    .isEqualTo(1);
+            assertThat(manager.getFullStreamBytesRead()).isZero();
+        }
+    }
+
+    @Test
     public void listEntriesReusesRangeBackedIndexAcrossSourceInstances() throws Exception {
         final FreeStyleProject project = jRule.createFreeStyleProject();
         final FreeStyleBuild build = jRule.buildAndAssertSuccess(project);

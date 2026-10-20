@@ -55,6 +55,7 @@ final class RangeAwareArtifactManager extends ArtifactManager implements AutoClo
     private final AtomicLong fullStreamBytesRead = new AtomicLong();
     private final AtomicLong rangeBytesServed = new AtomicLong();
     private final AtomicInteger rangeRequests = new AtomicInteger();
+    private final AtomicInteger metadataCalls = new AtomicInteger();
     private final HttpServer server;
     private final URL archiveUrl;
     private final VirtualFile root;
@@ -86,6 +87,10 @@ final class RangeAwareArtifactManager extends ArtifactManager implements AutoClo
 
     int getRangeRequests() {
         return rangeRequests.get();
+    }
+
+    int getMetadataCalls() {
+        return metadataCalls.get();
     }
 
     int getArchiveSize() {
@@ -227,6 +232,7 @@ final class RangeAwareArtifactManager extends ArtifactManager implements AutoClo
 
         @Override
         public boolean exists() {
+            manager.metadataCalls.incrementAndGet();
             return kind != FileKind.MISSING;
         }
 
@@ -249,11 +255,13 @@ final class RangeAwareArtifactManager extends ArtifactManager implements AutoClo
 
         @Override
         public long length() {
+            manager.metadataCalls.incrementAndGet();
             return kind == FileKind.ARCHIVE ? manager.archive.length : 0;
         }
 
         @Override
         public long lastModified() {
+            manager.metadataCalls.incrementAndGet();
             return kind == FileKind.ARCHIVE ? 1L : 0L;
         }
 

@@ -40,10 +40,12 @@ final class RemoteZipArchive {
 
     static InputStream openEntry(final VirtualFile file,
                                  final String archiveId,
+                                 final long archiveSize,
+                                 final long lastModified,
                                  final String entryPath) throws IOException {
         try {
-            final long archiveSize = file.length();
-            final RemoteZipIndex index = index(file, archiveSize, cacheKey(file, archiveId, archiveSize));
+            final RemoteZipIndex index = index(file, archiveSize,
+                    cacheKey(file, archiveId, archiveSize, lastModified));
             final RemoteZipIndex.Entry entry = index.get(entryPath);
             if (entry == null) {
                 throw new NoSuchElementException("Entry not found in remote ZIP: " + entryPath);
@@ -56,10 +58,11 @@ final class RemoteZipArchive {
 
     static List<String> listEntries(final VirtualFile file,
                                     final String archiveId,
+                                    final long archiveSize,
+                                    final long lastModified,
                                     final String prefix) throws IOException {
         try {
-            final long archiveSize = file.length();
-            return index(file, archiveSize, cacheKey(file, archiveId, archiveSize)).list(prefix);
+            return index(file, archiveSize, cacheKey(file, archiveId, archiveSize, lastModified)).list(prefix);
         } catch (IOException exception) {
             throw new RemoteZipAccessException(RANGE_FAILURE, exception);
         }
@@ -131,8 +134,9 @@ final class RemoteZipArchive {
 
     private static String cacheKey(final VirtualFile file,
                                    final String archiveId,
-                                   final long archiveSize) throws IOException {
-        return archiveId + '\n' + file.toURI() + '\n' + archiveSize + '\n' + file.lastModified();
+                                   final long archiveSize,
+                                   final long lastModified) {
+        return archiveId + '\n' + file.toURI() + '\n' + archiveSize + '\n' + lastModified;
     }
 
     private static void trimCache() {
