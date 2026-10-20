@@ -329,6 +329,12 @@ public final class FilePathUtils {
         return null;
     }
 
+    /**
+     * Walks back to the nearest build whose report has a non-empty {@code history/history.json}.
+     * Stops at the nearest report that has no {@code history.json} at all: report formats without
+     * that file (such as the Allure 3 awesome report) never have it in older builds either, and
+     * reading every older archive from remote artifact storage can take minutes.
+     */
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
         final String reportPath)
@@ -336,8 +342,14 @@ public final class FilePathUtils {
         Run<?, ?> current = run.getPreviousCompletedBuild();
         while (current != null) {
             try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(current)) {
-                if (source.exists() && isRunHistoryNotEmpty(source, reportPath)) {
-                    return current;
+                if (source.exists()) {
+                    final String historyEntry = reportPath + HISTORY_JSON_SUFFIX;
+                    if (!source.listEntries(reportPath + "/history").contains(historyEntry)) {
+                        return null;
+                    }
+                    if (isHistoryEntryNotEmpty(source, historyEntry)) {
+                        return current;
+                    }
                 }
             }
             current = current.getPreviousCompletedBuild();
@@ -345,13 +357,8 @@ public final class FilePathUtils {
         return null;
     }
 
-    private static boolean isRunHistoryNotEmpty(final AllureReportArchiveSource source,
-        final String reportPath) throws IOException, InterruptedException {
-        final String historyEntry = reportPath + HISTORY_JSON_SUFFIX;
-        final List<String> entries = source.listEntries(reportPath + "/history");
-        if (!entries.contains(historyEntry)) {
-            return false;
-        }
+    private static boolean isHistoryEntryNotEmpty(final AllureReportArchiveSource source,
+        final String historyEntry) throws IOException, InterruptedException {
         try (InputStream is = source.openEntry(historyEntry)) {
             final ObjectMapper mapper = new ObjectMapper();
             final JsonNode historyJson = mapper.readTree(is);

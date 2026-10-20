@@ -39,6 +39,8 @@ public class FilePathUtilsTest {
 
     private static final String REPORT_PATH = "allure-report";
     private static final String HISTORY_ENTRY = "allure-report/history/history.json";
+    private static final String NON_EMPTY_HISTORY = "{\"case\":[{}]}";
+    private static final String EMPTY_JSON = "{}";
     private static final String TARGET_PATH = "target/";
     private static final String PARENT_PATH = "../";
     private static final String OUTSIDE_REPORT = "outside-report";
@@ -91,13 +93,13 @@ public class FilePathUtilsTest {
         final FreeStyleBuild first = jRule.buildAndAssertSuccess(project);
         archive(project, first, mapOf(), mapOf(
                 HISTORY_ENTRY,
-                "{\"case\":[{}]}"
+                NON_EMPTY_HISTORY
         ));
 
         final FreeStyleBuild second = jRule.buildAndAssertSuccess(project);
         archive(project, second, mapOf(), mapOf(
                 HISTORY_ENTRY,
-                "{}"
+                EMPTY_JSON
         ));
 
         final FreeStyleBuild third = jRule.buildAndAssertSuccess(project);
@@ -105,6 +107,29 @@ public class FilePathUtilsTest {
         final Run<?, ?> previous = FilePathUtils.getPreviousRunWithHistory(third, REPORT_PATH);
 
         assertThat(previous).isEqualTo(first);
+    }
+
+    @Test
+    public void getPreviousRunWithHistoryStopsAtNearestReportWithoutHistoryFile() throws Exception {
+        final FreeStyleProject project = jRule.createFreeStyleProject();
+
+        final FreeStyleBuild first = jRule.buildAndAssertSuccess(project);
+        archive(project, first, mapOf(), mapOf(
+                HISTORY_ENTRY,
+                NON_EMPTY_HISTORY
+        ));
+
+        final FreeStyleBuild second = jRule.buildAndAssertSuccess(project);
+        archive(project, second, mapOf(), mapOf(
+                REPORT_PATH + "/summary.json",
+                EMPTY_JSON
+        ));
+
+        final FreeStyleBuild third = jRule.buildAndAssertSuccess(project);
+
+        final Run<?, ?> previous = FilePathUtils.getPreviousRunWithHistory(third, REPORT_PATH);
+
+        assertThat(previous).isNull();
     }
 
     @Test
