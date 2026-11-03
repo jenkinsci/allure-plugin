@@ -3,6 +3,6 @@
   "private": true,
   "version": "3.16.0",
   "dependencies": {
-    "allure": "3.16.0"
+    "allure": "3.17.0"
   }
 }
