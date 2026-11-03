@@ -28,38 +28,38 @@ enum NodePlatform {
 
     LINUX_X64(
             "linux-x64",
-            "ace9fa104992ed0829642629c46ca7bd7fd6e76278cb96c958c4b387d29658ea",
-            56_320_534L,
+            "5848553868b402d3fabb5b09270649977780a390f832155721025a08b5104455",
+            62_893_692L,
             false
     ),
     LINUX_ARM64(
             "linux-arm64",
-            "734ff04fa7f8ed2e8a78d40cacf5ac3fc4515dac2858757cbab313eb483ba8a2",
-            56_098_426L,
+            "439e9c438acdf6a6ffe47418da709153d66c4bed812e30a473faacb107dd2791",
+            62_611_009L,
             false
     ),
     DARWIN_X64(
             "darwin-x64",
-            "2526230ad7d922be82d4fdb1e7ee1e84303e133e3b4b0ec4c2897ab31de0253d",
-            52_370_789L,
+            "525c9b29bb0263d687de60a4cec0e2a6db876a8eb032369e5795eca71e7c358e",
+            59_802_926L,
             false
     ),
     DARWIN_ARM64(
             "darwin-arm64",
-            "25495ff85bd89e2d8a24d88566d7e2f827c6b0d3d872b2cebf75371f93fcb1fe",
-            51_193_489L,
+            "d38bd5e5a2ddce6bbb5ce45e46e208337da4d51fffe611e567fd32073d6439f6",
+            58_334_661L,
             false
     ),
     WINDOWS_X64(
             "win-x64",
-            "6e50ce5498c0cebc20fd39ab3ff5df836ed2f8a31aa093cecad8497cff126d70",
-            36_358_527L,
+            "dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a",
+            41_157_375L,
             true
     ),
     WINDOWS_ARM64(
             "win-arm64",
-            "a7b7c68490e4a8cde1921fe5a0cfb3001d53f9c839e416903e4f28e727b62f60",
-            32_730_793L,
+            "a9427139595156ef484e1fb08957676e09d4232368dd1743a2a9f93f3d241b14",
+            37_005_985L,
             true
     );
 
