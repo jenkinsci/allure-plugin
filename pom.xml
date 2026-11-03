@@ -56,8 +56,8 @@
     <allure2.recommended.version>2.46.0</allure2.recommended.version>
     <allure2.recommended.sha256>22f99aac74817bc0299a0022f1442a750f454df3e2431b1b98f8a34c0d3f260a</allure2.recommended.sha256>
     <allure3.recommended.version>3.16.0</allure3.recommended.version>
-    <allure3.node.version>24.14.1</allure3.node.version>
-    <allure3.npm.version>11.6.2</allure3.npm.version>
+    <allure3.node.version>26.13.0</allure3.node.version>
+    <allure3.npm.version>11.20.0</allure3.npm.version>
     <commons-compress.version>1.28.0</commons-compress.version>
     <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
     <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
