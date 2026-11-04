@@ -460,7 +460,7 @@
       <plugin>
         <groupId>com.googlecode.maven-download-plugin</groupId>
         <artifactId>download-maven-plugin</artifactId>
-        <version>1.10.0</version>
+        <version>1.13.0</version>
         <configuration>
           <url>https://repo1.maven.org/maven2/io/qameta/allure/allure-commandline/${allure2.recommended.version}/allure-commandline-${allure2.recommended.version}.zip</url>
           <sha256>${allure2.recommended.sha256}</sha256>
