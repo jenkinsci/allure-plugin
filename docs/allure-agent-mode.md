@@ -32,7 +32,7 @@ The `allure@3` selector intentionally floats to the newest Allure 3 release publ
 | Regular unit tests | Maven Surefire + JUnit 4 | `src/test/java/**/*Test.java` | `target/allure-results` | Java and Maven wrapper |
 | Regular integration tests | Maven Failsafe + JUnit 4 | `src/test/java/**/*IT.java` | `target/allure-results` | Jenkins test harness; the build downloads an Allure commandline fixture |
 | Jenkins compatibility smoke | Maven Surefire + JUnit 5/Testcontainers | `compat/jenkins-smoke/src/test/java` | `compat-artifacts/<jenkins-version>/allure-results` | Docker, Java 17, and a built plugin HPI |
-| S3 Artifact Manager compatibility | Maven Surefire + JUnit 5/Testcontainers | `S3ArtifactManagerCompatibilityTest` | `compat-artifacts/2.541.3-s3/allure-results` | Docker, Java 17, a built plugin HPI, and the `s3-compat` profile; MinIO and Toxiproxy images are pulled automatically |
+| S3 Artifact Manager compatibility | Maven Surefire + JUnit 5/Testcontainers | `S3ArtifactManagerCompatibilityTest` | `compat-artifacts/2.541.3-s3/allure-results` | Docker, Java 17, a built plugin HPI, and the `s3-compat` profile; Silo and Toxiproxy images are pulled automatically |
 
 The regular test adapter is configured in `pom.xml`; its stable result path is configured in `src/test/resources/allure.properties`. The compatibility runner has its own adapter and result path in `compat/jenkins-smoke/pom.xml`.
 

@@ -74,21 +74,21 @@ class S3ArtifactManagerCompatibilityTest {
 
     private static final String ISSUE_URL = "https://github.com/jenkinsci/allure-plugin/issues/454";
     private static final String ARTIFACT_MANAGER_S3_VERSION = "962.v15f7000205fa_";
-    private static final String MINIO_IMAGE = "minio/minio:RELEASE.2025-09-07T16-13-09Z";
+    private static final String SILO_IMAGE = "pgsty/silo:RELEASE.2026-11-12T00-00-00Z";
     private static final String TOXIPROXY_IMAGE = "ghcr.io/shopify/toxiproxy:2.5.0";
     private static final String PLUGIN_FILE_IN_IMAGE = "allure-jenkins-plugin.jpi";
     private static final String FIXTURE_FILE_IN_IMAGE = "s3-latency-result.json";
     private static final String JENKINS_INIT_FILE = "compat-init.groovy";
     private static final String S3_BUCKET = "allure-compat";
     private static final String S3_PREFIX = "compat/";
-    private static final String S3_CREDENTIALS_ID = "minio-compat";
-    private static final String MINIO_ALIAS = "minio";
+    private static final String S3_CREDENTIALS_ID = "silo-compat";
+    private static final String SILO_ALIAS = "silo";
     private static final String S3_PROXY_ALIAS = "s3-proxy";
-    private static final String MINIO_USER = "minioadmin";
-    private static final String MINIO_PASSWORD = "minioadmin";
+    private static final String SILO_USER = "minioadmin";
+    private static final String SILO_PASSWORD = "minioadmin";
     private static final String TARGET_ARCHIVE_ENTRY = "allure-report/index.html";
 
-    private static final int MINIO_PORT = 9000;
+    private static final int SILO_PORT = 9000;
     private static final int TOXIPROXY_CONTROL_PORT = 8474;
     private static final int TOXIPROXY_S3_PORT = 8666;
     private static final int GENERATED_ATTACHMENT_MEBIBYTES = 64;
@@ -123,7 +123,7 @@ class S3ArtifactManagerCompatibilityTest {
     @Test
     @DisplayName("S3-backed report index stays responsive on a slow link")
     @Story("Remote archive random access")
-    @Description("Stores a large Allure report through Jenkins' S3 Artifact Manager, constrains the MinIO "
+    @Description("Stores a large Allure report through Jenkins' S3 Artifact Manager, constrains the Silo "
             + "download link, and verifies that the first uncached index request does not stream the full archive.")
     void shouldServeLargeS3ReportWithinLatencyBudget() throws Exception {
         final Configuration config = Configuration.fromSystemProperties();
@@ -134,12 +134,12 @@ class S3ArtifactManagerCompatibilityTest {
         Allure.link("Remote ArtifactManager latency regression", ISSUE_URL);
 
         try (Network network = Network.newNetwork();
-             GenericContainer<?> minio = createMinioContainer(network);
+             GenericContainer<?> silo = createSiloContainer(network);
              GenericContainer<?> toxiproxy = createToxiproxyContainer(network);
              GenericContainer<?> jenkins = harness.createJenkinsContainer(network)) {
             try {
-                Allure.step("Start MinIO and the S3 network proxy", () -> {
-                    minio.start();
+                Allure.step("Start Silo and the S3 network proxy", () -> {
+                    silo.start();
                     toxiproxy.start();
                     createS3Proxy(toxiproxy);
                 });
@@ -158,7 +158,7 @@ class S3ArtifactManagerCompatibilityTest {
                         setupScript
                 );
                 Allure.parameter("S3 setup script", setupScriptPath.toString());
-                final JsonNode setup = Allure.step("Configure MinIO as Jenkins' artifact manager", () -> {
+                final JsonNode setup = Allure.step("Configure Silo as Jenkins' artifact manager", () -> {
                     Allure.addAttachment("S3 Jenkins setup", "text/x-groovy", setupScript, ".groovy");
                     final JsonNode response = executeScriptForJson(baseUrl, setupScript, HTTP_TIMEOUT);
                     Allure.addAttachment(
@@ -175,7 +175,7 @@ class S3ArtifactManagerCompatibilityTest {
 
                 final JsonNode build = runS3Build(baseUrl, harness.generatedDir());
                 assertEquals("SUCCESS", build.path("result").asText());
-                assertTrue(build.path("archiveExists").asBoolean(), "The report archive must exist in MinIO");
+                assertTrue(build.path("archiveExists").asBoolean(), "The report archive must exist in Silo");
                 assertFalse(build.path("localArchiveExists").asBoolean(),
                         "The report archive must not be stored under the Jenkins build directory");
                 assertTrue(build.path("archiveBytes").asLong() >= MINIMUM_BYTES_BEFORE_TARGET,
@@ -237,7 +237,7 @@ class S3ArtifactManagerCompatibilityTest {
                                 + " seconds, but it took " + elapsed.toMillis() + " ms");
             } finally {
                 captureContainerEvidence(artifactRoot, "jenkins-s3", jenkins, true);
-                captureContainerEvidence(artifactRoot, "minio", minio, false);
+                captureContainerEvidence(artifactRoot, "silo", silo, false);
                 captureContainerEvidence(artifactRoot, "toxiproxy", toxiproxy, false);
             }
         }
@@ -248,7 +248,7 @@ class S3ArtifactManagerCompatibilityTest {
         final Path scriptPath = writeTextFile(generatedDir.resolve("s3-build-check.groovy"), script);
         Allure.parameter("S3 build check script", scriptPath.toString());
 
-        return Allure.step("Publish the large report to MinIO and inspect its remote archive", () -> {
+        return Allure.step("Publish the large report to Silo and inspect its remote archive", () -> {
             Allure.addAttachment("S3 build check", "text/x-groovy", script, ".groovy");
             final JsonNode response = executeScriptForJson(baseUrl, script, BUILD_TIMEOUT);
             Allure.addAttachment(
@@ -267,22 +267,23 @@ class S3ArtifactManagerCompatibilityTest {
         Allure.parameter("Plugin artifact", harness.pluginArtifact().toString());
         Allure.parameter("Allure CLI version", harness.allureCliVersion());
         Allure.parameter("S3 Artifact Manager version", ARTIFACT_MANAGER_S3_VERSION);
-        Allure.parameter("MinIO image", MINIO_IMAGE);
+        Allure.parameter("Silo image", SILO_IMAGE);
         Allure.parameter("Toxiproxy image", TOXIPROXY_IMAGE);
         Allure.parameter("Generated attachment (MiB)", GENERATED_ATTACHMENT_MEBIBYTES);
         Allure.parameter("Downstream bandwidth (KiB/s)", DOWNSTREAM_BANDWIDTH_KILOBYTES_PER_SECOND);
         Allure.parameter("Downstream latency (ms)", DOWNSTREAM_LATENCY_MILLIS);
     }
 
-    private GenericContainer<?> createMinioContainer(final Network network) {
-        return new GenericContainer<>(DockerImageName.parse(MINIO_IMAGE))
+    private GenericContainer<?> createSiloContainer(final Network network) {
+        // Silo retains MinIO's environment variables and health endpoints for compatibility.
+        return new GenericContainer<>(DockerImageName.parse(SILO_IMAGE))
                 .withNetwork(network)
-                .withNetworkAliases(MINIO_ALIAS)
-                .withExposedPorts(MINIO_PORT)
-                .withEnv("MINIO_ROOT_USER", MINIO_USER)
-                .withEnv("MINIO_ROOT_PASSWORD", MINIO_PASSWORD)
+                .withNetworkAliases(SILO_ALIAS)
+                .withExposedPorts(SILO_PORT)
+                .withEnv("MINIO_ROOT_USER", SILO_USER)
+                .withEnv("MINIO_ROOT_PASSWORD", SILO_PASSWORD)
                 .withCommand("server", "--console-address", ":9001", "/data")
-                .waitingFor(Wait.forHttp("/minio/health/ready").forPort(MINIO_PORT))
+                .waitingFor(Wait.forHttp("/minio/health/ready").forPort(SILO_PORT))
                 .withStartupTimeout(STARTUP_TIMEOUT);
     }
 
@@ -297,21 +298,21 @@ class S3ArtifactManagerCompatibilityTest {
 
     private void createS3Proxy(final GenericContainer<?> toxiproxy) throws Exception {
         postToxiproxyJson(toxiproxy, "/proxies", Map.of(
-                "name", "minio",
+                "name", SILO_ALIAS,
                 "listen", "0.0.0.0:" + TOXIPROXY_S3_PORT,
-                "upstream", MINIO_ALIAS + ":" + MINIO_PORT
+                "upstream", SILO_ALIAS + ":" + SILO_PORT
         ));
     }
 
     private void addSlowLinkToxics(final GenericContainer<?> toxiproxy) throws Exception {
-        postToxiproxyJson(toxiproxy, "/proxies/minio/toxics", Map.of(
+        postToxiproxyJson(toxiproxy, "/proxies/" + SILO_ALIAS + "/toxics", Map.of(
                 "name", "s3-downstream-bandwidth",
                 "type", "bandwidth",
                 "stream", "downstream",
                 "toxicity", 1.0,
                 "attributes", Map.of("rate", DOWNSTREAM_BANDWIDTH_KILOBYTES_PER_SECOND)
         ));
-        postToxiproxyJson(toxiproxy, "/proxies/minio/toxics", Map.of(
+        postToxiproxyJson(toxiproxy, "/proxies/" + SILO_ALIAS + "/toxics", Map.of(
                 "name", "s3-downstream-latency",
                 "type", "latency",
                 "stream", "downstream",
@@ -339,7 +340,7 @@ class S3ArtifactManagerCompatibilityTest {
     }
 
     private String getToxiproxyState(final GenericContainer<?> toxiproxy) throws Exception {
-        final HttpRequest request = HttpRequest.newBuilder(toxiproxyUri(toxiproxy, "/proxies/minio"))
+        final HttpRequest request = HttpRequest.newBuilder(toxiproxyUri(toxiproxy, "/proxies/" + SILO_ALIAS))
                 .timeout(HTTP_TIMEOUT)
                 .GET()
                 .build();
@@ -546,17 +547,17 @@ class S3ArtifactManagerCompatibilityTest {
 
                 def jenkins = Jenkins.get()
                 def credentialsId = %s
-                def minioUser = System.getenv('MINIO_ROOT_USER')
-                def minioPassword = System.getenv('MINIO_ROOT_PASSWORD')
+                def siloUser = System.getenv('MINIO_ROOT_USER')
+                def siloPassword = System.getenv('MINIO_ROOT_PASSWORD')
                 def credentialsStore = CredentialsProvider.lookupStores(jenkins).iterator().next()
                 credentialsStore.addCredentials(
                     Domain.global(),
                     new AWSCredentialsImpl(
                         CredentialsScope.GLOBAL,
                         credentialsId,
-                        minioUser,
-                        minioPassword,
-                        'MinIO compatibility credentials'
+                        siloUser,
+                        siloPassword,
+                        'Silo compatibility credentials'
                     )
                 )
 
@@ -717,7 +718,7 @@ class S3ArtifactManagerCompatibilityTest {
         environment.setProperty("Jenkins base URL", baseUrl);
         environment.setProperty("Allure CLI version", harness.allureCliVersion());
         environment.setProperty("S3 Artifact Manager version", ARTIFACT_MANAGER_S3_VERSION);
-        environment.setProperty("MinIO image", MINIO_IMAGE);
+        environment.setProperty("Silo image", SILO_IMAGE);
         environment.setProperty("Toxiproxy image", TOXIPROXY_IMAGE);
 
         final Path resultsDir = Files.createDirectories(config.artifactRoot().resolve("allure-results"));
@@ -732,8 +733,8 @@ class S3ArtifactManagerCompatibilityTest {
                                                  final boolean redactUrls) {
         try {
             String logs = container.getLogs();
-            logs = logs.replace(MINIO_USER, "<redacted access key>")
-                    .replace(MINIO_PASSWORD, "<redacted secret key>");
+            logs = logs.replace(SILO_USER, "<redacted access key>")
+                    .replace(SILO_PASSWORD, "<redacted secret key>");
             if (redactUrls) {
                 logs = URL_QUERY_PATTERN.matcher(logs).replaceAll("$1?<redacted query>");
             }
@@ -813,8 +814,8 @@ class S3ArtifactManagerCompatibilityTest {
                     .withNetworkAliases("jenkins")
                     .withExposedPorts(8080)
                     .withEnv("JAVA_OPTS", "-Djenkins.install.runSetupWizard=false")
-                    .withEnv("MINIO_ROOT_USER", MINIO_USER)
-                    .withEnv("MINIO_ROOT_PASSWORD", MINIO_PASSWORD)
+                    .withEnv("MINIO_ROOT_USER", SILO_USER)
+                    .withEnv("MINIO_ROOT_PASSWORD", SILO_PASSWORD)
                     .waitingFor(Wait.forLogMessage(".*Jenkins is fully up and running.*\\n", 1))
                     .withStartupTimeout(STARTUP_TIMEOUT);
         }
