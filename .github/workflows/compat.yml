@@ -163,7 +163,7 @@ jobs:
             DUMP_SIZE=$(du -h "$DUMP_PATH" | cut -f1)
             echo "- Allure 3 dump: \`${DUMP_PATH}\` (${DUMP_SIZE})" >> "$GITHUB_STEP_SUMMARY"
             echo "- Workflow artifact: \`compat-${COMPAT_ID}-allure3-dump\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Evidence: MinIO/Toxiproxy configuration, remote archive state, latency metrics, and container logs" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Evidence: Silo/Toxiproxy configuration, remote archive state, latency metrics, and container logs" >> "$GITHUB_STEP_SUMMARY"
             echo "- Generate a report: \`npx --yes allure@3 generate --config ./allurerc.mjs --dump=${DUMP_PATH}\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- S3 compatibility test did not produce an Allure 3 dump." >> "$GITHUB_STEP_SUMMARY"

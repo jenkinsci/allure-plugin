@@ -371,12 +371,13 @@
           </java>
         </configuration>
         <executions >
+          <!-- Dependency submission runs validate in a shallow checkout without origin/main. -->
           <execution>
-            <id>validate</id>
+            <id>check-formatting</id>
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>validate</phase>
+            <phase>process-sources</phase>
             <inherited>false</inherited>
           </execution>
         </executions>

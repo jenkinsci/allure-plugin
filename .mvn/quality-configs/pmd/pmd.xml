@@ -118,6 +118,12 @@
         <exclude name="UseLocaleWithCaseConversions"/>
         <exclude name="UseProperClassLoader"/> <!-- earlier j2ee group-->
     </rule>
+    <!-- Recognize Java 17-compatible executor cleanup when PMD runs on JDK 19+. -->
+    <rule ref="category/java/errorprone.xml/CloseResource">
+        <properties>
+            <property name="closeTargets" value="shutdownNow"/>
+        </properties>
+    </rule>
     <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
         <properties>
             <property name="skipAnnotations" value="true"/>

@@ -9,7 +9,7 @@ The suite starts a real Jenkins controller in Docker with Testcontainers, instal
 - Freestyle report generation with and without the optional `matrix-project` plugin installed
 - Pipeline step execution
 - Matrix build aggregation when `matrix-project` is installed
-- Remote report browsing through `artifact-manager-s3` backed by MinIO, with Toxiproxy enforcing a slow download link
+- Remote report browsing through `artifact-manager-s3` backed by Silo, with Toxiproxy enforcing a slow download link
 
 The harness stages Allure results, Surefire reports, Jenkins logs, console output, and report HTML under `compat-artifacts/` while it runs. GitHub Actions wraps the suite with Allure 3 and uploads a single `compat-<version>.zip` dump instead of that raw directory. The dump preserves the Allure results and their evidence attachments.
 
@@ -19,7 +19,7 @@ Pull requests run the suite against Jenkins `2.541.3` when plugin, build, workfl
 
 The S3 latency scenario runs as a separate job against Jenkins `2.541.3` and
 `artifact-manager-s3:962.v15f7000205fa_`. It creates a 64 MiB incompressible
-report attachment in MinIO, verifies that the report ZIP is remote and that
+report attachment in Silo, verifies that the report ZIP is remote and that
 `index.html` follows more than 50 MiB of data, then constrains downstream S3
 traffic to 1024 KiB/s with 150 ms latency. The first uncached index response must
 return in under 10 seconds with the build-scoped immutable cache header. A full
@@ -65,8 +65,11 @@ npx --yes allure@3 generate \
 ## S3 Artifact Manager Latency Test
 
 The `s3-compat` Maven profile opts into the Docker-backed S3 scenario and defaults
-to Jenkins `2.541.3`. MinIO and Toxiproxy are pulled automatically; no local S3
-credentials or service are required. Run it through Allure agent mode so the
+to Jenkins `2.541.3`. [Silo](https://github.com/pgsty/silo) is pinned to
+`pgsty/silo:RELEASE.2026-11-12T00-00-00Z` and pulled automatically alongside
+Toxiproxy; no local S3 credentials or service are required. Silo retains the
+`MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` variables and `/minio/health/ready`
+endpoint used by the harness. Run it through Allure agent mode so the
 remote archive facts, proxy settings, measured latency, and container logs stay
 reviewable:
 
