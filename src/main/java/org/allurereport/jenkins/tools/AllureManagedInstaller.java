@@ -895,6 +895,7 @@ public class AllureManagedInstaller extends ToolInstaller {
             final ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.redirectErrorStream(true);
             final Process process = processBuilder.start();
+            @SuppressWarnings("PMD.CloseResource") // ExecutorService.close() needs Java 19+
             final ExecutorService outputReader = Executors.newSingleThreadExecutor(task -> {
                 final Thread thread = new Thread(task, "allure-process-output");
                 thread.setDaemon(true);

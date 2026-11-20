@@ -62,7 +62,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     private static final String REPORT_STORAGE = "reportStorage";
     private static final String NEWLINE = "\n";
     private static final int SINGLE_INSTALLATION = 1;
-    private final Object quickSetupLock = new Object();
+    private final transient Object quickSetupLock = new Object();
     private List<PropertyConfig> properties;
     private ReportStorage reportStorage;
 
