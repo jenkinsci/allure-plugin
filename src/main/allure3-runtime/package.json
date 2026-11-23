@@ -1,7 +1,7 @@
 {
   "name": "allure-jenkins-plugin-runtime",
   "private": true,
-  "version": "3.16.0",
+  "version": "3.33.0",
   "dependencies": {
     "allure": "3.33.0"
   }

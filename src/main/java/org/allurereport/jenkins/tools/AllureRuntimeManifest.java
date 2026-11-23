@@ -25,7 +25,7 @@ public final class AllureRuntimeManifest {
 
     public static final int UNKNOWN_MAJOR_VERSION = 0;
     public static final String RECOMMENDED_ALLURE_2_VERSION = "2.46.0";
-    public static final String RECOMMENDED_ALLURE_VERSION = "3.16.0";
+    public static final String RECOMMENDED_ALLURE_VERSION = "3.33.0";
     public static final String RECOMMENDED_NODE_VERSION = "24.14.1";
 
     private static final String RUNTIME_REVISION = "1";
