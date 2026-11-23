@@ -66,7 +66,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
 
     @Override
     @SuppressWarnings("TrailingComment")
-    public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
+    public String getExecutable(@NonNull final Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         final AllureManagedInstaller managedInstaller = getManagedInstaller();
         if (managedInstaller != null) {
             final String version = managedInstaller.resolveVersion();
@@ -82,7 +82,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @Override
-    public List<String> getCommandPrefix(final @NonNull Launcher launcher)
+    public List<String> getCommandPrefix(@NonNull final Launcher launcher)
             throws InterruptedException, IOException {
         final AllureManagedInstaller managedInstaller = getManagedInstaller();
         if (managedInstaller != null) {
@@ -95,7 +95,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @Override
-    public String getVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+    public String getVersion(@NonNull final Launcher launcher) throws InterruptedException, IOException {
         final String configuredVersion = getConfiguredVersion();
         if (configuredVersion != null) {
             return configuredVersion;
@@ -141,7 +141,7 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @Override
-    public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+    public String getMajorVersion(@NonNull final Launcher launcher) throws InterruptedException, IOException {
         final String version = getVersion(launcher);
         final int major = AllureRuntimeManifest.majorVersion(version);
         if (major == AllureRuntimeManifest.UNKNOWN_MAJOR_VERSION) {
@@ -163,12 +163,12 @@ public class AllureCommandlineInstallation extends ToolInstallation
     }
 
     @Override
-    public AllureCommandlineInstallation forEnvironment(final @NonNull EnvVars environment) {
+    public AllureCommandlineInstallation forEnvironment(@NonNull final EnvVars environment) {
         return new AllureCommandlineInstallation(getName(), environment.expand(getHome()), getProperties().toList());
     }
 
     @Override
-    public AllureCommandlineInstallation forNode(final @NonNull Node node,
+    public AllureCommandlineInstallation forNode(@NonNull final Node node,
                                                  final TaskListener log)
             throws IOException, InterruptedException {
         return new AllureCommandlineInstallation(getName(), translateFor(node, log), getProperties().toList());
@@ -312,6 +312,8 @@ public class AllureCommandlineInstallation extends ToolInstallation
     @Symbol("allure")
     public static class DescriptorImpl extends ToolDescriptor<AllureCommandlineInstallation> {
 
+        // Jenkins descriptors load their persisted state during construction.
+        @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
         public DescriptorImpl() {
             load();
         }

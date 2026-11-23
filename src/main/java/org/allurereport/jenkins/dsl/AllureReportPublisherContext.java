@@ -26,7 +26,6 @@ public class AllureReportPublisherContext implements Context {
 
     private static final String FAILURE_POLICY = "FAILURE";
 
-    @SuppressWarnings("PMD.ImmutableField")
     private final AllureReportPublisher publisher;
 
     AllureReportPublisherContext(final AllureReportPublisher publisher) {

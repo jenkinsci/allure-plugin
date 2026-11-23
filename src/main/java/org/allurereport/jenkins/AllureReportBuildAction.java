@@ -77,7 +77,6 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
     private static final String HEADER_NOSNIFF = "nosniff";
     private static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
     private static final String INDEX_HTML = "index.html";
-    private static final String ALLURE_REPORT_ZIP = "allure-report.zip";
     private static final String SLASH = "/";
     private static final String ILLEGAL_PATH = "Illegal path";
 
@@ -343,21 +342,17 @@ public class AllureReportBuildAction implements BuildBadgeAction, RunAction2, Si
 
     private static String decodePath(final String path,
                                      final StaplerResponse response) throws IOException {
-        final String decodedPath;
         try {
-            decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
+            return URLDecoder.decode(path, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException ignored) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, ILLEGAL_PATH);
             return null;
         }
-
-        return decodedPath;
     }
 
     private static String toRelativeRestOfPath(final String path,
                                                final StaplerResponse response) throws IOException {
-        String rest = path == null ? "" : path;
-        rest = decodePath(rest, response);
+        String rest = decodePath(path == null ? "" : path, response);
         if (rest == null) {
             return null;
         }

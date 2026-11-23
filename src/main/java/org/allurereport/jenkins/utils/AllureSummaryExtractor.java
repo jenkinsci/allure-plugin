@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@SuppressWarnings({"PMD.TooManyMethods", "PMD.NcssCount"})
 public final class AllureSummaryExtractor {
 
     private static final Logger LOG = Logger.getLogger(AllureSummaryExtractor.class.getName());

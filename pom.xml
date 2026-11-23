@@ -423,11 +423,12 @@
         </configuration>
         <executions>
           <execution>
-            <id>validate</id>
+            <id>check-pmd</id>
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>validate</phase>
+            <!-- PMD type resolution needs current project classes in both clean and incremental builds. -->
+            <phase>process-classes</phase>
           </execution>
         </executions>
       </plugin>

@@ -16,6 +16,7 @@
 package org.allurereport.jenkins.callables;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class AddTestRunInfo extends AbstractAddInfo {
 
@@ -37,7 +38,7 @@ public class AddTestRunInfo extends AbstractAddInfo {
 
     @Override
     protected Object getData() {
-        final HashMap<String, Object> data = new HashMap<>();
+        final Map<String, Object> data = new HashMap<>();
         data.put("name", name);
         data.put("start", start);
         data.put("stop", stop);

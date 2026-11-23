@@ -65,6 +65,8 @@ final class HttpRangeReader {
         return result;
     }
 
+    // Disconnect failed connections before propagating the original exception.
+    @SuppressWarnings("PMD.ExceptionAsFlowControl")
     InputStream openRange(final long start, final long length) throws IOException {
         if (length == 0) {
             return InputStream.nullInputStream();
@@ -113,24 +115,27 @@ final class HttpRangeReader {
         if (matcher == null || !matcher.matches()) {
             throw new RemoteZipAccessException("Artifact storage returned an invalid Content-Range header");
         }
+        final long actualStart;
+        final long actualEnd;
+        final long actualSize;
         try {
-            final long actualStart = Long.parseLong(matcher.group(1));
-            final long actualEnd = Long.parseLong(matcher.group(2));
-            final long actualSize = Long.parseLong(matcher.group(3));
-            if (actualStart != expectedStart || actualEnd != expectedEnd || actualSize != size) {
-                throw new RemoteZipAccessException("Artifact storage returned an unexpected byte range");
-            }
+            actualStart = Long.parseLong(matcher.group(1));
+            actualEnd = Long.parseLong(matcher.group(2));
+            actualSize = Long.parseLong(matcher.group(3));
         } catch (NumberFormatException exception) {
             throw new RemoteZipAccessException("Artifact storage returned an invalid byte range", exception);
         }
+        if (actualStart != expectedStart || actualEnd != expectedEnd || actualSize != size) {
+            throw new RemoteZipAccessException("Artifact storage returned an unexpected byte range");
+        }
     }
 
+    @SuppressWarnings("EmptyBlock")
     private static void closeResponse(final HttpURLConnection connection,
                                       final int status) throws IOException {
-        final InputStream response = status >= HttpURLConnection.HTTP_BAD_REQUEST
-                ? connection.getErrorStream() : connection.getInputStream();
-        if (response != null) {
-            response.close();
+        try (InputStream ignored = status >= HttpURLConnection.HTTP_BAD_REQUEST
+                ? connection.getErrorStream() : connection.getInputStream()) {
+            // Closing the response releases it without reading the potentially large body.
         }
     }
 

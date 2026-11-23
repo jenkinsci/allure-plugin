@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("PMD.UseObjectForClearerAPI")
 public class AllureReportConfig implements Serializable {
 
     private String jdk;
@@ -48,7 +47,7 @@ public class AllureReportConfig implements Serializable {
 
     private Boolean includeProperties = Boolean.TRUE;
 
-    @SuppressWarnings({"unused", "PMD.SingularField"})
+    @SuppressWarnings("unused")
     private String configPath = "";
 
     @DataBoundConstructor
@@ -112,6 +111,8 @@ public class AllureReportConfig implements Serializable {
         this.configPath = configPath;
     }
 
+    // Keep the existing getter used by Jenkins data binding and callers.
+    @SuppressWarnings("PMD.BooleanGetMethodName")
     public Boolean getIncludeProperties() {
         return includeProperties;
     }

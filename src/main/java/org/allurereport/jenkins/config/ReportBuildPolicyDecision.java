@@ -17,6 +17,7 @@ package org.allurereport.jenkins.config;
 
 import hudson.model.Run;
 
+@FunctionalInterface
 public interface ReportBuildPolicyDecision {
 
     boolean isNeedToBuildReport(Run run);

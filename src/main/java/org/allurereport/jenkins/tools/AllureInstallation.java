@@ -47,7 +47,7 @@ public interface AllureInstallation {
      * @throws InterruptedException if the operation is interrupted
      * @throws IOException if an I/O error occurs
      */
-    default List<String> getCommandPrefix(final @NonNull Launcher launcher)
+    default List<String> getCommandPrefix(@NonNull final Launcher launcher)
             throws InterruptedException, IOException {
         return Collections.singletonList(getExecutable(launcher));
     }
@@ -61,7 +61,7 @@ public interface AllureInstallation {
      * @throws InterruptedException if the operation is interrupted
      * @throws IOException if an I/O error occurs
      */
-    default String getVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+    default String getVersion(@NonNull final Launcher launcher) throws InterruptedException, IOException {
         return getMajorVersion(launcher);
     }
 
