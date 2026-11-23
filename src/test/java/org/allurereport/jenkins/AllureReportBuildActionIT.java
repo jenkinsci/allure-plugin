@@ -18,6 +18,7 @@ package org.allurereport.jenkins;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import io.qameta.allure.Allure;
+import io.qameta.allure.AttachmentOptions;
 import org.allurereport.jenkins.testdata.TestUtils;
 import org.allurereport.jenkins.utils.AllureReportArchiveSource;
 import org.allurereport.jenkins.utils.AllureReportArchiveSourceFactory;
@@ -608,10 +609,10 @@ public class AllureReportBuildActionIT {
 
     private void assertReportContentSecurityPolicy(final WebResponse response) {
         Allure.step("Verify report security headers", () -> {
-            Allure.addAttachment("Report response headers", "text/plain", response.getResponseHeaders().stream()
+            Allure.attachment("Report response headers", "text/plain", response.getResponseHeaders().stream()
                     .filter(header -> !"Set-Cookie".equalsIgnoreCase(header.getName()))
                     .map(header -> header.getName() + ": " + header.getValue())
-                    .collect(Collectors.joining("\n")), ".txt");
+                    .collect(Collectors.joining("\n")), AttachmentOptions.withFileExtension(".txt"));
             final String policy = response.getResponseHeaderValue(HEADER_CONTENT_SECURITY_POLICY);
             assertThat(policy).isNotBlank();
             assertThat(policy.split(";\\s*"))
