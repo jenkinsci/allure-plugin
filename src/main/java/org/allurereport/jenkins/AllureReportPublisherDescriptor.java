@@ -66,6 +66,8 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     private List<PropertyConfig> properties;
     private ReportStorage reportStorage;
 
+    // Jenkins descriptors load their persisted state during construction.
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     public AllureReportPublisherDescriptor() {
         super(AllureReportPublisher.class);
         load();
@@ -139,7 +141,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
                     .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
 
                 final List<PropertyConfig> properties = mapper.readValue(jsonProperties,
-                    new TypeReference<List<PropertyConfig>>() { });
+                    new TypeReference<>() { });
                 setProperties(properties);
             }
             setReportStorage(submittedReportStorage);
@@ -191,7 +193,7 @@ public class AllureReportPublisherDescriptor extends BuildStepDescriptor<Publish
     public Allure3Installation getAllure3Installation() {
         return Optional.of(Jenkins.get())
             .map(j -> j.getDescriptorByType(Allure3Installation.DescriptorImpl.class))
-            .map(descriptor -> descriptor.getInstallations())
+            .map(Allure3Installation.DescriptorImpl::getInstallations)
             .filter(installations -> installations.length > 0)
             .map(installations -> installations[0])
             .orElse(new Allure3Installation("Allure 3", "", Collections.emptyList()));

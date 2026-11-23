@@ -50,7 +50,7 @@ public class AddExecutorInfo extends AbstractAddInfo {
 
     @Override
     protected Object getData() {
-        final HashMap<String, Object> data = new HashMap<>();
+        final Map<String, Object> data = new HashMap<>();
         data.put("name", "Jenkins");
         data.put("type", "jenkins");
         data.put("buildOrder", buildId);

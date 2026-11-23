@@ -45,7 +45,6 @@ import org.allurereport.jenkins.utils.ZipUtils;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-@SuppressWarnings("PMD.CouplingBetweenObjects")
 public final class AllureXStreamAliases {
 
     private static final Logger LOGGER =

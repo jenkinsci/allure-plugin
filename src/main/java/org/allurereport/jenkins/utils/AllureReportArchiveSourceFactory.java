@@ -43,7 +43,6 @@ public final class AllureReportArchiveSourceFactory {
     private AllureReportArchiveSourceFactory() {
     }
 
-    @SuppressWarnings("PMD.CloseResource")
     public static AllureReportArchiveSource forRun(final Run<?, ?> run) {
         final FilePath localPath = new FilePath(run.getArtifactsDir()).child(ALLURE_REPORT_ZIP);
         final AllureReportArchiveSource local = new LocalFileArchiveSource(localPath);

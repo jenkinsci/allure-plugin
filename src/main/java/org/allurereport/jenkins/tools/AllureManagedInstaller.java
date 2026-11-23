@@ -72,6 +72,8 @@ import java.util.regex.Pattern;
  */
 @SuppressWarnings({
         "ClassDataAbstractionCoupling",
+        // Coordinates downloads, archive extraction, and Jenkins tool installation.
+        "PMD.CouplingBetweenObjects",
         "PMD.GodClass",
         "PMD.NcssCount",
         "PMD.TooManyMethods"

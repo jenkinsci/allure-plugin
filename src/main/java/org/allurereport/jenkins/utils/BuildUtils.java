@@ -38,8 +38,8 @@ public final class BuildUtils {
 
     @SuppressWarnings({"ParameterAssignment", "PMD.AvoidReassigningParameters"})
     public static <T extends ToolInstallation & EnvironmentSpecific<T> & NodeSpecific<T>> T setUpTool(@Nullable T tool,
-        final @NonNull Launcher launcher, final @NonNull TaskListener listener,
-            final @NonNull EnvVars env)
+        @NonNull final Launcher launcher, @NonNull final TaskListener listener,
+            @NonNull final EnvVars env)
             throws IOException, InterruptedException {
 
         if (tool == null) {

@@ -73,7 +73,7 @@ public class Allure3Installation extends ToolInstallation
      */
     @Override
     @SuppressWarnings("TrailingComment")
-    public String getExecutable(final @NonNull Launcher launcher) throws InterruptedException, IOException { //NOSONAR
+    public String getExecutable(@NonNull final Launcher launcher) throws InterruptedException, IOException { //NOSONAR
         return launcher.getChannel().call(new GetExecutable());
     }
 
@@ -82,22 +82,22 @@ public class Allure3Installation extends ToolInstallation
      * For Allure 3 installations, this always returns "3".
      */
     @Override
-    public String getMajorVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+    public String getMajorVersion(@NonNull final Launcher launcher) throws InterruptedException, IOException {
         return parseMajorVersion(getVersion(launcher));
     }
 
     @Override
-    public String getVersion(final @NonNull Launcher launcher) throws InterruptedException, IOException {
+    public String getVersion(@NonNull final Launcher launcher) throws InterruptedException, IOException {
         return launcher.getChannel().call(new GetVersion());
     }
 
     @Override
-    public Allure3Installation forEnvironment(final @NonNull EnvVars environment) {
+    public Allure3Installation forEnvironment(@NonNull final EnvVars environment) {
         return new Allure3Installation(getName(), environment.expand(getHome()), getProperties().toList());
     }
 
     @Override
-    public Allure3Installation forNode(final @NonNull Node node,
+    public Allure3Installation forNode(@NonNull final Node node,
                                        final TaskListener log)
             throws IOException, InterruptedException {
         return new Allure3Installation(getName(), translateFor(node, log), getProperties().toList());
@@ -195,6 +195,8 @@ public class Allure3Installation extends ToolInstallation
     @Symbol("allure3")
     public static class DescriptorImpl extends ToolDescriptor<Allure3Installation> {
 
+        // Jenkins descriptors load their persisted state during construction.
+        @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
         public DescriptorImpl() {
             load();
         }

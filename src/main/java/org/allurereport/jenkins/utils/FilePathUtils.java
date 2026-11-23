@@ -44,7 +44,8 @@ import java.util.zip.ZipFile;
 
 import static org.allurereport.jenkins.utils.ZipUtils.listEntries;
 
-@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods"})
+// Bridges Jenkins files and builds with report summaries, history, and archives.
+@SuppressWarnings({"PMD.GodClass", "PMD.TooManyMethods", "PMD.CouplingBetweenObjects"})
 public final class FilePathUtils {
 
     private static final String ALLURE_PREFIX = "allure";
@@ -173,7 +174,6 @@ public final class FilePathUtils {
                 || FilePath.isIgnoreTmpDirs(openOptions) && TMPDIR_PATTERN.matcher(portablePath).matches();
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     public static void materializeSummaryForSingleFileReport(final List<FilePath> resultsPaths,
                                                              final FilePath reportDir,
                                                              final PrintStream logger) {
@@ -329,7 +329,6 @@ public final class FilePathUtils {
         return null;
     }
 
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     public static Run<?, ?> getPreviousRunWithHistory(final Run<?, ?> run,
         final String reportPath)
         throws IOException, InterruptedException {

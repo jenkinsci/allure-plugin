@@ -44,6 +44,7 @@ public final class AllureVersionService {
     private static final Duration CACHE_DURATION = Duration.ofHours(24);
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int READ_TIMEOUT_MS = 10_000;
+    private static final String RATE_LIMIT_EXHAUSTED = "0";
     
     private static final Pattern SEMVER_PATTERN =
             Pattern.compile("^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$");
@@ -99,7 +100,7 @@ public final class AllureVersionService {
 
             if (responseCode == HttpURLConnection.HTTP_FORBIDDEN) {
                 final String rateLimitRemaining = connection.getHeaderField("X-RateLimit-Remaining");
-                if ("0".equals(rateLimitRemaining)) {
+                if (RATE_LIMIT_EXHAUSTED.equals(rateLimitRemaining)) {
                     throw new IOException("GitHub API rate limit exceeded. Please try again later.");
                 }
             }
@@ -135,7 +136,6 @@ public final class AllureVersionService {
         }
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     static Proxy getJenkinsProxy(final URL url) {
         try {
             final hudson.ProxyConfiguration proxyConfig = hudson.ProxyConfiguration.load();

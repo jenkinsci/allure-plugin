@@ -60,19 +60,19 @@ public class ReportBuilder {
 
     private boolean singleFile;
 
-    public ReportBuilder(final @NonNull Launcher launcher,
-                         final @NonNull TaskListener listener,
-                         final @NonNull FilePath workspace,
-                         final @NonNull EnvVars envVars,
-                         final @NonNull AllureInstallation commandline) {
+    public ReportBuilder(@NonNull final Launcher launcher,
+                         @NonNull final TaskListener listener,
+                         @NonNull final FilePath workspace,
+                         @NonNull final EnvVars envVars,
+                         @NonNull final AllureInstallation commandline) {
         this(launcher, listener, workspace, envVars, commandline, null);
     }
 
-    public ReportBuilder(final @NonNull Launcher launcher,
-                         final @NonNull TaskListener listener,
-                         final @NonNull FilePath workspace,
-                         final @NonNull EnvVars envVars,
-                         final @NonNull AllureInstallation commandline,
+    public ReportBuilder(@NonNull final Launcher launcher,
+                         @NonNull final TaskListener listener,
+                         @NonNull final FilePath workspace,
+                         @NonNull final EnvVars envVars,
+                         @NonNull final AllureInstallation commandline,
                          final String resolvedVersion) {
         this.workspace = workspace;
         this.launcher = launcher;
@@ -90,8 +90,8 @@ public class ReportBuilder {
         this.singleFile = singleFile;
     }
 
-    public int build(final @NonNull List<FilePath> resultsPaths,
-                     final @NonNull FilePath reportPath) //NOSONAR
+    public int build(@NonNull final List<FilePath> resultsPaths,
+                     @NonNull final FilePath reportPath) //NOSONAR
             throws IOException, InterruptedException {
         final String version = resolvedVersion == null
                 ? commandline.getVersion(launcher)
@@ -110,15 +110,15 @@ public class ReportBuilder {
     }
 
     ArgumentListBuilder getArguments(final String version,
-                                     final @NonNull List<FilePath> resultsPaths,
-                                     final @NonNull FilePath reportPath)
+                                     @NonNull final List<FilePath> resultsPaths,
+                                     @NonNull final FilePath reportPath)
             throws IOException, InterruptedException {
         return getArguments(version, resultsPaths, reportPath, commandline.getCommandPrefix(launcher));
     }
 
     private ArgumentListBuilder getArguments(final String version,
-                                             final @NonNull List<FilePath> resultsPaths,
-                                             final @NonNull FilePath reportPath,
+                                             @NonNull final List<FilePath> resultsPaths,
+                                             @NonNull final FilePath reportPath,
                                              final List<String> commandPrefix) {
         if (commandPrefix.isEmpty()) {
             throw new IllegalArgumentException("Allure command prefix must not be empty");
@@ -154,8 +154,8 @@ public class ReportBuilder {
     }
 
     private void appendAllure3Arguments(final ArgumentListBuilder arguments,
-                                        final @NonNull List<FilePath> resultsPaths,
-                                        final @NonNull FilePath reportPath) { //NOSONAR
+                                        @NonNull final List<FilePath> resultsPaths,
+                                        @NonNull final FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.add(resultsPath.getRemote());
@@ -172,8 +172,8 @@ public class ReportBuilder {
     }
 
     private void appendAllure2Arguments(final ArgumentListBuilder arguments,
-                                        final @NonNull List<FilePath> resultsPaths,
-                                        final @NonNull FilePath reportPath) { //NOSONAR
+                                        @NonNull final List<FilePath> resultsPaths,
+                                        @NonNull final FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.add(resultsPath.getRemote());
@@ -191,8 +191,8 @@ public class ReportBuilder {
     }
 
     private void appendAllure1Arguments(final ArgumentListBuilder arguments,
-                                        final @NonNull List<FilePath> resultsPaths,
-                                        final @NonNull FilePath reportPath) { //NOSONAR
+                                        @NonNull final List<FilePath> resultsPaths,
+                                        @NonNull final FilePath reportPath) { //NOSONAR
         arguments.add(GENERATE_COMMAND);
         for (FilePath resultsPath : resultsPaths) {
             arguments.addQuoted(resultsPath.getRemote());

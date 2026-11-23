@@ -235,7 +235,7 @@ public class AllureCommandlineDirectInstaller extends ToolInstaller {
             if (!marker.exists()) {
                 marker.write(
                         expectedVersion + LINE_SEPARATOR,
-                        java.nio.charset.StandardCharsets.UTF_8.name()
+                        StandardCharsets.UTF_8.name()
                 );
             }
             log.getLogger().println("[Allure] Using cached Allure CLI at " + targetDir.getRemote());
@@ -248,7 +248,6 @@ public class AllureCommandlineDirectInstaller extends ToolInstaller {
         return false;
     }
 
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
     private void downloadZip(
             final String downloadUrl,
             final FilePath destination,
@@ -435,7 +434,6 @@ public class AllureCommandlineDirectInstaller extends ToolInstaller {
         return archiveInput.getBytesRead() - before;
     }
 
-    @SuppressWarnings({"PMD.NcssCount", "PMD.CyclomaticComplexity", "PMD.CognitiveComplexity"})
     void extractZip(
             final FilePath zipFile,
             final FilePath targetDir,
@@ -443,7 +441,7 @@ public class AllureCommandlineDirectInstaller extends ToolInstaller {
         extractZip(zipFile, targetDir, ver, MAX_EXTRACTED_SIZE, MAX_ARCHIVE_ENTRIES);
     }
 
-    @SuppressWarnings({"PMD.NcssCount", "PMD.CyclomaticComplexity", "PMD.CognitiveComplexity"})
+    @SuppressWarnings("PMD.NcssCount")
     void extractZip(
             final FilePath zipFile,
             final FilePath targetDir,

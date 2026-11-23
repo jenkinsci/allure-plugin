@@ -113,6 +113,8 @@ final class RemoteZipArchive {
         }
     }
 
+    // Unwrap the future while preserving the original ZIP exception and its stack trace.
+    @SuppressWarnings("PMD.PreserveStackTrace")
     private static RemoteZipIndex awaitIndex(final CompletableFuture<RemoteZipIndex> future)
             throws RemoteZipAccessException {
         try {

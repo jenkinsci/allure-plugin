@@ -80,6 +80,8 @@ import static org.allurereport.jenkins.callables.AllureReportArchive.REPORT_DIRE
 @SuppressWarnings({
         "ClassDataAbstractionCoupling",
         "ClassFanOutComplexity",
+        // Coordinates Jenkins publishing, tools, and report storage.
+        "PMD.CouplingBetweenObjects",
         "PMD.GodClass",
         "PMD.TooManyMethods",
         "PMD.NcssCount"})
@@ -199,7 +201,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @DataBoundConstructor
-    public AllureReportPublisher(final @NonNull List<ResultsConfig> results) {
+    public AllureReportPublisher(@NonNull final List<ResultsConfig> results) {
         this.results = results;
     }
 
@@ -285,9 +287,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private ResolvedAllureInstallation resolveAllureInstallation(
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener,
-        final @NonNull EnvVars env)
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener,
+        @NonNull final EnvVars env)
         throws IOException, InterruptedException {
 
         final AllureInstallation installation;
@@ -306,9 +308,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private Allure3Installation getAllure3Installation(
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener,
-        final @NonNull EnvVars env)
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener,
+        @NonNull final EnvVars env)
         throws IOException, InterruptedException {
 
         // Get Allure 3 installation from descriptor
@@ -328,9 +330,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private AllureCommandlineInstallation getConfiguredInstallation(
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener,
-        final @NonNull EnvVars env)
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener,
+        @NonNull final EnvVars env)
         throws IOException, InterruptedException {
 
         final List<AllureCommandlineInstallation> installations =
@@ -419,6 +421,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         this.includeProperties = includeProperties;
     }
 
+    // Keep the existing getter used by Jenkins data binding and callers.
+    @SuppressWarnings("PMD.BooleanGetMethodName")
     public Boolean getIncludeProperties() {
         if (this.includeProperties == null && this.config != null) {
             this.includeProperties = this.config.getIncludeProperties();
@@ -470,13 +474,12 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return (AllureReportPublisherDescriptor) super.getDescriptor();
     }
 
-    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     @Override
-    public void perform(final @NonNull Run<?, ?> run,
-        final @NonNull FilePath workspace,
-        final @NonNull EnvVars env,
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener) throws InterruptedException, IOException {
+    public void perform(@NonNull final Run<?, ?> run,
+        @NonNull final FilePath workspace,
+        @NonNull final EnvVars env,
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener) throws InterruptedException, IOException {
         if (isDisabled()) {
             listener.getLogger().println("Allure report is disabled.");
             return;
@@ -517,9 +520,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
      * between perform and createAggregator, because for concurrent builds (Jenkins provides such feature)
      * state objects will be corrupted.
      */
-    private void copyResultsToParentIfNeeded(final @NonNull List<FilePath> results,
-        final @NonNull Run<?, ?> run,
-        final @NonNull TaskListener listener
+    private void copyResultsToParentIfNeeded(@NonNull final List<FilePath> results,
+        @NonNull final Run<?, ?> run,
+        @NonNull final TaskListener listener
     ) throws IOException, InterruptedException {
         final AbstractBuild<?, ?> parentBuild = getMatrixParentBuild(run);
         if (parentBuild == null) {
@@ -564,14 +567,14 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         return false;
     }
 
-    @SuppressWarnings({"TrailingComment", "PMD.NcssCount"})
+    @SuppressWarnings("TrailingComment")
     void generateReport(
-        final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run,
-        final @NonNull FilePath workspace,
-        final @NonNull EnvVars env,
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener
+        @NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run,
+        @NonNull final FilePath workspace,
+        @NonNull final EnvVars env,
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener
     ) throws IOException, InterruptedException {
         if (!shouldGenerateReport(run, listener)) {
             return;
@@ -585,13 +588,13 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void generateReport(
-        final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run,
-        final @NonNull FilePath workspace,
-        final @NonNull EnvVars env,
-        final @NonNull Launcher launcher,
-        final @NonNull TaskListener listener,
-        final @NonNull ResolvedAllureInstallation resolved
+        @NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run,
+        @NonNull final FilePath workspace,
+        @NonNull final EnvVars env,
+        @NonNull final Launcher launcher,
+        @NonNull final TaskListener listener,
+        @NonNull final ResolvedAllureInstallation resolved
     ) throws IOException, InterruptedException {
         setAllureProperties(env);
 
@@ -855,10 +858,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         ));
     }
 
-    private void prepareResults(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run,
-        final @NonNull FilePath workspace,
-        final @NonNull TaskListener listener,
+    private void prepareResults(@NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run,
+        @NonNull final FilePath workspace,
+        @NonNull final TaskListener listener,
         final boolean allure3)
         throws IOException, InterruptedException {
         addHistory(resultsPaths, run, workspace, listener);
@@ -871,7 +874,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         addExecutorInfo(resultsPaths, run);
     }
 
-    private static void quarantineLegacyTestRunJson(final @NonNull List<FilePath> resultsPaths)
+    private static void quarantineLegacyTestRunJson(@NonNull final List<FilePath> resultsPaths)
             throws IOException, InterruptedException {
         for (FilePath path : resultsPaths) {
             final FilePath legacy = path.child(AddTestRunInfo.TESTRUN_JSON);
@@ -886,8 +889,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private void addEnvironmentInfo(final @NonNull List<FilePath> resultsPaths,
-                                    final @NonNull Run<?, ?> run)
+    private void addEnvironmentInfo(@NonNull final List<FilePath> resultsPaths,
+                                    @NonNull final Run<?, ?> run)
             throws IOException, InterruptedException {
         final long start = run.getStartTimeInMillis();
         final long stop = run.getTimeInMillis();
@@ -898,8 +901,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
-    private void addTestRunInfo(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run)
+    private void addTestRunInfo(@NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run)
         throws IOException, InterruptedException {
         final long start = run.getStartTimeInMillis();
         final long stop = run.getTimeInMillis();
@@ -908,8 +911,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private void addExecutorInfo(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run)
+    private void addExecutorInfo(@NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run)
         throws IOException, InterruptedException {
 
         final String rootUrl = StringUtils.trimToNull(Jenkins.get().getRootUrl());
@@ -937,10 +940,10 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private void addHistory(final @NonNull List<FilePath> resultsPaths,
-        final @NonNull Run<?, ?> run,
-        final @NonNull FilePath workspace,
-        final @NonNull TaskListener listener) {
+    private void addHistory(@NonNull final List<FilePath> resultsPaths,
+        @NonNull final Run<?, ?> run,
+        @NonNull final FilePath workspace,
+        @NonNull final TaskListener listener) {
         try {
             final String reportPath = workspace.child(getReport()).getName();
             final Run<?, ?> previousRun = FilePathUtils.getPreviousRunWithHistory(run, reportPath);
@@ -954,9 +957,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
         }
     }
 
-    private void copyHistoryToResultsPaths(final @NonNull List<FilePath> resultsPaths,
-                                           final @NonNull Run<?, ?> previousRun,
-                                           final @NonNull FilePath workspace)
+    private void copyHistoryToResultsPaths(@NonNull final List<FilePath> resultsPaths,
+                                           @NonNull final Run<?, ?> previousRun,
+                                           @NonNull final FilePath workspace)
             throws IOException, InterruptedException {
         try (AllureReportArchiveSource source = AllureReportArchiveSourceFactory.forRun(previousRun)) {
             for (FilePath resultsPath : resultsPaths) {
@@ -966,8 +969,8 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     private void copyHistoryToResultsPath(final AllureReportArchiveSource source,
-                                          final @NonNull FilePath resultsPath,
-                                          final @NonNull FilePath workspace)
+                                          @NonNull final FilePath resultsPath,
+                                          @NonNull final FilePath workspace)
         throws IOException, InterruptedException {
         final FilePath reportPath = workspace.child(getReport());
         final String historyPrefix = reportPath.getName() + "/history";
@@ -986,7 +989,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
     }
 
     @Nullable
-    private Result decideByThresholds(final @NonNull BuildSummary summary) {
+    private Result decideByThresholds(@NonNull final BuildSummary summary) {
         if (failureThresholdCount == null
             && failureThresholdPercent == null
             && unstableThresholdCount == null
@@ -996,7 +999,7 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
         final long problems = summary.getFailedCount() + summary.getBrokenCount();
         final long total = problems + summary.getPassedCount() + summary.getSkipCount() + summary.getUnknownCount();
-        final double ratio = total > 0 ? (problems * 100.0d) / (double) total : 0.0d;
+        final double ratio = total > 0 ? (problems * 100.0d) / total : 0.0d;
 
         final Result byCount = evaluateThresholdPair(problems, failureThresholdCount, unstableThresholdCount);
         final Result byPercent = evaluateThresholdPair(ratio, failureThresholdPercent, unstableThresholdPercent);
@@ -1054,9 +1057,9 @@ public class AllureReportPublisher extends Recorder implements SimpleBuildStep, 
 
     private BuildOutcome buildWithFallback(final ReportBuilder builder,
                                            final boolean singleFileRequested,
-                                           final @NonNull List<FilePath> resultsPaths,
-                                           final @NonNull FilePath reportDirectoryInWorkspace,
-                                           final @NonNull TaskListener listener)
+                                           @NonNull final List<FilePath> resultsPaths,
+                                           @NonNull final FilePath reportDirectoryInWorkspace,
+                                           @NonNull final TaskListener listener)
             throws IOException, InterruptedException {
         int exitCode = builder.build(resultsPaths, reportDirectoryInWorkspace);
         boolean singleFileGenerated = singleFileRequested;
