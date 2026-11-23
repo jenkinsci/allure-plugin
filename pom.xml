@@ -52,7 +52,7 @@
   </issueManagement>
 
   <properties>
-    <allure.version>2.35.3</allure.version>
+    <allure.version>3.1.1</allure.version>
     <allure2.recommended.version>2.46.0</allure2.recommended.version>
     <allure2.recommended.sha256>22f99aac74817bc0299a0022f1442a750f454df3e2431b1b98f8a34c0d3f260a</allure2.recommended.sha256>
     <allure3.recommended.version>3.33.0</allure3.recommended.version>
